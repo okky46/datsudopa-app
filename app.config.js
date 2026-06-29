@@ -32,7 +32,6 @@ module.exports = ({ config }) => ({
   },
   plugins: [
     'expo-router',
-    'expo-dev-client',
     'expo-video',
     'expo-notifications',
     [

@@ -35,7 +35,12 @@ export default function OnboardingScreen() {
     await StorageService.saveSettings(settings);
     await NotificationService.scheduleDailyRaid(settings);
     if (!granted) {
-      Alert.alert('通知はOFFです', 'メニューからいつでも通知を有効にできます。');
+      Alert.alert(
+        NotificationService.isAvailable() ? '通知はOFFです' : 'Expo Goでは通知不可',
+        NotificationService.isAvailable()
+          ? 'メニューからいつでも通知を有効にできます。'
+          : 'AndroidのExpo Goでは通知を試せません。development buildで確認してください。',
+      );
     }
     router.replace('/(tabs)');
   };

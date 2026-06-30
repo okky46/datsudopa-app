@@ -7,6 +7,7 @@ import { AdBanner } from '../../src/components/AdBanner';
 import { HistoryList } from '../../src/components/HistoryList';
 import { HomeHeroCard } from '../../src/components/HomeHeroCard';
 import { AuroraDot } from '../../src/components/ui/Decorations';
+import { HOME_CATCHPHRASE } from '../../src/constants/copy';
 import { colors, spacing, typography } from '../../src/constants/theme';
 import { DailyResult } from '../../src/types/result';
 import { RaidStatusView } from '../../src/types/raid';
@@ -15,8 +16,6 @@ import { LongVideoService } from '../../src/services/LongVideoService';
 import { NotificationService } from '../../src/services/NotificationService';
 import { RaidService } from '../../src/services/RaidService';
 import { StorageService } from '../../src/services/StorageService';
-
-const HOME_CATCHPHRASE = 'ショートの真逆、3分だけ止まる。';
 
 function BellIcon() {
   return (

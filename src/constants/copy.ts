@@ -1,13 +1,21 @@
 
 export const APP_CATCHPHRASE = 'ショートの真逆を、みんなでやる。';
 
+export const HOME_CATCHPHRASE = 'ショートで過熱した脳を、3分だけ冷ます。';
+
 export const RAID_NOTIFICATION_BODY =
   '⚠️ 脱ドパの時間です。3分以内にロングを視聴開始しないとあなたはドパガキのままです。';
 
 // 画面ごとの短いコピー（説明ではなく世界観として置く）
 export const screenCopy = {
-  longTitle: 'ショートの逆に入る',
-  longTagline: '3分だけ止まる。スキップできない虚無。',
+  longTitle: '脱ドパロング',
+  longTagline: 'ショートで過熱した脳を冷ます、余白のあるロング映像。',
+  longDescription:
+    '何かが起きそうで、何も起きない。\n洗練された空間にただ浸り、スクロール脳をクールダウンする。',
+  longSectionOthers: 'ほかの静かな没入映像',
+  longVideoSectionLabel: '今日の映像',
+  longDurationSectionLabel: '視聴時間',
+  longDurationSectionHint: '1分〜120分。スライダーか下のボタンで指定できます。',
   menuTitle: '集合設定',
   raidResultTitle: '本日の脱ドパ記録',
   raidResultLine: '虚無に耐えた時間だけ、少し戻ってくる。',
@@ -28,12 +36,16 @@ export const englishLabels = {
   longSessionResult: 'Long Session Result',
 } as const;
 
-export const LONG_VIDEO_DEFAULT_NOTE = '意味のある情報なし。刺激を抜くための静かな映像。';
+export const LONG_VIDEO_META_LABEL = '余白のあるロング映像';
+
+export const LONG_VIDEO_DEFAULT_NOTE = '低刺激ロング。静かな空間に浸り、脳に余白を戻す。';
+
+export const RAID_PLAYER_NOTE = 'スキップ不可。何かが起きそうで、何も起きない3分。みんなでクールダウン。';
 
 export const LONG_EXIT_CONFIRM = {
   title: '中断する？',
   message: 'スキップしたくなった瞬間も、記録に残る。',
-  continue: '耐える',
+  continue: '続ける',
   quit: '中断',
 } as const;
 
@@ -50,11 +62,11 @@ export const titles = [
 ];
 
 export const comments = [
-  'ショートの逆を、今日はどこまで耐えたか。',
+  'ショートの逆を、今日はどこまで続けたか。',
   'スクロールする代わりに、止まる。',
   '通知を見た時点で、レイドは始まっている。',
   '完走しても、中断しても、今日の記録。',
   '今日はまだ、取り返せる。',
   '虚無に耐えた時間だけ、少し戻ってくる。',
-  '刺激がないことに、耐えられるか。',
+  '低刺激に、どれだけ浸れるか。',
 ];

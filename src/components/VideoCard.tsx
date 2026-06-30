@@ -1,5 +1,6 @@
 
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { LONG_VIDEO_META_LABEL } from '../constants/copy';
 import { colors, radius, shadows, spacing, typography } from '../constants/theme';
 import { VideoAsset, VideoMood } from '../types/video';
 import { SoftGradient } from './ui/SoftGradient';
@@ -7,9 +8,12 @@ import { SoftGradient } from './ui/SoftGradient';
 type Props = {
   video: VideoAsset;
   selected?: boolean;
-  onPress: () => void;
+  onPress?: () => void;
   // hero: ロング画面の大きな主役カード / default: リスト用の小さめカード
   variant?: 'default' | 'hero';
+  interactive?: boolean;
+  compact?: boolean;
+  heroHeight?: number;
 };
 
 // ムードごとに、夕暮れ・雨・夜などのチルで美しい色調をグラデーションで表現する。
@@ -25,47 +29,66 @@ const moodTone: Record<VideoMood, { sky: string[]; ground: string; label: string
   parking: { sky: ['#363B48', '#565C6E', '#8E94A4'], ground: '#272B34', label: 'parking' },
 };
 
-function PlaySmall() {
-  return (
-    <View style={styles.previewTriangle} />
-  );
-}
 
-export function VideoCard({ video, selected = false, onPress, variant = 'default' }: Props) {
+export function VideoCard({
+  video,
+  selected = false,
+  onPress,
+  variant = 'default',
+  interactive = true,
+  compact = false,
+  heroHeight,
+}: Props) {
   const tone = moodTone[video.mood] ?? moodTone.chill;
   const isHero = variant === 'hero';
+  const canPress = interactive && !!onPress;
+
+  const thumb = (
+    <View
+      style={[
+        styles.thumb,
+        isHero
+          ? { height: heroHeight ?? (compact ? 148 : 252) }
+          : styles.thumbDefault,
+      ]}
+    >
+      <SoftGradient colors={tone.sky} direction="vertical" style={StyleSheet.absoluteFill} steps={24} />
+      <View style={[styles.ground, { backgroundColor: tone.ground }]} />
+      <View style={styles.horizonGlow} />
+      {!isHero && (
+        <>
+          <View style={styles.moodTag}>
+            <Text style={styles.moodTagText}>{tone.label}</Text>
+          </View>
+          {selected && (
+            <View style={styles.check}>
+              <View style={styles.checkDot} />
+            </View>
+          )}
+        </>
+      )}
+    </View>
+  );
 
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.card, isHero && styles.cardHero, selected && !isHero && styles.selected, pressed && styles.pressed]}>
-      <View style={[styles.thumb, isHero ? styles.thumbHero : styles.thumbDefault]}>
-        <SoftGradient colors={tone.sky} direction="vertical" style={StyleSheet.absoluteFill} steps={24} />
-        <View style={[styles.ground, { backgroundColor: tone.ground }]} />
-        <View style={styles.horizonGlow} />
-        {isHero ? (
-          <View style={styles.previewPill}>
-            <PlaySmall />
-            <Text style={styles.previewText}>プレビュー</Text>
-          </View>
-        ) : (
-          <>
-            <View style={styles.moodTag}>
-              <Text style={styles.moodTagText}>{tone.label}</Text>
-            </View>
-            {selected && (
-              <View style={styles.check}>
-                <View style={styles.checkDot} />
-              </View>
-            )}
-          </>
-        )}
-      </View>
+    <Pressable
+      onPress={canPress ? onPress : undefined}
+      disabled={!canPress}
+      style={({ pressed }) => [
+        styles.card,
+        isHero && styles.cardHero,
+        selected && !isHero && styles.selected,
+        canPress && pressed && styles.pressed,
+      ]}
+    >
+      {thumb}
       {!isHero && (
         <View style={styles.body}>
           <Text style={styles.title} numberOfLines={1}>
             {video.title}
           </Text>
           <Text style={styles.meta} numberOfLines={1}>
-            {(video.creatorName || 'unknown') + ' ・ 何も起きない映像'}
+            {(video.creatorName || 'unknown') + ' ・ ' + LONG_VIDEO_META_LABEL}
           </Text>
         </View>
       )}
@@ -99,9 +122,6 @@ const styles = StyleSheet.create({
   thumbDefault: {
     height: 150,
   },
-  thumbHero: {
-    height: 300,
-  },
   ground: {
     position: 'absolute',
     left: 0,
@@ -117,33 +137,6 @@ const styles = StyleSheet.create({
     top: '60%',
     height: 2,
     backgroundColor: 'rgba(255,255,255,0.18)',
-  },
-  previewPill: {
-    position: 'absolute',
-    right: spacing.md,
-    bottom: spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: radius.pill,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-  },
-  previewText: {
-    color: colors.text,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  previewTriangle: {
-    width: 0,
-    height: 0,
-    borderTopWidth: 4,
-    borderBottomWidth: 4,
-    borderLeftWidth: 7,
-    borderTopColor: 'transparent',
-    borderBottomColor: 'transparent',
-    borderLeftColor: colors.text,
   },
   moodTag: {
     position: 'absolute',

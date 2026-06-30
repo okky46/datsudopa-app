@@ -8,18 +8,19 @@ type Props = {
   selected?: boolean;
   onPress: () => void;
   icon?: ReactNode;
+  compact?: boolean;
 };
 
-export function Chip({ label, selected = false, onPress, icon }: Props) {
+export function Chip({ label, selected = false, onPress, icon, compact = false }: Props) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected }}
       onPress={onPress}
-      style={({ pressed }) => [styles.chip, selected && styles.selected, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.chip, compact && styles.chipCompact, selected && styles.selected, pressed && styles.pressed]}
     >
       {icon}
-      <Text style={[styles.text, selected && styles.textSelected]}>{label}</Text>
+      <Text style={[styles.text, compact && styles.textCompact, selected && styles.textSelected]}>{label}</Text>
     </Pressable>
   );
 }
@@ -36,6 +37,10 @@ const styles = StyleSheet.create({
     borderColor: colors.borderStrong,
     backgroundColor: colors.card,
   },
+  chipCompact: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
   selected: {
     borderColor: colors.primary,
     backgroundColor: colors.primary,
@@ -47,6 +52,9 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 14,
     fontWeight: '600',
+  },
+  textCompact: {
+    fontSize: 13,
   },
   textSelected: {
     color: colors.onPrimary,

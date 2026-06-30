@@ -1,6 +1,17 @@
 
 import { videoAssets } from '../constants/videos';
-import { VideoAsset, VideoWatchRecord, WatchDurationOption, WatchMode } from '../types/video';
+import { VideoAsset, VideoWatchRecord, WatchMode } from '../types/video';
+import {
+  LONG_DURATION_DEFAULT_MINUTES,
+  LONG_DURATION_MAX_MINUTES,
+  LONG_DURATION_MIN_MINUTES,
+  randomDurationMinutes,
+  snapToDurationStep,
+} from '../utils/durationSteps';
+
+export const LONG_DURATION_DEFAULT_SECONDS = LONG_DURATION_DEFAULT_MINUTES * 60;
+
+export { LONG_DURATION_MAX_MINUTES, LONG_DURATION_MIN_MINUTES };
 
 export class LongVideoService {
   static listVideos(): VideoAsset[] {
@@ -20,12 +31,17 @@ export class LongVideoService {
     return videoAssets[Math.floor(Math.random() * videoAssets.length)];
   }
 
-  static resolveDuration(option: WatchDurationOption): number {
-    if (option === 'random') {
-      const values = [60, 180, 300, 600, 1800];
-      return values[Math.floor(Math.random() * values.length)];
-    }
-    return option;
+  static randomDurationSeconds(): number {
+    return randomDurationMinutes() * 60;
+  }
+
+  static clampDurationSeconds(seconds: number): number {
+    const minutes = snapToDurationStep(Math.round(seconds / 60));
+    return minutes * 60;
+  }
+
+  static minutesFromSeconds(seconds: number): number {
+    return snapToDurationStep(Math.round(seconds / 60));
   }
 
   static createWatchRecord(input: {

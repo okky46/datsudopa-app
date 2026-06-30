@@ -1,27 +1,23 @@
 
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AdBanner } from '../../src/components/AdBanner';
 import { PrimaryButton } from '../../src/components/PrimaryButton';
 import { VideoCard } from '../../src/components/VideoCard';
 import { Chip } from '../../src/components/ui/Chip';
-import { colors, spacing, typography } from '../../src/constants/theme';
-import { LongVideoService } from '../../src/services/LongVideoService';
-import { VideoAsset, WatchDurationOption } from '../../src/types/video';
+import { DurationSlider } from '../../src/components/ui/DurationSlider';
+import { screenCopy } from '../../src/constants/copy';
+import { colors, radius, spacing, typography } from '../../src/constants/theme';
+import { LONG_DURATION_DEFAULT_SECONDS, LongVideoService } from '../../src/services/LongVideoService';
+import { VideoAsset } from '../../src/types/video';
 
-const durationOptions: Array<{ label: string; value: WatchDurationOption; shuffle?: boolean }> = [
-  { label: 'ランダム', value: 'random', shuffle: true },
-  { label: '3分', value: 180 },
-  { label: '10分', value: 600 },
-  { label: '30分', value: 1800 },
-];
-
-function durationMinutes(value: WatchDurationOption): string {
-  if (value === 'random') return '3分';
-  return `${Math.round(value / 60)}分`;
-}
+const DURATION_PRESETS = [
+  { label: '3分', seconds: 180 },
+  { label: '10分', seconds: 600 },
+  { label: '30分', seconds: 1800 },
+] as const;
 
 function ShuffleGlyph() {
   return (
@@ -45,57 +41,114 @@ function LockGlyph() {
   );
 }
 
+type SectionHeadingProps = {
+  label: string;
+  value?: string;
+  hint?: string;
+};
+
+function SectionHeading({ label, value, hint }: SectionHeadingProps) {
+  return (
+    <View style={styles.sectionHeading}>
+      <Text style={styles.sectionLabel}>{label}</Text>
+      {value ? (
+        <Text style={styles.sectionValue} numberOfLines={1}>
+          {value}
+        </Text>
+      ) : null}
+      {hint ? <Text style={styles.sectionHint}>{hint}</Text> : null}
+    </View>
+  );
+}
+
 export default function LongScreen() {
+  const { height: windowHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const videos = useMemo(() => LongVideoService.listVideos(), []);
   const recommended = useMemo(() => LongVideoService.getRecommendedVideo(), []);
   const [selectedVideo, setSelectedVideo] = useState<VideoAsset>(recommended);
-  const [duration, setDuration] = useState<WatchDurationOption>(180);
+  const [durationSeconds, setDurationSeconds] = useState(LONG_DURATION_DEFAULT_SECONDS);
   const others = videos.filter((video) => video.id !== recommended.id);
 
+  const heroHeight = useMemo(() => {
+    const available = windowHeight - insets.top - 88 - 300;
+    if (available < 120) {
+      return 120;
+    }
+    return Math.min(168, Math.max(132, Math.round(available)));
+  }, [insets.top, windowHeight]);
+
+  const durationMinutes = LongVideoService.minutesFromSeconds(durationSeconds);
+
+  const setDurationMinutes = (minutes: number) => {
+    setDurationSeconds(minutes * 60);
+  };
+
   const start = () => {
-    const seconds = LongVideoService.resolveDuration(duration);
-    router.push({ pathname: '/raid/active', params: { mode: 'normal', videoId: selectedVideo.id, duration: String(seconds) } });
+    router.push({
+      pathname: '/raid/active',
+      params: { mode: 'normal', videoId: selectedVideo.id, duration: String(durationSeconds) },
+    });
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+      <View style={styles.setupPanel}>
         <View style={styles.header}>
-          <Text style={styles.title}>今日のロング ✨</Text>
-          <Text style={styles.subtitle}>
-            {selectedVideo.title} / {durationMinutes(duration)}
+          <Text style={styles.title}>{screenCopy.longTitle}</Text>
+          <Text style={styles.tagline} numberOfLines={1}>
+            {screenCopy.longTagline}
           </Text>
         </View>
 
-        <VideoCard
-          video={selectedVideo}
-          variant="hero"
-          selected
-          onPress={() => router.push({ pathname: '/raid/active', params: { mode: 'normal', videoId: selectedVideo.id, duration: String(LongVideoService.resolveDuration(duration)) } })}
-        />
+        <VideoCard video={selectedVideo} variant="hero" selected interactive={false} compact heroHeight={heroHeight} />
 
-        <Text style={styles.kicker}>時間を選ぶ</Text>
-        <View style={styles.durationRow}>
-          {durationOptions.map((option) => (
+        <SectionHeading label={screenCopy.longVideoSectionLabel} value={selectedVideo.title} />
+
+        <SectionHeading label={screenCopy.longDurationSectionLabel} hint={screenCopy.longDurationSectionHint} />
+
+        <DurationSlider valueMinutes={durationMinutes} onChange={setDurationMinutes} compact />
+
+        <View style={styles.presetRow}>
+          <Chip
+            label="ランダム"
+            compact
+            icon={<ShuffleGlyph />}
+            onPress={() => setDurationSeconds(LongVideoService.randomDurationSeconds())}
+          />
+          {DURATION_PRESETS.map((preset) => (
             <Chip
-              key={option.label}
-              label={option.label}
-              selected={duration === option.value}
-              icon={option.shuffle ? <ShuffleGlyph /> : undefined}
-              onPress={() => setDuration(option.value)}
+              key={preset.label}
+              label={preset.label}
+              compact
+              selected={durationSeconds === preset.seconds}
+              onPress={() => setDurationSeconds(preset.seconds)}
             />
           ))}
         </View>
 
-        <PrimaryButton label="再生する" variant="gradient" onPress={start} icon={<PlayTriangle />} style={styles.playButton} />
+        <PrimaryButton
+          label="再生する"
+          variant="gradient"
+          onPress={start}
+          icon={<PlayTriangle />}
+          style={styles.playButton}
+        />
+
         <View style={styles.lockRow}>
           <LockGlyph />
           <Text style={styles.lockText}>スキップ不可</Text>
         </View>
+      </View>
 
+      <ScrollView
+        style={styles.extraScroll}
+        contentContainerStyle={styles.extraContent}
+        showsVerticalScrollIndicator={false}
+      >
         {others.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.kicker}>ほかの虚無</Text>
+            <Text style={styles.sectionLabel}>{screenCopy.longSectionOthers}</Text>
             <View style={styles.list}>
               {others.map((video) => (
                 <VideoCard
@@ -109,6 +162,7 @@ export default function LongScreen() {
           </View>
         )}
 
+        <Text style={styles.description}>{screenCopy.longDescription}</Text>
         <AdBanner />
       </ScrollView>
     </SafeAreaView>
@@ -120,39 +174,57 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  content: {
-    gap: spacing.lg,
+  setupPanel: {
+    flexShrink: 0,
+    gap: spacing.sm,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: 120,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.sm,
   },
   header: {
-    gap: 6,
+    gap: 2,
     alignItems: 'center',
   },
   title: {
     color: colors.text,
-    ...typography.h1,
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: -0.3,
   },
-  subtitle: {
-    color: colors.textSubtle,
-    ...typography.caption,
-  },
-  section: {
-    gap: spacing.sm,
-  },
-  kicker: {
+  tagline: {
     color: colors.textMuted,
-    ...typography.label,
+    fontSize: 13,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  sectionHeading: {
+    gap: 2,
     paddingHorizontal: spacing.xs,
   },
-  durationRow: {
+  sectionLabel: {
+    color: colors.textMuted,
+    ...typography.label,
+  },
+  sectionValue: {
+    color: colors.text,
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+  },
+  sectionHint: {
+    color: colors.textSubtle,
+    fontSize: 12,
+    fontWeight: '500',
+    lineHeight: 17,
+  },
+  presetRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
   playButton: {
-    marginTop: spacing.xs,
+    minHeight: 50,
+    marginTop: 2,
   },
   playTriangle: {
     width: 0,
@@ -170,11 +242,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs,
-    marginTop: -spacing.sm,
+    marginTop: -2,
   },
   lockText: {
     color: colors.textSubtle,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
   },
   lock: {
@@ -212,7 +284,29 @@ const styles = StyleSheet.create({
   shuffleLine2: {
     transform: [{ rotate: '8deg' }],
   },
+  extraScroll: {
+    flex: 1,
+  },
+  extraContent: {
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xs,
+    paddingBottom: 120,
+  },
+  section: {
+    gap: spacing.sm,
+  },
   list: {
     gap: spacing.md,
+  },
+  description: {
+    color: colors.textSubtle,
+    ...typography.caption,
+    textAlign: 'center',
+    lineHeight: 20,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
   },
 });

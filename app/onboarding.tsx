@@ -15,7 +15,7 @@ import { SocialTimeSlot } from '../src/types/settings';
 
 const onboardingSteps = [
   { label: '1 時間を選ぶ', text: 'ショートを見がちな時間。' },
-  { label: '2 通知で集合', text: '毎日一回、虚無レイド開始。' },
+  { label: '2 通知で集合', text: '毎日一回、低刺激ロングのレイド開始。' },
   { label: '3 3分以内に参加', text: '遅れると未参加。' },
   { label: '4 結果を共有', text: '完走も中断も、今日の記録。' },
 ];
@@ -55,7 +55,7 @@ export default function OnboardingScreen() {
         <View style={styles.hero}>
           <Text style={styles.brand}>脱ドパ</Text>
           <Text style={styles.title}>ショートの真逆、はじめます。</Text>
-          <Text style={styles.subtitle}>毎日一回、虚無のロングに集合。</Text>
+          <Text style={styles.subtitle}>毎日一回、余白のあるロングに集合。</Text>
           <Text style={styles.catchphrase}>{APP_CATCHPHRASE}</Text>
         </View>
 

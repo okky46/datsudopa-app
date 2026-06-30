@@ -109,10 +109,10 @@ export function calculateSessionMetrics(
 
 export function getDailyComment(score: number): string {
   if (score <= 35) {
-    return '今日もショートの逆に入れた。';
+    return '今日もショートの逆に入れた。脳に余白が戻ってきている。';
   }
   if (score <= 70) {
-    return '今日はまだ、ドパが残っている。';
+    return '今日はまだ、ドパが残っている。次は低刺激ロングでクールダウン。';
   }
-  return '次の集合で、3分だけ止まる。';
+  return '次の集合で、余白のある3分に浸る。';
 }

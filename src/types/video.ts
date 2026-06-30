@@ -24,8 +24,6 @@ export type VideoAsset = {
 
 export type WatchMode = 'raid' | 'normal';
 
-export type WatchDurationOption = 'random' | 60 | 180 | 300 | 600 | 1800;
-
 export type VideoWatchRecord = {
   id: string;
   videoId: string;

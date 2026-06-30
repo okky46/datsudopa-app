@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'rea
 import { Alert, Animated, AppState, AppStateStatus, Pressable, StyleSheet, Text, View } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LONG_EXIT_CONFIRM, LONG_VIDEO_DEFAULT_NOTE } from '../constants/copy';
+import { LONG_EXIT_CONFIRM, LONG_VIDEO_DEFAULT_NOTE, RAID_PLAYER_NOTE } from '../constants/copy';
 import { colors, spacing } from '../constants/theme';
 import { OrientationService } from '../services/OrientationService';
 import { FailureReason } from '../types/result';
@@ -194,7 +194,7 @@ export function VideoPlayerShell({ video, mode, targetSeconds, onComplete, onFai
       </View>
       <View style={styles.bottom}>
         <Text style={styles.title}>{video.title}</Text>
-        <Text style={styles.note}>スキップ不可。何も起きない3分に、みんなで耐える。</Text>
+        <Text style={styles.note}>{RAID_PLAYER_NOTE}</Text>
         <Pressable
           onPress={() => {
             if (!handledRef.current) {

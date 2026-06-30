@@ -14,7 +14,7 @@ export function RaidStatusCard({ raidStatus, onStart }: Props) {
   const active = raidStatus.canStart || devCanStart;
   const urgent = raidStatus.status === 'available';
   const statusHint = urgent
-    ? 'みんなもう、スキップできない虚無を見ています。'
+    ? 'みんなもう、余白のあるロングを見ています。'
     : raidStatus.status === 'not_started'
       ? '同じ時間帯の人と、ある程度そろって集合します。'
       : '今日の耐久結果として、レイド記録に残ります。';
@@ -25,7 +25,7 @@ export function RaidStatusCard({ raidStatus, onStart }: Props) {
         <View style={styles.left}>
           <Text style={styles.label}>今日のレイド</Text>
           <Text style={styles.time}>{raidStatus.raidTime}</Text>
-          <Text style={styles.concept}>毎日一回、虚無のロングに集合。</Text>
+          <Text style={styles.concept}>毎日一回、余白のあるロングに集合。</Text>
           {urgent ? (
             <>
               <Text style={styles.urgentLabel}>3分以内に参加</Text>

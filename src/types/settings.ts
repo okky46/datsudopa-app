@@ -1,6 +1,5 @@
 
-export type SocialTimeSlot = 'morning' | 'lunch' | 'evening' | 'before_bed' | 'late_night' | 'custom';
-export type NotificationTone = 'gentle' | 'normal' | 'strong';
+export type SocialTimeSlot = 'early_morning' | 'morning' | 'noon' | 'evening' | 'night' | 'late_night';
 export type FrameColorId = 'moss' | 'sage' | 'sand' | 'mist' | 'dusk';
 
 export type UserSettings = {
@@ -10,8 +9,9 @@ export type UserSettings = {
   socialTimeSlot: SocialTimeSlot;
   customSocialTimeLabel?: string;
   raidTime: string;
+  customTimeStart?: string;
+  customTimeEnd?: string;
   notificationEnabled: boolean;
-  notificationTone: NotificationTone;
   raidDurationSeconds: number;
 };
 

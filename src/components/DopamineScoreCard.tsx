@@ -1,82 +1,110 @@
 
 import { StyleSheet, Text, View } from 'react-native';
-import { englishLabels } from '../constants/copy';
-import { colors, radius, spacing, typography } from '../constants/theme';
+import { colors, spacing, typography } from '../constants/theme';
 import { DailyResult } from '../types/result';
 import { getDailyComment, getDailyTitle } from '../utils/score';
+import { Card } from './ui/Card';
 import { ShareButton } from './ShareButton';
 
 type Props = {
   score: number;
   nickname: string;
   result?: DailyResult | null;
+  compact?: boolean;
 };
 
-export function DopamineScoreCard({ score, nickname, result }: Props) {
-  const displayName = nickname.trim() || '名無しのドパガキ';
+export function DopamineScoreCard({ score, nickname, result, compact = false }: Props) {
+  const displayName = (nickname ?? '').trim() || '名無しのドパガキ';
+  const title = result?.title || getDailyTitle(score);
+  const comment = result?.comment || getDailyComment(score);
 
   return (
-    <View style={styles.card}>
-      <Text style={styles.caption}>{englishLabels.stimulationMeter}</Text>
-      <Text style={styles.scoreOwner}>{displayName}のドパガキ度</Text>
-      <Text style={styles.scoreHint}>脳内刺激の残りを、ざっくり%で表示しています</Text>
-      <View style={styles.row}>
-        <Text style={styles.score}>{score}%</Text>
-        <View style={styles.meta}>
-          <Text style={styles.title}>{result?.title || getDailyTitle(score)}</Text>
-          <Text style={styles.comment}>{result?.comment || getDailyComment(score)}</Text>
-        </View>
+    <Card variant={compact ? 'default' : 'hero'} style={[styles.card, compact && styles.cardCompact]}>
+      <View style={[styles.header, compact && styles.headerCompact]}>
+        <Text style={styles.owner}>{displayName}</Text>
+        <ShareButton result={result} variant="inline" />
       </View>
-      <ShareButton result={result} compact />
-    </View>
+
+      <Text style={styles.label}>レイド後のドパガキ度</Text>
+      <View style={styles.scoreRow}>
+        <Text style={[styles.score, compact && styles.scoreCompact]}>{score}</Text>
+        <Text style={[styles.percent, compact && styles.percentCompact]}>%</Text>
+      </View>
+
+      <View style={styles.meta}>
+        <Text style={[styles.title, compact && styles.titleCompact]} numberOfLines={compact ? 1 : undefined}>
+          {title}
+        </Text>
+        {!compact && <Text style={styles.comment}>{comment}</Text>}
+      </View>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    gap: spacing.md,
-    padding: spacing.lg,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
+    gap: spacing.xs,
   },
-  caption: {
-    color: colors.textSubtle,
-    ...typography.englishLabel,
+  cardCompact: {
+    gap: 2,
+    paddingVertical: spacing.md,
   },
-  scoreOwner: {
-    color: colors.text,
-    fontSize: 22,
-    fontWeight: '800',
-  },
-  scoreHint: {
-    color: colors.textMuted,
-    fontSize: 13,
-    lineHeight: 20,
-  },
-  row: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+  },
+  headerCompact: {
+    marginBottom: spacing.xs,
+  },
+  owner: {
+    flex: 1,
+    color: colors.textMuted,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  label: {
+    color: colors.textSubtle,
+    ...typography.label,
+  },
+  scoreRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
   },
   score: {
     color: colors.text,
-    fontSize: 54,
-    fontWeight: '800',
+    ...typography.score,
+  },
+  scoreCompact: {
+    fontSize: 52,
     letterSpacing: -2,
   },
+  percent: {
+    color: colors.textSubtle,
+    fontSize: 30,
+    fontWeight: '700',
+    marginBottom: 14,
+    marginLeft: 2,
+  },
+  percentCompact: {
+    fontSize: 22,
+    marginBottom: 8,
+  },
   meta: {
-    flex: 1,
-    gap: spacing.xs,
+    gap: 4,
   },
   title: {
     color: colors.text,
-    fontSize: 18,
+    ...typography.h2,
+  },
+  titleCompact: {
+    fontSize: 16,
     fontWeight: '700',
+    marginTop: spacing.xs,
   },
   comment: {
     color: colors.textMuted,
-    lineHeight: 20,
+    ...typography.body,
   },
 });

@@ -27,7 +27,7 @@ function MenuIcon({ color }: { color: string }) {
 }
 
 function TabIcon({ type, focused, featured = false }: { type: 'home' | 'play' | 'menu'; focused: boolean; featured?: boolean }) {
-  const color = focused ? colors.blue : colors.textSubtle;
+  const color = focused ? colors.accent : colors.textSubtle;
   const iconColor = featured && focused ? colors.card : color;
 
   return (
@@ -47,15 +47,17 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: colors.card,
           borderTopColor: colors.border,
-          height: 82,
-          paddingTop: 8,
-          paddingBottom: 8,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          height: 84,
+          paddingTop: 10,
+          paddingBottom: 10,
         },
-        tabBarActiveTintColor: colors.blue,
+        tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.textSubtle,
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: '700',
+          letterSpacing: 0.3,
         },
       }}
     >
@@ -82,20 +84,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   featuredIcon: {
-    width: 48,
-    height: 42,
+    width: 46,
+    height: 40,
     borderWidth: 1,
     borderColor: colors.accentBorder,
     borderRadius: 999,
     backgroundColor: colors.accentSoft,
-    shadowColor: colors.blue,
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
   },
   featuredIconFocused: {
-    backgroundColor: colors.blue,
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   homeIcon: {
     width: 24,

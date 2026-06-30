@@ -101,7 +101,7 @@ function LongVideoPlayer({ video, remainingSeconds, watchedSeconds, onFail, hand
 
   const timerBadge = (
     <View style={[styles.longStatus, { top: Math.max(insets.top, spacing.md) }]} pointerEvents="none">
-      <Text style={styles.longStatusText}>脱ドパ中...</Text>
+      <Text style={styles.longStatusText}>自主練中</Text>
       <Text style={styles.longTimer}>{formatSeconds(remainingSeconds)}</Text>
     </View>
   );
@@ -182,19 +182,19 @@ export function VideoPlayerShell({ video, mode, targetSeconds, onComplete, onFai
     );
   }
 
-  const failLabel = '緊急離脱';
+  const failLabel = '中断する';
 
   return (
     <View style={styles.container}>
       <VideoLayer video={video} />
       <View style={styles.scrim} />
       <View style={styles.top}>
-        <Text style={styles.mode}>脱ドパレイド</Text>
+        <Text style={styles.mode}>本日の脱ドパレイド</Text>
         <Text style={styles.remaining}>{formatSeconds(remainingSeconds)}</Text>
       </View>
       <View style={styles.bottom}>
         <Text style={styles.title}>{video.title}</Text>
-        <Text style={styles.note}>刺激がないことに、耐えられるか。</Text>
+        <Text style={styles.note}>スキップ不可。何も起きない3分に、みんなで耐える。</Text>
         <Pressable
           onPress={() => {
             if (!handledRef.current) {

@@ -1,13 +1,14 @@
 
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AdBanner } from '../../src/components/AdBanner';
 import { PrimaryButton } from '../../src/components/PrimaryButton';
 import { VideoCard } from '../../src/components/VideoCard';
-import { colors, radius, spacing, typography } from '../../src/constants/theme';
-import { englishLabels } from '../../src/constants/copy';
+import { Chip } from '../../src/components/ui/Chip';
+import { colors, spacing, typography } from '../../src/constants/theme';
+import { screenCopy } from '../../src/constants/copy';
 import { LongVideoService } from '../../src/services/LongVideoService';
 import { VideoAsset, WatchDurationOption } from '../../src/types/video';
 
@@ -25,6 +26,7 @@ export default function LongScreen() {
   const recommended = useMemo(() => LongVideoService.getRecommendedVideo(), []);
   const [selectedVideo, setSelectedVideo] = useState<VideoAsset>(recommended);
   const [duration, setDuration] = useState<WatchDurationOption>(180);
+  const others = videos.filter((video) => video.id !== recommended.id);
 
   const start = () => {
     const seconds = LongVideoService.resolveDuration(duration);
@@ -33,48 +35,56 @@ export default function LongScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
-          <Text style={styles.kicker}>{englishLabels.longWatch}</Text>
-          <Text style={styles.title}>静かな映像に逃げる</Text>
-          <Text style={styles.subtitle}>通常視聴はいつでも可能。レイド扱いにはならないが、ドパガキ度を少しだけ冷ます。</Text>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <Text style={styles.title}>{screenCopy.longTitle}</Text>
+          <Text style={styles.tagline}>{screenCopy.longTagline}</Text>
+        </View>
+
+        <View style={styles.infoCard}>
+          <Text style={styles.kicker}>ここは自主練</Text>
+          <Text style={styles.infoTitle}>レイドは通知から参加</Text>
+          <Text style={styles.infoText}>通常視聴はいつでも入れる練習。今日の結果に残る本番は、毎日一回の集合レイド。</Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>今日のおすすめ</Text>
-          <VideoCard video={recommended} selected={selectedVideo.id === recommended.id} onPress={() => setSelectedVideo(recommended)} />
+          <Text style={styles.kicker}>今日のロング</Text>
+          <VideoCard
+            video={recommended}
+            selected={selectedVideo.id === recommended.id}
+            onPress={() => setSelectedVideo(recommended)}
+          />
         </View>
 
+        <Text style={styles.kicker}>耐える時間</Text>
+        <View style={styles.durationRow}>
+          {durationOptions.map((option) => (
+            <Chip
+              key={option.label}
+              label={option.label}
+              selected={duration === option.value}
+              onPress={() => setDuration(option.value)}
+            />
+          ))}
+        </View>
+
+        <PrimaryButton label="自主練として入る" onPress={start} />
+
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>視聴時間</Text>
-          <View style={styles.chips}>
-            {durationOptions.map((option) => (
-              <Pressable
-                key={option.label}
-                onPress={() => setDuration(option.value)}
-                style={[styles.chip, duration === option.value && styles.chipSelected]}
-              >
-                <Text style={[styles.chipText, duration === option.value && styles.chipTextSelected]}>{option.label}</Text>
-              </Pressable>
+          <Text style={styles.kicker}>ほかの虚無</Text>
+          <View style={styles.list}>
+            {others.map((video) => (
+              <VideoCard
+                key={video.id}
+                video={video}
+                selected={selectedVideo.id === video.id}
+                onPress={() => setSelectedVideo(video)}
+              />
             ))}
           </View>
         </View>
 
-        <PrimaryButton label="脱ドパロングを開始" onPress={start} />
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>動画一覧</Text>
-          {videos.map((video) => (
-            <VideoCard key={video.id} video={video} selected={selectedVideo.id === video.id} onPress={() => setSelectedVideo(video)} />
-          ))}
-        </View>
-
-        <View style={styles.placeholder}>
-          <Text style={styles.placeholderTitle}>投稿機能 placeholder</Text>
-          <Text style={styles.placeholderBody}>将来は自分で撮影した無人駅、雨上がりの道路、蛍光灯の廊下を投稿できる構造にします。動画本体はStorage/CDN、DBにはメタデータのみ。</Text>
-        </View>
-
-        <AdBanner label="通常視聴 AdMob バナー" />
+        <AdBanner />
       </ScrollView>
     </SafeAreaView>
   );
@@ -87,73 +97,52 @@ const styles = StyleSheet.create({
   },
   content: {
     gap: spacing.lg,
-    padding: spacing.lg,
-    paddingBottom: 110,
-  },
-  hero: {
-    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
+    paddingBottom: 120,
   },
-  kicker: {
-    color: colors.blue,
-    ...typography.englishKicker,
+  header: {
+    gap: 4,
+    paddingHorizontal: spacing.xs,
   },
   title: {
     color: colors.text,
-    fontSize: 34,
-    fontWeight: '800',
+    ...typography.display,
   },
-  subtitle: {
+  tagline: {
     color: colors.textMuted,
-    lineHeight: 22,
+    ...typography.body,
   },
   section: {
-    gap: spacing.md,
+    gap: spacing.sm,
   },
-  sectionTitle: {
+  infoCard: {
+    gap: spacing.xs,
+    padding: spacing.md,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.cardStrong,
+  },
+  infoTitle: {
     color: colors.text,
-    fontSize: 17,
-    fontWeight: '700',
+    ...typography.h2,
   },
-  chips: {
+  infoText: {
+    color: colors.textMuted,
+    ...typography.caption,
+  },
+  kicker: {
+    color: colors.textSubtle,
+    ...typography.label,
+    paddingHorizontal: spacing.xs,
+  },
+  durationRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
   },
-  chip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 999,
-    backgroundColor: colors.surface,
-  },
-  chipSelected: {
-    borderColor: colors.blue,
-    backgroundColor: colors.accentSoft,
-  },
-  chipText: {
-    color: colors.textMuted,
-  },
-  chipTextSelected: {
-    color: colors.text,
-    fontWeight: '700',
-  },
-  placeholder: {
-    gap: spacing.sm,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: colors.border,
-    borderRadius: radius.lg,
-  },
-  placeholderTitle: {
-    color: colors.text,
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  placeholderBody: {
-    color: colors.textMuted,
-    lineHeight: 22,
+  list: {
+    gap: spacing.md,
   },
 });

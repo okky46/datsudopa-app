@@ -39,15 +39,15 @@ const styles = StyleSheet.create({
   base: {
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 52,
+    minHeight: 54,
     paddingHorizontal: spacing.lg,
     borderRadius: radius.md,
-    backgroundColor: colors.blue,
+    backgroundColor: colors.accent,
   },
   ghost: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
   },
   danger: {
     backgroundColor: colors.dangerSoft,
@@ -68,10 +68,10 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   label: {
-    color: colors.black,
+    color: colors.onAccent,
     fontSize: 15,
     fontWeight: '700',
-    letterSpacing: 0.8,
+    letterSpacing: 0.4,
   },
   ghostLabel: {
     color: colors.text,

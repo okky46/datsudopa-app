@@ -7,7 +7,7 @@ import { PrimaryButton } from '../../src/components/PrimaryButton';
 import { ResultCard } from '../../src/components/ResultCard';
 import { ShareButton } from '../../src/components/ShareButton';
 import { colors, spacing, typography } from '../../src/constants/theme';
-import { englishLabels } from '../../src/constants/copy';
+import { screenCopy } from '../../src/constants/copy';
 import { StorageService } from '../../src/services/StorageService';
 import { DailyResult } from '../../src/types/result';
 import { useScreenFrame } from '../../src/contexts/ScreenFrameContext';
@@ -22,18 +22,9 @@ function getCelebrationTime(result: DailyResult): string {
 
 function getHeroCopy(result: DailyResult | null) {
   if (result?.mode === 'normal') {
-    return {
-      kicker: englishLabels.longSessionResult,
-      title: '脱ドパロング視聴結果',
-      subtitle: 'どれだけ脱ドパできたか、スマホを触らなかった時間でどれだけ落ち着けたかを数字にしました。',
-    };
+    return { title: screenCopy.longResultTitle, line: screenCopy.longResultLine };
   }
-
-  return {
-    kicker: englishLabels.sessionResult,
-    title: '脱ドパレイド結果',
-    subtitle: '完走しても逃げても、今日のログとして保存されます。',
-  };
+  return { title: screenCopy.raidResultTitle, line: screenCopy.raidResultLine };
 }
 
 export default function ResultScreen() {
@@ -67,28 +58,29 @@ export default function ResultScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
-          <Text style={styles.kicker}>{hero.kicker}</Text>
           <Text style={styles.title}>{hero.title}</Text>
-          <Text style={styles.subtitle}>{hero.subtitle}</Text>
+          <Text style={styles.line}>{hero.line}</Text>
         </View>
+
         {result ? (
           <>
             <ResultCard result={result} />
+            <ShareButton result={result} variant="full" />
             {result.status === 'completed' && (
               <PrimaryButton
-                label="脱ドパ成功アニメをもう一度"
+                label="もう一度光らせる"
                 variant="ghost"
                 onPress={() => triggerCelebration(7000, getCelebrationTime(result))}
               />
             )}
-            <ShareButton result={result} />
           </>
         ) : (
-          <Text style={styles.empty}>リザルトが見つかりませんでした。</Text>
+          <Text style={styles.empty}>記録が見つかりませんでした。</Text>
         )}
-        <PrimaryButton label="ホームへ戻る" variant="ghost" onPress={() => router.replace('/(tabs)')} />
+
+        <PrimaryButton label="ホームへ" variant="ghost" onPress={() => router.replace('/(tabs)')} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -101,27 +93,24 @@ const styles = StyleSheet.create({
   },
   content: {
     gap: spacing.lg,
-    padding: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
     paddingBottom: spacing.xl,
   },
   hero: {
-    gap: spacing.sm,
-    paddingTop: spacing.xl,
-  },
-  kicker: {
-    color: colors.blue,
-    ...typography.englishKicker,
+    gap: spacing.xs,
+    paddingHorizontal: spacing.xs,
   },
   title: {
     color: colors.text,
-    fontSize: 36,
-    fontWeight: '800',
+    ...typography.display,
   },
-  subtitle: {
+  line: {
     color: colors.textMuted,
-    lineHeight: 22,
+    ...typography.body,
   },
   empty: {
     color: colors.textMuted,
+    ...typography.body,
   },
 });

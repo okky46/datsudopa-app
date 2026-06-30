@@ -5,14 +5,17 @@ import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PremiumJokeCard } from '../../src/components/PremiumJokeCard';
 import { PrimaryButton } from '../../src/components/PrimaryButton';
-import { NOTIFICATION_TONE_OPTIONS, SOCIAL_TIME_OPTIONS } from '../../src/constants/raid';
-import { FRAME_COLOR_OPTIONS } from '../../src/constants/frame';
+import { Card } from '../../src/components/ui/Card';
+import { Chip } from '../../src/components/ui/Chip';
+import { SOCIAL_TIME_OPTIONS } from '../../src/constants/raid';
+import { FRAME_COLOR_OPTIONS, getFrameColor } from '../../src/constants/frame';
 import { colors, radius, spacing, typography } from '../../src/constants/theme';
-import { englishLabels } from '../../src/constants/copy';
+import { screenCopy } from '../../src/constants/copy';
 import { useScreenFrame } from '../../src/contexts/ScreenFrameContext';
 import { NotificationService } from '../../src/services/NotificationService';
+import { RaidScheduleService } from '../../src/services/RaidScheduleService';
 import { StorageService } from '../../src/services/StorageService';
-import { FrameColorId, NotificationTone, SocialTimeSlot, UserSettings } from '../../src/types/settings';
+import { FrameColorId, SocialTimeSlot, UserSettings } from '../../src/types/settings';
 
 export default function MenuScreen() {
   const [settings, setSettings] = useState<UserSettings>(StorageService.getDefaultSettings());
@@ -40,11 +43,11 @@ export default function MenuScreen() {
 
   const selectSlot = (slot: SocialTimeSlot) => {
     const option = SOCIAL_TIME_OPTIONS.find((item) => item.value === slot);
-    void update({ ...settings, socialTimeSlot: slot, raidTime: option?.defaultTime || settings.raidTime });
-  };
-
-  const selectTone = (tone: NotificationTone) => {
-    void update({ ...settings, notificationTone: tone });
+    void update({
+      ...settings,
+      socialTimeSlot: slot,
+      raidTime: option?.defaultTime || settings.raidTime,
+    });
   };
 
   const selectFrameColor = (frameColorId: FrameColorId) => {
@@ -52,34 +55,38 @@ export default function MenuScreen() {
     void update({ ...settings, frameColorId });
   };
 
+  const displayName = (settings.nickname ?? '').trim() || '名無しのドパガキ';
+  const todayRaidTime = RaidScheduleService.resolveRaidTimeForDate(settings).raidTime;
+
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
-          <Text style={styles.kicker}>{englishLabels.settings}</Text>
-          <Text style={styles.title}>設定と広告増量</Text>
-          <Text style={styles.subtitle}>レイド通知の時刻、煽りの強さ、まだ存在しないプレミアムの気配。</Text>
-        </View>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <Text style={styles.screenTitle}>{screenCopy.menuTitle}</Text>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>ニックネーム</Text>
-          <TextInput
-            value={settings.nickname}
-            onChangeText={(nickname) => setSettings({ ...settings, nickname })}
-            onBlur={() => void update({ ...settings, nickname: settings.nickname.trim() || StorageService.getDefaultSettings().nickname })}
-            placeholder="例：駅前のドパガキ"
-            placeholderTextColor={colors.textSubtle}
-            maxLength={24}
-            autoCapitalize="none"
-            autoCorrect={false}
-            style={styles.input}
-          />
-          <Text style={styles.description}>共有文言のドパガキ度表示に使われます。</Text>
-        </View>
+        <Card style={styles.profileCard}>
+          <View style={styles.profileRow}>
+            <View style={[styles.avatar, { borderColor: getFrameColor(settings.frameColorId) }]}>
+              <Text style={styles.avatarText}>{displayName.slice(0, 1)}</Text>
+            </View>
+            <View style={styles.profileText}>
+              <Text style={styles.profileLabel}>ニックネーム</Text>
+              <TextInput
+                value={settings.nickname}
+                onChangeText={(nickname) => setSettings({ ...settings, nickname })}
+                onBlur={() => void update({ ...settings, nickname: settings.nickname.trim() || StorageService.getDefaultSettings().nickname })}
+                placeholder="駅前のドパガキ"
+                placeholderTextColor={colors.textSubtle}
+                maxLength={24}
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={styles.nameInput}
+              />
+            </View>
+          </View>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>画面の縁取り色</Text>
-          <Text style={styles.description}>脱ドパ成功時は、縁がぐるぐる虹色に光ります。</Text>
+          <View style={styles.divider} />
+
+          <Text style={styles.rowLabel}>光る縁の色</Text>
           <View style={styles.colorRow}>
             {FRAME_COLOR_OPTIONS.map((option) => (
               <Pressable
@@ -93,69 +100,51 @@ export default function MenuScreen() {
               </Pressable>
             ))}
           </View>
-        </View>
+        </Card>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>よくSNSを使う時間帯</Text>
-          <View style={styles.chips}>
-            {SOCIAL_TIME_OPTIONS.map((option) => (
-              <Pressable
-                key={option.value}
-                onPress={() => selectSlot(option.value)}
-                style={[styles.chip, settings.socialTimeSlot === option.value && styles.chipSelected]}
-              >
-                <Text style={[styles.chipText, settings.socialTimeSlot === option.value && styles.chipTextSelected]}>{option.label}</Text>
-              </Pressable>
-            ))}
-          </View>
-          <Text style={styles.label}>レイド通知時刻</Text>
-          <TextInput
-            value={settings.raidTime}
-            onChangeText={(raidTime) => setSettings({ ...settings, raidTime })}
-            onBlur={() => void update(settings)}
-            placeholder="23:00"
-            placeholderTextColor={colors.textSubtle}
-            style={styles.input}
-          />
-        </View>
+        <Card style={styles.card}>
+          <Text style={styles.sectionTitle}>集合の合図</Text>
 
-        <View style={styles.card}>
-          <View style={styles.row}>
-            <View style={styles.rowText}>
-              <Text style={styles.sectionTitle}>通知</Text>
-              <Text style={styles.description}>毎日1回、指定時刻にローカル通知を出します。</Text>
-            </View>
+          <View style={styles.switchRow}>
+            <Text style={styles.rowLabel}>毎日1回、レイド開始</Text>
             <Switch
               value={settings.notificationEnabled}
               onValueChange={(notificationEnabled) => void update({ ...settings, notificationEnabled })}
-              thumbColor={settings.notificationEnabled ? colors.blue : colors.textSubtle}
-              trackColor={{ false: colors.cardStrong, true: colors.blueDeep }}
+              thumbColor={settings.notificationEnabled ? colors.accent : colors.textSubtle}
+              trackColor={{ false: colors.surfaceSunken, true: colors.blueDeep }}
             />
           </View>
-          <Text style={styles.label}>通知文言の強さ</Text>
-          <View style={styles.chips}>
-            {NOTIFICATION_TONE_OPTIONS.map((option) => (
-              <Pressable
-                key={option.value}
-                onPress={() => selectTone(option.value)}
-                style={[styles.chip, settings.notificationTone === option.value && styles.chipSelected]}
-              >
-                <Text style={[styles.chipText, settings.notificationTone === option.value && styles.chipTextSelected]}>{option.label}</Text>
-              </Pressable>
-            ))}
+
+          <View style={styles.field}>
+            <Text style={styles.rowLabel}>時間帯</Text>
+            <View style={styles.chips}>
+              {SOCIAL_TIME_OPTIONS.map((option) => (
+                <Chip
+                  key={option.value}
+                  label={option.label}
+                  selected={settings.socialTimeSlot === option.value}
+                  onPress={() => selectSlot(option.value)}
+                />
+              ))}
+            </View>
           </View>
-        </View>
+
+          <View style={styles.field}>
+            <Text style={styles.rowLabel}>今日の集合予定</Text>
+            <Text style={styles.timePreview}>{todayRaidTime}</Text>
+            <Text style={styles.timeHint}>選んだ時間帯のどこかで、毎日レイドの合図が届きます。</Text>
+          </View>
+        </Card>
 
         <PremiumJokeCard />
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>その他</Text>
+        <View style={styles.footer}>
           <PrimaryButton label="オンボーディングをやり直す" variant="ghost" onPress={() => router.push('/onboarding')} />
           <PrimaryButton
-            label="データ削除"
+            label="データを削除"
             variant="danger"
             onPress={() => {
-              Alert.alert('データ削除', 'オンボーディング、履歴、placeholder課金状態を削除します。', [
+              Alert.alert('データ削除', '記録と設定をすべて消します。', [
                 { text: 'キャンセル', style: 'cancel' },
                 {
                   text: '削除',
@@ -167,7 +156,7 @@ export default function MenuScreen() {
               ]);
             }}
           />
-          <Text style={styles.legal}>プライバシーポリシー placeholder / 利用規約 placeholder</Text>
+          <Text style={styles.legal}>プライバシーポリシー ・ 利用規約</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -181,90 +170,100 @@ const styles = StyleSheet.create({
   },
   content: {
     gap: spacing.lg,
-    padding: spacing.lg,
-    paddingBottom: 110,
-  },
-  hero: {
-    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
+    paddingBottom: 120,
   },
-  kicker: {
-    color: colors.blue,
-    ...typography.englishKicker,
-  },
-  title: {
+  screenTitle: {
     color: colors.text,
-    fontSize: 34,
+    ...typography.display,
+    paddingHorizontal: spacing.xs,
+  },
+  profileCard: {
+    gap: spacing.md,
+  },
+  profileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 999,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+  },
+  avatarText: {
+    color: colors.text,
+    fontSize: 22,
     fontWeight: '800',
   },
-  subtitle: {
-    color: colors.textMuted,
-    lineHeight: 22,
+  profileText: {
+    flex: 1,
+    gap: 2,
+  },
+  profileLabel: {
+    color: colors.textSubtle,
+    ...typography.label,
+  },
+  nameInput: {
+    color: colors.text,
+    fontSize: 20,
+    fontWeight: '700',
+    paddingVertical: 2,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.border,
   },
   card: {
     gap: spacing.md,
-    padding: spacing.lg,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
   },
   sectionTitle: {
     color: colors.text,
-    fontSize: 18,
-    fontWeight: '800',
+    ...typography.h2,
+  },
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  field: {
+    gap: spacing.sm,
+  },
+  rowLabel: {
+    color: colors.textMuted,
+    fontSize: 14,
+    fontWeight: '600',
   },
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
   },
-  chip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 999,
-    backgroundColor: colors.surface,
-  },
-  chipSelected: {
-    borderColor: colors.blue,
-    backgroundColor: colors.accentSoft,
-  },
-  chipText: {
-    color: colors.textMuted,
-  },
-  chipTextSelected: {
-    color: colors.text,
-    fontWeight: '700',
-  },
-  label: {
-    color: colors.textSubtle,
-    fontSize: 12,
-    letterSpacing: 1.2,
-  },
-  input: {
+  timeInput: {
     minHeight: 48,
     paddingHorizontal: spacing.md,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
     color: colors.text,
-    backgroundColor: colors.backgroundSoft,
+    fontSize: 16,
+    fontWeight: '600',
+    backgroundColor: colors.surface,
   },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.md,
+  timePreview: {
+    color: colors.text,
+    fontSize: 32,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
   },
-  rowText: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  description: {
-    color: colors.textMuted,
-    lineHeight: 20,
+  timeHint: {
+    color: colors.textSubtle,
+    ...typography.caption,
   },
   colorRow: {
     flexDirection: 'row',
@@ -272,28 +271,32 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   colorSwatch: {
-    width: 52,
-    height: 52,
+    width: 48,
+    height: 48,
     borderRadius: 999,
     borderWidth: 2,
     borderColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.surface,
   },
   colorSwatchSelected: {
-    borderColor: colors.blue,
-    backgroundColor: colors.accentSoft,
+    borderColor: colors.accent,
   },
   colorFill: {
-    width: 36,
-    height: 36,
+    width: 34,
+    height: 34,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(36, 49, 38, 0.12)',
+    borderColor: 'rgba(28, 38, 32, 0.10)',
+  },
+  footer: {
+    gap: spacing.sm,
+    paddingTop: spacing.xs,
   },
   legal: {
     color: colors.textSubtle,
-    lineHeight: 20,
+    fontSize: 12,
+    textAlign: 'center',
+    paddingTop: spacing.sm,
   },
 });

@@ -1,41 +1,55 @@
 
-import { StyleSheet, Text, View } from 'react-native';
-import { englishLabels } from '../constants/copy';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, radius, spacing, typography } from '../constants/theme';
 import { PremiumService } from '../services/PremiumService';
-import { PrimaryButton } from './PrimaryButton';
 
 export function PremiumJokeCard() {
   return (
-    <View style={styles.card}>
-      <Text style={styles.caption}>{englishLabels.premiumPreview}</Text>
-      <Text style={styles.title}>プレミアム・広告増量プラン</Text>
-      <Text style={styles.body}>課金するとさらに多くの広告が登場。広告を減らすのではなく、広告に向き合う。</Text>
-      <PrimaryButton label="広告増量の未来を見る" variant="ghost" onPress={() => PremiumService.showPlaceholder()} />
-    </View>
+    <Pressable
+      accessibilityRole="button"
+      onPress={() => PremiumService.showPlaceholder()}
+      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+    >
+      <View style={styles.badge}>
+        <Text style={styles.badgeText}>PREMIUM</Text>
+      </View>
+      <Text style={styles.title}>課金すると、広告が増えます</Text>
+      <Text style={styles.body}>減らすのではなく、向き合う。</Text>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    gap: spacing.md,
+    gap: spacing.sm,
     padding: spacing.lg,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.warningBorder,
     backgroundColor: colors.warningSoft,
   },
-  caption: {
+  pressed: {
+    opacity: 0.85,
+  },
+  badge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(169, 142, 69, 0.16)',
+  },
+  badgeText: {
     color: colors.warning,
-    ...typography.englishLabel,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.6,
   },
   title: {
     color: colors.text,
-    fontSize: 20,
-    fontWeight: '800',
+    ...typography.h2,
   },
   body: {
     color: colors.textMuted,
-    lineHeight: 22,
+    ...typography.body,
   },
 });

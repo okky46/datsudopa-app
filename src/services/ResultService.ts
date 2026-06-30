@@ -56,16 +56,16 @@ export class ResultService {
     if (result.mode === 'normal') {
       const sessionLine =
         result.status === 'completed'
-          ? `脱ドパロング：完走（${formatSeconds(result.watchedSeconds)}）`
-          : `脱ドパロング：${formatSeconds(result.watchedSeconds)} / 目標${formatSeconds(result.targetSeconds)}`;
+          ? `脱ドパロング自主練：完走（${formatSeconds(result.watchedSeconds)}）`
+          : `脱ドパロング自主練：${formatSeconds(result.watchedSeconds)}で中断`;
 
       return [
-        `${displayName}の脱ドパレポート`,
+        `${displayName}のショート逆トレ`,
         formatDateForShare(result.date),
         '',
         sessionLine,
+        `スキップ不可の虚無：${formatSeconds(result.targetSeconds)}`,
         `脱ドパ達成率：${metrics.detoxRate}%`,
-        `心の静けさスコア：${metrics.calmScore}`,
         `${displayName}のドパガキ度：${result.dopamineScore}%`,
         `称号：${result.title}`,
         '',
@@ -76,20 +76,22 @@ export class ResultService {
 
     const raidLine =
       result.status === 'completed'
-        ? '脱ドパレイド：完走'
+        ? '本日の脱ドパレイド：3分完走'
         : result.status === 'missed'
-          ? '脱ドパレイド：未参加'
-          : '脱ドパレイド：' + result.watchedSeconds + '秒で逃亡';
+          ? '本日の脱ドパレイド：未参加'
+          : '本日の脱ドパレイド：' + formatSeconds(result.watchedSeconds) + 'で中断';
 
     return [
-      `${displayName}の脱ドパレポート`,
+      displayName + 'の今日のレイド記録',
       formatDateForShare(result.date),
       '',
       raidLine,
-      `${displayName}のドパガキ度：${result.dopamineScore}%`,
+      result.scheduledRaidTime ? '集合時刻：' + result.scheduledRaidTime : '毎日一回、虚無に集合',
+      '今日のドパガキ度：' + result.dopamineScore + '%',
       '称号：' + result.title,
       '',
       result.comment,
+      'ショートの真逆を、みんなでやる。',
       '#脱ドパレイド',
     ].join('\n');
   }

@@ -17,4 +17,6 @@ export type RaidStatusView = {
   canStart: boolean;
   remainingText: string;
   scheduledDate: Date;
+  raidTime: string;
+  windowSecondsLeft: number;
 };

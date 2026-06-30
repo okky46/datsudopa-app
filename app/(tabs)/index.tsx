@@ -7,15 +7,16 @@ import { AdBanner } from '../../src/components/AdBanner';
 import { DopamineScoreCard } from '../../src/components/DopamineScoreCard';
 import { HistoryList } from '../../src/components/HistoryList';
 import { RaidStatusCard } from '../../src/components/RaidStatusCard';
-import { ResultCard } from '../../src/components/ResultCard';
 import { APP_CATCHPHRASE } from '../../src/constants/copy';
 import { colors, spacing, typography } from '../../src/constants/theme';
 import { DailyResult } from '../../src/types/result';
 import { RaidStatusView } from '../../src/types/raid';
 import { UserSettings } from '../../src/types/settings';
 import { LongVideoService } from '../../src/services/LongVideoService';
+import { NotificationService } from '../../src/services/NotificationService';
 import { RaidService } from '../../src/services/RaidService';
 import { StorageService } from '../../src/services/StorageService';
+import { getDailyComment } from '../../src/utils/score';
 import { getTimeBasedGreeting } from '../../src/utils/greeting';
 
 export default function HomeScreen() {
@@ -31,7 +32,9 @@ export default function HomeScreen() {
       router.replace('/onboarding');
       return;
     }
-    const storedResults = await StorageService.getDailyResults();
+    let storedResults = await StorageService.getDailyResults();
+    storedResults = await RaidService.ensureMissedResultRecorded(storedSettings, storedResults);
+    await NotificationService.scheduleDailyRaid(storedSettings);
     setSettings(storedSettings);
     setResults(storedResults);
     setRaidStatus(RaidService.getRaidStatus(storedSettings, storedResults));
@@ -48,8 +51,24 @@ export default function HomeScreen() {
     }, [load]),
   );
 
-  const latestResult = results[0];
+  useEffect(() => {
+    if (raidStatus?.status !== 'available') {
+      return;
+    }
+    const timer = setInterval(() => {
+      const nextStatus = RaidService.getRaidStatus(settings, results);
+      setRaidStatus(nextStatus);
+      if (nextStatus.status === 'missed' && !RaidService.getTodayRaidResult(results)) {
+        void RaidService.ensureMissedResultRecorded(settings, results).then(setResults);
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [raidStatus?.status, settings, results]);
+
+  const latestRaidResult = results.find((result) => result.mode === 'raid');
+  const latestResult = latestRaidResult ?? results[0];
   const score = latestResult?.dopamineScore ?? 72;
+  const oneLiner = latestResult?.comment || getDailyComment(score);
 
   const startRaid = async () => {
     const video = LongVideoService.getRecommendedVideo();
@@ -62,10 +81,11 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.safe}>
       <ScrollView
         contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            tintColor={colors.blue}
+            tintColor={colors.accent}
             onRefresh={() => {
               setRefreshing(true);
               void load().finally(() => setRefreshing(false));
@@ -73,22 +93,19 @@ export default function HomeScreen() {
           />
         }
       >
-        <View style={styles.hero}>
-          <View style={styles.brandRow}>
-            <View style={styles.brandLeft}>
-              <View style={styles.logoSlot} accessibilityLabel="ロゴ予定地" />
-              <Text style={styles.brandMark}>脱ドパ</Text>
-            </View>
-            <Text style={styles.catchCopy}>{APP_CATCHPHRASE}</Text>
-          </View>
+        <View style={styles.header}>
+          <Text style={styles.brand}>脱ドパ</Text>
           <Text style={styles.greeting}>{greeting}</Text>
+          <Text style={styles.catchphrase}>{APP_CATCHPHRASE}</Text>
         </View>
 
-        <DopamineScoreCard score={score} nickname={settings.nickname} result={latestResult} />
-        {raidStatus && <RaidStatusCard raidStatus={raidStatus} raidTime={settings.raidTime} onStart={startRaid} />}
-        {latestResult && <ResultCard result={latestResult} />}
+        <DopamineScoreCard score={score} nickname={settings.nickname} result={latestResult} compact />
+        {raidStatus && <RaidStatusCard raidStatus={raidStatus} onStart={startRaid} />}
+
+        <Text style={styles.oneLiner}>今日の一言：{oneLiner}</Text>
+
         <HistoryList results={results} />
-        <AdBanner label="ホーム下部 AdMob バナー" />
+        <AdBanner />
       </ScrollView>
     </SafeAreaView>
   );
@@ -100,50 +117,34 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   content: {
-    gap: spacing.lg,
-    padding: spacing.lg,
-    paddingBottom: 110,
-  },
-  hero: {
     gap: spacing.md,
-    paddingTop: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: 120,
   },
-  brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.md,
+  header: {
+    gap: 2,
+    paddingTop: spacing.xs,
+    paddingHorizontal: spacing.xs,
   },
-  brandLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    flexShrink: 1,
-  },
-  logoSlot: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.accentBorder,
-    backgroundColor: colors.accentSoft,
-  },
-  brandMark: {
-    color: colors.text,
+  brand: {
+    color: colors.textSubtle,
     ...typography.brandMark,
   },
-  catchCopy: {
-    flex: 1,
-    color: colors.blue,
-    fontSize: 15,
-    fontWeight: '700',
-    lineHeight: 22,
-    textAlign: 'right',
-  },
   greeting: {
+    color: colors.text,
+    ...typography.display,
+  },
+  catchphrase: {
     color: colors.textMuted,
-    fontSize: 20,
-    fontWeight: '700',
-    lineHeight: 28,
+    ...typography.body,
+  },
+  oneLiner: {
+    color: colors.textMuted,
+    fontSize: 15,
+    fontStyle: 'italic',
+    lineHeight: 22,
+    paddingHorizontal: spacing.xs,
+    marginTop: -spacing.xs,
   },
 });

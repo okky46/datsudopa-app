@@ -1,49 +1,49 @@
 
-import { useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PrimaryButton } from '../src/components/PrimaryButton';
-import { DEFAULT_RAID_DURATION_SECONDS, NOTIFICATION_TONE_OPTIONS, SOCIAL_TIME_OPTIONS } from '../src/constants/raid';
+import { Card } from '../src/components/ui/Card';
+import { Chip } from '../src/components/ui/Chip';
+import { APP_CATCHPHRASE } from '../src/constants/copy';
+import { DEFAULT_RAID_DURATION_SECONDS, SOCIAL_TIME_OPTIONS } from '../src/constants/raid';
 import { colors, radius, spacing, typography } from '../src/constants/theme';
-import { englishLabels } from '../src/constants/copy';
 import { NotificationService } from '../src/services/NotificationService';
 import { StorageService } from '../src/services/StorageService';
-import { NotificationTone, SocialTimeSlot } from '../src/types/settings';
+import { SocialTimeSlot } from '../src/types/settings';
+
+const onboardingSteps = [
+  { label: '1 時間を選ぶ', text: 'ショートを見がちな時間。' },
+  { label: '2 通知で集合', text: '毎日一回、虚無レイド開始。' },
+  { label: '3 3分以内に参加', text: '遅れると未参加。' },
+  { label: '4 結果を共有', text: '完走も中断も、今日の記録。' },
+];
 
 export default function OnboardingScreen() {
   const [nickname, setNickname] = useState('');
-  const [slot, setSlot] = useState<SocialTimeSlot>('before_bed');
-  const [tone, setTone] = useState<NotificationTone>('normal');
-  const defaultTime = useMemo(() => SOCIAL_TIME_OPTIONS.find((option) => option.value === slot)?.defaultTime || '23:00', [slot]);
-  const [raidTime, setRaidTime] = useState(defaultTime);
-
-  const selectSlot = (nextSlot: SocialTimeSlot) => {
-    setSlot(nextSlot);
-    const next = SOCIAL_TIME_OPTIONS.find((option) => option.value === nextSlot);
-    setRaidTime(next?.defaultTime || raidTime);
-  };
+  const [slot, setSlot] = useState<SocialTimeSlot>('night');
 
   const complete = async () => {
     const granted = await NotificationService.requestPermission();
+    const option = SOCIAL_TIME_OPTIONS.find((item) => item.value === slot);
     const settings = {
       onboardingCompleted: true,
       nickname: nickname.trim() || StorageService.getDefaultSettings().nickname,
       frameColorId: StorageService.getDefaultSettings().frameColorId,
       socialTimeSlot: slot,
-      raidTime,
+      raidTime: option?.defaultTime || '23:00',
       notificationEnabled: granted,
-      notificationTone: tone,
       raidDurationSeconds: DEFAULT_RAID_DURATION_SECONDS,
     };
     await StorageService.saveSettings(settings);
     await NotificationService.scheduleDailyRaid(settings);
     if (!granted) {
       Alert.alert(
-        NotificationService.isAvailable() ? '通知はOFFです' : 'Expo Goでは通知不可',
+        NotificationService.isAvailable() ? '集合の合図はOFFのままです' : 'Expo Goでは通知不可',
         NotificationService.isAvailable()
-          ? 'メニューからいつでも通知を有効にできます。'
-          : 'AndroidのExpo Goでは通知を試せません。development buildで確認してください。',
+          ? 'あとからメニューで有効にできます。'
+          : 'development buildで確認してください。',
       );
     }
     router.replace('/(tabs)');
@@ -51,71 +51,48 @@ export default function OnboardingScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
-          <Text style={styles.kicker}>{englishLabels.gettingStarted}</Text>
-          <Text style={styles.title}>あなたが一番ドパる時間は？</Text>
-          <Text style={styles.subtitle}>その時間に、毎日1回だけ静かなレイド通知を出します。</Text>
+          <Text style={styles.brand}>脱ドパ</Text>
+          <Text style={styles.title}>ショートの真逆、はじめます。</Text>
+          <Text style={styles.subtitle}>毎日一回、虚無のロングに集合。</Text>
+          <Text style={styles.catchphrase}>{APP_CATCHPHRASE}</Text>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>ニックネーム</Text>
+        <Card style={styles.card}>
+          {onboardingSteps.map((step) => (
+            <View key={step.label} style={styles.stepRow}>
+              <Text style={styles.stepLabel}>{step.label}</Text>
+              <Text style={styles.stepText}>{step.text}</Text>
+            </View>
+          ))}
+        </Card>
+
+        <Card style={styles.card}>
+          <Text style={styles.sectionTitle}>レイド名</Text>
           <TextInput
             value={nickname}
             onChangeText={setNickname}
-            placeholder="例：駅前のドパガキ"
+            placeholder="駅前のドパガキ"
             placeholderTextColor={colors.textSubtle}
             maxLength={24}
             autoCapitalize="none"
             autoCorrect={false}
             style={styles.input}
           />
-          <Text style={styles.description}>共有するときに「あなたのドパガキ度」として表示されます。</Text>
-        </View>
+        </Card>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>よくSNSを使ってしまう時間帯</Text>
+        <Card style={styles.card}>
+          <Text style={styles.sectionTitle}>よくショートを見る時間帯</Text>
           <View style={styles.chips}>
             {SOCIAL_TIME_OPTIONS.map((option) => (
-              <Pressable
-                key={option.value}
-                onPress={() => selectSlot(option.value)}
-                style={[styles.chip, slot === option.value && styles.chipSelected]}
-              >
-                <Text style={[styles.chipText, slot === option.value && styles.chipTextSelected]}>{option.label}</Text>
-              </Pressable>
+              <Chip key={option.value} label={option.label} selected={slot === option.value} onPress={() => setSlot(option.value)} />
             ))}
           </View>
-        </View>
+          <Text style={styles.hint}>同じ時間帯の人と、ある程度そろって集合します。</Text>
+        </Card>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>レイド通知を受けたい時間</Text>
-          <TextInput
-            value={raidTime}
-            onChangeText={setRaidTime}
-            placeholder="23:00"
-            placeholderTextColor={colors.textSubtle}
-            style={styles.input}
-          />
-          <Text style={styles.description}>MVPではレイド時間は3分固定。通知後3分以内に開始しないと未参加扱いです。</Text>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>どのくらい煽られたい？</Text>
-          <View style={styles.chips}>
-            {NOTIFICATION_TONE_OPTIONS.map((option) => (
-              <Pressable
-                key={option.value}
-                onPress={() => setTone(option.value)}
-                style={[styles.chip, tone === option.value && styles.chipSelected]}
-              >
-                <Text style={[styles.chipText, tone === option.value && styles.chipTextSelected]}>{option.label}</Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-
-        <PrimaryButton label="通知許可を確認して始める" onPress={complete} />
+        <PrimaryButton label="レイド通知を受け取る" onPress={complete} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -128,63 +105,64 @@ const styles = StyleSheet.create({
   },
   content: {
     gap: spacing.lg,
-    padding: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
     paddingBottom: spacing.xl,
   },
   hero: {
-    gap: spacing.sm,
-    paddingTop: spacing.xl,
+    gap: spacing.xs,
+    paddingHorizontal: spacing.xs,
   },
-  kicker: {
-    color: colors.blue,
-    ...typography.englishKicker,
+  brand: {
+    color: colors.textSubtle,
+    ...typography.brandMark,
+    marginBottom: spacing.sm,
   },
   title: {
     color: colors.text,
-    fontSize: 36,
-    fontWeight: '800',
-    lineHeight: 42,
+    ...typography.display,
   },
   subtitle: {
     color: colors.textMuted,
-    lineHeight: 22,
+    ...typography.body,
+  },
+  catchphrase: {
+    color: colors.textSubtle,
+    ...typography.caption,
   },
   card: {
     gap: spacing.md,
-    padding: spacing.lg,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
+  },
+  stepRow: {
+    gap: 2,
+    paddingVertical: spacing.xs,
+  },
+  stepLabel: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  stepText: {
+    color: colors.textMuted,
+    ...typography.caption,
   },
   sectionTitle: {
     color: colors.text,
-    fontSize: 18,
-    fontWeight: '800',
+    ...typography.h2,
   },
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
   },
-  chip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 999,
-    backgroundColor: colors.surface,
-  },
-  chipSelected: {
-    borderColor: colors.blue,
-    backgroundColor: colors.accentSoft,
-  },
-  chipText: {
+  label: {
     color: colors.textMuted,
+    fontSize: 14,
+    fontWeight: '600',
   },
-  chipTextSelected: {
-    color: colors.text,
-    fontWeight: '700',
+  hint: {
+    color: colors.textSubtle,
+    ...typography.caption,
   },
   input: {
     minHeight: 50,
@@ -193,10 +171,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     color: colors.text,
-    backgroundColor: colors.backgroundSoft,
-  },
-  description: {
-    color: colors.textMuted,
-    lineHeight: 20,
+    fontSize: 16,
+    fontWeight: '600',
+    backgroundColor: colors.surface,
   },
 });

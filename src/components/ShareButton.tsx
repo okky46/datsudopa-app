@@ -1,18 +1,19 @@
 
-import { Alert, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { DailyResult } from '../types/result';
 import { ShareService } from '../services/ShareService';
-import { colors } from '../constants/theme';
+import { colors, radius, spacing } from '../constants/theme';
 import { PrimaryButton } from './PrimaryButton';
 
 type Props = {
   result?: DailyResult | null;
-  compact?: boolean;
+  // inline: カード内に置く小さなピル / full: 単独の大きなボタン
+  variant?: 'inline' | 'full';
 };
 
-function ShareGlyph({ color }: { color: string }) {
+function ShareGlyph({ color, size = 16 }: { color: string; size?: number }) {
   return (
-    <View style={styles.shareIcon} accessibilityElementsHidden importantForAccessibility="no">
+    <View style={[styles.shareIcon, { width: size, height: size }]} accessibilityElementsHidden importantForAccessibility="no">
       <View style={[styles.shareLine, styles.shareLineTop, { backgroundColor: color }]} />
       <View style={[styles.shareLine, styles.shareLineBottom, { backgroundColor: color }]} />
       <View style={[styles.shareDot, styles.shareDotLeft, { borderColor: color }]} />
@@ -22,62 +23,101 @@ function ShareGlyph({ color }: { color: string }) {
   );
 }
 
-export function ShareButton({ result, compact = false }: Props) {
+function handleShare(result?: DailyResult | null) {
+  if (!result) {
+    Alert.alert('まだ共有できる記録がない', 'レイドか自主練を終えると共有できます。');
+    return;
+  }
+  void ShareService.shareResult(result);
+}
+
+export function ShareButton({ result, variant = 'full' }: Props) {
+  const fullLabel = result?.mode === 'raid' ? 'このレイド記録を共有' : 'この自主練を共有';
+
+  if (variant === 'inline') {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="共有"
+        disabled={!result}
+        onPress={() => handleShare(result)}
+        style={({ pressed }) => [styles.pill, !result && styles.pillDisabled, pressed && styles.pillPressed]}
+      >
+        <ShareGlyph color={colors.text} size={15} />
+        <Text style={styles.pillLabel}>共有</Text>
+      </Pressable>
+    );
+  }
+
   return (
     <PrimaryButton
-      label={compact ? '共有' : '脱ドパレポートを共有'}
-      variant={compact ? 'ghost' : 'primary'}
+      label={fullLabel}
       disabled={!result}
-      icon={<ShareGlyph color={compact ? colors.text : colors.black} />}
-      onPress={() => {
-        if (!result) {
-          Alert.alert('共有できるリザルトがありません', 'まずはレイドか通常視聴を完了してください。');
-          return;
-        }
-        void ShareService.shareResult(result);
-      }}
+      icon={<ShareGlyph color={colors.onAccent} size={17} />}
+      onPress={() => handleShare(result)}
     />
   );
 }
 
 const styles = StyleSheet.create({
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 8,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.surface,
+  },
+  pillDisabled: {
+    opacity: 0.45,
+  },
+  pillPressed: {
+    opacity: 0.7,
+  },
+  pillLabel: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '700',
+  },
   shareIcon: {
-    width: 20,
-    height: 20,
+    position: 'relative',
   },
   shareLine: {
     position: 'absolute',
     left: 6,
-    width: 9,
+    width: 8,
     height: 2,
     borderRadius: 999,
   },
   shareLineTop: {
-    top: 6,
+    top: 5,
     transform: [{ rotate: '-24deg' }],
   },
   shareLineBottom: {
-    top: 12,
+    top: 10,
     transform: [{ rotate: '24deg' }],
   },
   shareDot: {
     position: 'absolute',
-    width: 7,
-    height: 7,
+    width: 6,
+    height: 6,
     borderRadius: 4,
     borderWidth: 2,
     backgroundColor: 'transparent',
   },
   shareDotLeft: {
     left: 0,
-    top: 7,
+    top: 6,
   },
   shareDotTop: {
     right: 0,
-    top: 2,
+    top: 1,
   },
   shareDotBottom: {
     right: 0,
-    bottom: 2,
+    bottom: 1,
   },
 });

@@ -2,7 +2,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DailyResult } from '../types/result';
 import { CurrentRaidState } from '../types/raid';
-import { PremiumStatus, UserSettings } from '../types/settings';
+import { PremiumStatus, SocialTimeSlot, UserSettings } from '../types/settings';
 import { DEFAULT_FRAME_COLOR_ID } from '../constants/frame';
 import { VideoWatchRecord } from '../types/video';
 
@@ -20,10 +20,9 @@ const defaultSettings: UserSettings = {
   onboardingCompleted: false,
   nickname: '名無しのドパガキ',
   frameColorId: DEFAULT_FRAME_COLOR_ID,
-  socialTimeSlot: 'before_bed',
+  socialTimeSlot: 'night',
   raidTime: '23:00',
   notificationEnabled: true,
-  notificationTone: 'normal',
   raidDurationSeconds: 180,
 };
 
@@ -46,6 +45,24 @@ async function writeJson<T>(key: string, value: T): Promise<void> {
   await AsyncStorage.setItem(key, JSON.stringify(value));
 }
 
+const VALID_SOCIAL_TIME_SLOTS: SocialTimeSlot[] = ['early_morning', 'morning', 'noon', 'evening', 'night', 'late_night'];
+
+const LEGACY_SOCIAL_TIME_SLOT_MAP: Record<string, SocialTimeSlot> = {
+  lunch: 'noon',
+  before_bed: 'night',
+  custom: 'night',
+};
+
+function migrateSocialTimeSlot(slot?: string): SocialTimeSlot {
+  if (slot && VALID_SOCIAL_TIME_SLOTS.includes(slot as SocialTimeSlot)) {
+    return slot as SocialTimeSlot;
+  }
+  if (slot && LEGACY_SOCIAL_TIME_SLOT_MAP[slot]) {
+    return LEGACY_SOCIAL_TIME_SLOT_MAP[slot];
+  }
+  return 'night';
+}
+
 export class StorageService {
   static getDefaultSettings(): UserSettings {
     return defaultSettings;
@@ -53,7 +70,11 @@ export class StorageService {
 
   static async getSettings(): Promise<UserSettings> {
     const settings = await readJson<Partial<UserSettings>>(keys.userSettings, defaultSettings);
-    return { ...defaultSettings, ...settings };
+    const merged = { ...defaultSettings, ...settings };
+    return {
+      ...merged,
+      socialTimeSlot: migrateSocialTimeSlot(merged.socialTimeSlot as string | undefined),
+    };
   }
 
   static async saveSettings(settings: UserSettings): Promise<void> {

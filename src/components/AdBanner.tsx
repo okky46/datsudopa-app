@@ -22,13 +22,12 @@ function loadGoogleMobileAds(): GoogleMobileAdsModule | null {
   }
 }
 
-export function AdBanner({ label = '静かな広告枠' }: Props) {
+export function AdBanner(_: Props) {
   const ads = loadGoogleMobileAds();
   if (!ads) {
     return (
       <View style={styles.wrapper}>
-        <Text style={styles.label}>{label}</Text>
-        <Text style={styles.placeholder}>AdMob banner placeholder / development buildで実広告</Text>
+        <Text style={styles.placeholder}>AD</Text>
       </View>
     );
   }
@@ -37,7 +36,6 @@ export function AdBanner({ label = '静かな広告枠' }: Props) {
 
   return (
     <View style={styles.wrapper}>
-      <Text style={styles.label}>{label}</Text>
       <BannerAd
         unitId={AdsService.getBannerAdUnitId()}
         size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
@@ -51,21 +49,16 @@ const styles = StyleSheet.create({
   wrapper: {
     overflow: 'hidden',
     alignItems: 'center',
-    gap: spacing.xs,
+    justifyContent: 'center',
+    minHeight: 56,
     padding: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: radius.md,
-    backgroundColor: colors.surface,
-  },
-  label: {
-    color: colors.textSubtle,
-    fontSize: 11,
-    letterSpacing: 1.2,
+    backgroundColor: colors.surfaceSunken,
   },
   placeholder: {
-    color: colors.textMuted,
-    fontSize: 12,
-    paddingVertical: spacing.md,
+    color: colors.textFaint,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 2,
   },
 });

@@ -1,6 +1,6 @@
-
 import { DailyResult, DailyResultStatus, FailureReason } from '../types/result';
 import { comments, titles } from '../constants/copy';
+import { resultHeadline } from './resultLabels';
 
 type ScoreInput = {
   status: DailyResultStatus;
@@ -32,37 +32,28 @@ export function calculateDopamineScore(input: ScoreInput): number {
 
 export function titleForResult(result: Pick<DailyResult, 'status' | 'failureReason' | 'watchedSeconds' | 'targetSeconds'>): string {
   if (result.status === 'completed' && result.targetSeconds >= 180) {
-    return '静寂に3分耐えた者';
+    return '本日のレイド完走者';
   }
   if (result.status === 'completed') {
-    return '準・脱ドパ僧';
+    return '準・虚無耐久者';
   }
   if (result.status === 'missed') {
     return '通知だけ見た人';
   }
   if (result.failureReason === 'emergency_exit') {
-    return '逃亡ログ保有者';
+    return 'スキップ欲に負けた者';
+  }
+  if (result.failureReason === 'backgrounded') {
+    return '画面外に逃げた者';
   }
   if (result.watchedSeconds > 0) {
-    return String(result.watchedSeconds) + '秒の逃亡者';
+    return String(result.watchedSeconds) + '秒で中断した者';
   }
   return titles[Math.abs(result.watchedSeconds) % titles.length];
 }
 
-export function commentForResult(result: Pick<DailyResult, 'status' | 'failureReason' | 'dopamineScore'>): string {
-  if (result.status === 'completed') {
-    return '虚無に耐えた時間だけ、少し戻ってくる。';
-  }
-  if (result.status === 'missed') {
-    return '通知を見た時点で、もう始まっている。';
-  }
-  if (result.failureReason === 'backgrounded') {
-    return 'アプリの外にも、逃げ道は記録される。';
-  }
-  if (result.dopamineScore >= 90) {
-    return '逃げても記録は残る。';
-  }
-  return comments[result.dopamineScore % comments.length];
+export function commentForResult(result: Pick<DailyResult, 'status' | 'failureReason' | 'dopamineScore' | 'watchedSeconds'>): string {
+  return resultHeadline(result);
 }
 
 export function getDailyTitle(score: number): string {
@@ -70,7 +61,7 @@ export function getDailyTitle(score: number): string {
     return '本日のレイド完走者';
   }
   if (score <= 55) {
-    return '準・脱ドパ僧';
+    return '準・虚無耐久者';
   }
   if (score <= 80) {
     return '虚無を見つめし者';
@@ -102,10 +93,10 @@ export function calculateSessionMetrics(
 
 export function getDailyComment(score: number): string {
   if (score <= 35) {
-    return '刺激がないことに、今日は少し耐えられた。';
+    return '今日もショートの逆に入れた。';
   }
   if (score <= 70) {
-    return '今日はまだ、取り返せる。';
+    return '今日はまだ、ドパが残っている。';
   }
-  return 'スクロールは祈りではない。';
+  return '次の集合で、3分だけ止まる。';
 }

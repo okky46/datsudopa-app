@@ -6,6 +6,7 @@ import { VideoPlayerShell } from '../../src/components/VideoPlayerShell';
 import { FailureReason } from '../../src/types/result';
 import { WatchMode } from '../../src/types/video';
 import { LongVideoService } from '../../src/services/LongVideoService';
+import { RaidService } from '../../src/services/RaidService';
 import { ResultService } from '../../src/services/ResultService';
 import { StorageService } from '../../src/services/StorageService';
 
@@ -34,7 +35,7 @@ export default function ActiveRaidScreen() {
         failureReason,
         raidStartedAt: startedAt,
         raidEndedAt: new Date().toISOString(),
-        scheduledRaidTime: mode === 'raid' ? settings.raidTime : undefined,
+        scheduledRaidTime: mode === 'raid' ? RaidService.getTodayRaidTime(settings) : undefined,
       });
       await StorageService.saveDailyResult(result);
       await StorageService.appendVideoWatchHistory(

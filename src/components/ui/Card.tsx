@@ -22,7 +22,7 @@ export function Card({ children, variant = 'default', style, ...rest }: Props) {
 const styles = StyleSheet.create({
   base: {
     padding: spacing.lg,
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
   },
 });
 

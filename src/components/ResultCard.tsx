@@ -1,186 +1,183 @@
 
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, radius, spacing, typography } from '../constants/theme';
+import { colors, radius, shadows, spacing, typography } from '../constants/theme';
 import { DailyResult } from '../types/result';
-import { formatSeconds } from '../utils/date';
-import { calculateSessionMetrics } from '../utils/score';
 import { resultStatusLabel } from '../utils/resultLabels';
-import { Card } from './ui/Card';
-import { RainbowAccent } from './ui/RainbowAccent';
+import { dopamineScoreColor } from '../utils/score';
+import { CheckBadge, Confetti, LaurelLeaves, Sparkle } from './ui/Decorations';
+import { PastelWash } from './ui/PastelWash';
 
 type Props = {
   result: DailyResult;
 };
 
+function formatMMSS(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = Math.max(0, totalSeconds % 60);
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
+
+function headlineLabel(result: DailyResult): string {
+  if (result.status === 'completed') return '完走';
+  if (result.status === 'missed') return '未参加';
+  return resultStatusLabel(result);
+}
+
 export function ResultCard({ result }: Props) {
   const completed = result.status === 'completed';
-  const statusLabel = resultStatusLabel(result);
-  const metrics = calculateSessionMetrics(result);
-  const isLong = result.mode === 'normal';
-  const modeLabel = isLong ? '脱ドパロング自主練' : '本日の脱ドパレイド';
-  const resultLine =
-    result.status === 'completed'
-      ? '虚無に' + formatSeconds(result.targetSeconds) + '耐えた'
-      : result.status === 'missed'
-        ? '未参加。3分以内に集合できなかった'
-        : formatSeconds(result.watchedSeconds) + 'で中断';
+  const watched = completed ? result.targetSeconds : result.watchedSeconds;
+  const scoreColor = dopamineScoreColor(result.dopamineScore);
 
   return (
-    <Card variant="hero" style={styles.card}>
-      <View style={styles.statusRow}>
-        <View style={[styles.statusPill, completed && styles.statusPillDone]}>
-          <Text style={[styles.statusText, completed && styles.statusTextDone]}>{statusLabel}</Text>
+    <View style={styles.card}>
+      <PastelWash borderRadius={radius.xl} variant="result" />
+      <Confetti />
+
+      <View style={styles.badgeRow}>
+        <LaurelLeaves />
+        <View style={styles.badgeCenter}>
+          {completed ? (
+            <CheckBadge size={64} />
+          ) : (
+            <View style={styles.neutralBadge}>
+              <View style={styles.neutralDot} />
+            </View>
+          )}
         </View>
-        <Text style={styles.brand}>脱ドパ</Text>
+        <LaurelLeaves />
       </View>
 
-      <Text style={styles.modeLabel}>{modeLabel}</Text>
-      <Text style={styles.resultLine}>{resultLine}</Text>
+      <Text style={styles.headline}>{headlineLabel(result)}</Text>
+      <Text style={styles.time}>
+        {formatMMSS(watched)} / {formatMMSS(result.targetSeconds)}
+      </Text>
 
-      <Text style={styles.scoreLabel}>今日のドパガキ度</Text>
+      <View style={styles.divider} />
+
+      <Text style={styles.scoreLabel}>ドパガキ度</Text>
       <View style={styles.scoreRow}>
-        <Text style={styles.score}>{result.dopamineScore}</Text>
-        <Text style={styles.percent}>%</Text>
+        <Text style={[styles.score, { color: scoreColor }]}>{result.dopamineScore}</Text>
+        <Text style={[styles.percent, { color: scoreColor }]}>%</Text>
+        <Sparkle size={15} style={styles.scoreSparkle} />
       </View>
-      {completed && <RainbowAccent height={6} style={styles.accent} />}
 
-      <Text style={styles.title}>{result.title}</Text>
-      <Text style={styles.comment}>{result.comment}</Text>
-
-      {isLong && (
-        <View style={styles.metrics}>
-          <View style={styles.metricItem}>
-            <Text style={styles.metricValue}>{metrics.detoxRate}%</Text>
-            <Text style={styles.metricLabel}>脱ドパ達成率</Text>
-          </View>
-          <View style={styles.metricItem}>
-            <Text style={styles.metricValue}>{metrics.calmScore}</Text>
-            <Text style={styles.metricLabel}>静けさスコア</Text>
-          </View>
-        </View>
-      )}
-
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>耐久 {formatSeconds(result.watchedSeconds)}</Text>
-        <Text style={styles.footerDot}>·</Text>
-        <Text style={styles.footerText}>目標 {formatSeconds(result.targetSeconds)}</Text>
+      <Text style={styles.titleLabel}>称号</Text>
+      <View style={styles.titleCapsule}>
+        <Text style={styles.titleText} numberOfLines={1}>
+          {result.title}
+        </Text>
+        <Sparkle size={12} />
       </View>
-    </Card>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    gap: spacing.xs,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.sm,
-  },
-  statusPill: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surface,
+    borderRadius: radius.xl,
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.lg,
+    overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.border,
+    alignItems: 'center',
+    ...shadows.hero,
   },
-  statusPillDone: {
-    backgroundColor: colors.accentSoft,
-    borderColor: colors.accentBorder,
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.xs,
   },
-  statusText: {
-    color: colors.textMuted,
-    fontSize: 14,
+  badgeCenter: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  neutralBadge: {
+    width: 64,
+    height: 64,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+  },
+  neutralDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 999,
+    backgroundColor: colors.textSubtle,
+  },
+  headline: {
+    color: colors.text,
+    fontSize: 34,
     fontWeight: '800',
+    letterSpacing: 1,
+    marginTop: spacing.md,
   },
-  statusTextDone: {
-    color: colors.text,
-  },
-  brand: {
-    color: colors.textFaint,
-    ...typography.brandMark,
-    fontSize: 16,
-  },
-  modeLabel: {
+  time: {
     color: colors.textSubtle,
-    ...typography.label,
+    fontSize: 15,
+    fontWeight: '600',
+    marginTop: 2,
+    fontVariant: ['tabular-nums'],
   },
-  resultLine: {
-    color: colors.text,
-    ...typography.h2,
-    marginBottom: spacing.sm,
+  divider: {
+    width: '70%',
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.borderStrong,
+    marginVertical: spacing.lg,
   },
   scoreLabel: {
-    color: colors.textSubtle,
+    color: colors.textMuted,
     ...typography.label,
   },
   scoreRow: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    marginTop: spacing.xs,
   },
   score: {
-    color: colors.text,
-    ...typography.score,
+    color: colors.accent,
+    fontSize: 56,
+    fontWeight: '800',
+    letterSpacing: -2,
+    lineHeight: 60,
   },
   percent: {
-    color: colors.textSubtle,
-    fontSize: 30,
+    color: colors.accent,
+    fontSize: 22,
     fontWeight: '700',
-    marginBottom: 14,
+    marginTop: 8,
     marginLeft: 2,
   },
-  accent: {
-    marginTop: spacing.xs,
-    marginBottom: spacing.sm,
-    width: '52%',
+  scoreSparkle: {
+    marginTop: 6,
+    marginLeft: 2,
   },
-  title: {
-    color: colors.text,
-    ...typography.h2,
-    marginTop: spacing.xs,
+  titleLabel: {
+    color: colors.textSubtle,
+    ...typography.label,
+    marginTop: spacing.lg,
   },
-  comment: {
-    color: colors.textMuted,
-    ...typography.body,
-  },
-  metrics: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginTop: spacing.md,
-  },
-  metricItem: {
-    flex: 1,
-    gap: 2,
-    padding: spacing.md,
-    borderRadius: radius.md,
-    backgroundColor: colors.surface,
-  },
-  metricValue: {
-    color: colors.text,
-    fontSize: 26,
-    fontWeight: '800',
-  },
-  metricLabel: {
-    color: colors.textMuted,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  footer: {
+  titleCapsule: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    marginTop: spacing.md,
+    gap: 6,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm + 1,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
   },
-  footerText: {
-    color: colors.textSubtle,
-    fontSize: 13,
-    fontWeight: '600',
-    fontVariant: ['tabular-nums'],
-  },
-  footerDot: {
-    color: colors.textFaint,
+  titleText: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '700',
   },
 });

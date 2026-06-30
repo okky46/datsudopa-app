@@ -2,7 +2,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, spacing, typography } from '../constants/theme';
 import { DailyResult } from '../types/result';
-import { getDailyComment, getDailyTitle } from '../utils/score';
+import { dopamineScoreColor, getDailyComment, getDailyTitle } from '../utils/score';
 import { Card } from './ui/Card';
 import { ShareButton } from './ShareButton';
 
@@ -17,6 +17,7 @@ export function DopamineScoreCard({ score, nickname, result, compact = false }: 
   const displayName = (nickname ?? '').trim() || '名無しのドパガキ';
   const title = result?.title || getDailyTitle(score);
   const comment = result?.comment || getDailyComment(score);
+  const scoreColor = dopamineScoreColor(score);
 
   return (
     <Card variant={compact ? 'default' : 'hero'} style={[styles.card, compact && styles.cardCompact]}>
@@ -27,8 +28,8 @@ export function DopamineScoreCard({ score, nickname, result, compact = false }: 
 
       <Text style={styles.label}>レイド後のドパガキ度</Text>
       <View style={styles.scoreRow}>
-        <Text style={[styles.score, compact && styles.scoreCompact]}>{score}</Text>
-        <Text style={[styles.percent, compact && styles.percentCompact]}>%</Text>
+        <Text style={[styles.score, compact && styles.scoreCompact, { color: scoreColor }]}>{score}</Text>
+        <Text style={[styles.percent, compact && styles.percentCompact, { color: scoreColor }]}>%</Text>
       </View>
 
       <View style={styles.meta}>

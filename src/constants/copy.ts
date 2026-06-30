@@ -9,10 +9,10 @@ export const screenCopy = {
   longTitle: 'ショートの逆に入る',
   longTagline: '3分だけ止まる。スキップできない虚無。',
   menuTitle: '集合設定',
-  raidResultTitle: '本日の脱ドパレイド',
-  raidResultLine: '完走しても、中断しても、今日の記録。',
-  longResultTitle: '脱ドパロング自主練',
-  longResultLine: '通知外で、ショートの真逆を練習した。',
+  raidResultTitle: '本日の脱ドパ記録',
+  raidResultLine: '虚無に耐えた時間だけ、少し戻ってくる。',
+  longResultTitle: '本日の脱ドパ記録',
+  longResultLine: '虚無に耐えた時間だけ、少し戻ってくる。',
 } as const;
 
 export const englishLabels = {
@@ -46,7 +46,7 @@ export const titles = [
   '本日のレイド完走者',
   '静寂に3分耐えた者',
   '虚無を見つめし者',
-  '緊急離脱の達人',
+  '途中離脱の達人',
 ];
 
 export const comments = [

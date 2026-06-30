@@ -59,28 +59,21 @@ export default function ResultScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.hero}>
-          <Text style={styles.title}>{hero.title}</Text>
-          <Text style={styles.line}>{hero.line}</Text>
-        </View>
+        <Text style={styles.title}>{hero.title} ✨</Text>
 
         {result ? (
           <>
             <ResultCard result={result} />
+            <Text style={styles.line}>{result.comment || hero.line}</Text>
             <ShareButton result={result} variant="full" />
-            {result.status === 'completed' && (
-              <PrimaryButton
-                label="もう一度光らせる"
-                variant="ghost"
-                onPress={() => triggerCelebration(7000, getCelebrationTime(result))}
-              />
-            )}
+            <PrimaryButton label="履歴を見る  ›" variant="ghost" onPress={() => router.replace('/(tabs)')} />
           </>
         ) : (
-          <Text style={styles.empty}>記録が見つかりませんでした。</Text>
+          <>
+            <Text style={styles.empty}>記録が見つかりませんでした。</Text>
+            <PrimaryButton label="ホームへ" variant="ghost" onPress={() => router.replace('/(tabs)')} />
+          </>
         )}
-
-        <PrimaryButton label="ホームへ" variant="ghost" onPress={() => router.replace('/(tabs)')} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -94,23 +87,23 @@ const styles = StyleSheet.create({
   content: {
     gap: spacing.lg,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
+    paddingTop: spacing.lg,
     paddingBottom: spacing.xl,
-  },
-  hero: {
-    gap: spacing.xs,
-    paddingHorizontal: spacing.xs,
   },
   title: {
     color: colors.text,
-    ...typography.display,
+    textAlign: 'center',
+    ...typography.h1,
   },
   line: {
     color: colors.textMuted,
-    ...typography.body,
+    ...typography.caption,
+    textAlign: 'center',
+    marginTop: -spacing.xs,
   },
   empty: {
     color: colors.textMuted,
     ...typography.body,
+    textAlign: 'center',
   },
 });

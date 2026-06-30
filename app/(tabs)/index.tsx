@@ -1,13 +1,12 @@
 
 import { useCallback, useEffect, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AdBanner } from '../../src/components/AdBanner';
-import { DopamineScoreCard } from '../../src/components/DopamineScoreCard';
 import { HistoryList } from '../../src/components/HistoryList';
-import { RaidStatusCard } from '../../src/components/RaidStatusCard';
-import { APP_CATCHPHRASE } from '../../src/constants/copy';
+import { HomeHeroCard } from '../../src/components/HomeHeroCard';
+import { AuroraDot } from '../../src/components/ui/Decorations';
 import { colors, spacing, typography } from '../../src/constants/theme';
 import { DailyResult } from '../../src/types/result';
 import { RaidStatusView } from '../../src/types/raid';
@@ -16,15 +15,23 @@ import { LongVideoService } from '../../src/services/LongVideoService';
 import { NotificationService } from '../../src/services/NotificationService';
 import { RaidService } from '../../src/services/RaidService';
 import { StorageService } from '../../src/services/StorageService';
-import { getDailyComment } from '../../src/utils/score';
-import { getTimeBasedGreeting } from '../../src/utils/greeting';
+
+const HOME_CATCHPHRASE = 'ショートの真逆、3分だけ止まる。';
+
+function BellIcon() {
+  return (
+    <View style={styles.bell}>
+      <View style={styles.bellBody} />
+      <View style={styles.bellClapper} />
+    </View>
+  );
+}
 
 export default function HomeScreen() {
   const [settings, setSettings] = useState<UserSettings>(StorageService.getDefaultSettings());
   const [results, setResults] = useState<DailyResult[]>([]);
   const [raidStatus, setRaidStatus] = useState<RaidStatusView | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [greeting, setGreeting] = useState(getTimeBasedGreeting());
 
   const load = useCallback(async () => {
     const storedSettings = await StorageService.getSettings();
@@ -38,7 +45,6 @@ export default function HomeScreen() {
     setSettings(storedSettings);
     setResults(storedResults);
     setRaidStatus(RaidService.getRaidStatus(storedSettings, storedResults));
-    setGreeting(getTimeBasedGreeting());
   }, []);
 
   useEffect(() => {
@@ -68,7 +74,6 @@ export default function HomeScreen() {
   const latestRaidResult = results.find((result) => result.mode === 'raid');
   const latestResult = latestRaidResult ?? results[0];
   const score = latestResult?.dopamineScore ?? 72;
-  const oneLiner = latestResult?.comment || getDailyComment(score);
 
   const startRaid = async () => {
     const video = LongVideoService.getRecommendedVideo();
@@ -94,15 +99,20 @@ export default function HomeScreen() {
         }
       >
         <View style={styles.header}>
-          <Text style={styles.brand}>脱ドパ</Text>
-          <Text style={styles.greeting}>{greeting}</Text>
-          <Text style={styles.catchphrase}>{APP_CATCHPHRASE}</Text>
+          <View style={styles.brandRow}>
+            <Text style={styles.brand}>脱ドパ</Text>
+            <AuroraDot size={22} style={styles.brandDot} />
+          </View>
+          <Pressable accessibilityRole="button" accessibilityLabel="通知" style={styles.bellWrap} onPress={() => {}}>
+            <BellIcon />
+          </Pressable>
         </View>
 
-        <DopamineScoreCard score={score} nickname={settings.nickname} result={latestResult} compact />
-        {raidStatus && <RaidStatusCard raidStatus={raidStatus} onStart={startRaid} />}
+        {raidStatus && <HomeHeroCard score={score} raidStatus={raidStatus} result={latestResult} onStart={startRaid} />}
 
-        <Text style={styles.oneLiner}>今日の一言：{oneLiner}</Text>
+        <View style={styles.catchphraseRow}>
+          <Text style={styles.catchphrase}>✨ {HOME_CATCHPHRASE} ✨</Text>
+        </View>
 
         <HistoryList results={results} />
         <AdBanner />
@@ -117,34 +127,66 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   content: {
-    gap: spacing.md,
+    gap: spacing.lg,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
     paddingBottom: 120,
   },
   header: {
-    gap: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingTop: spacing.xs,
     paddingHorizontal: spacing.xs,
   },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   brand: {
-    color: colors.textSubtle,
+    color: colors.text,
     ...typography.brandMark,
   },
-  greeting: {
-    color: colors.text,
-    ...typography.display,
+  brandDot: {
+    marginTop: 2,
+  },
+  bellWrap: {
+    width: 38,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bell: {
+    width: 22,
+    height: 24,
+    alignItems: 'center',
+  },
+  bellBody: {
+    width: 18,
+    height: 16,
+    borderWidth: 2,
+    borderColor: colors.textSubtle,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+    borderBottomLeftRadius: 4,
+    borderBottomRightRadius: 4,
+  },
+  bellClapper: {
+    width: 6,
+    height: 3,
+    marginTop: 1,
+    borderBottomLeftRadius: 3,
+    borderBottomRightRadius: 3,
+    backgroundColor: colors.textSubtle,
+  },
+  catchphraseRow: {
+    alignItems: 'center',
+    marginTop: -spacing.xs,
   },
   catchphrase: {
     color: colors.textMuted,
-    ...typography.body,
-  },
-  oneLiner: {
-    color: colors.textMuted,
-    fontSize: 15,
-    fontStyle: 'italic',
-    lineHeight: 22,
-    paddingHorizontal: spacing.xs,
-    marginTop: -spacing.xs,
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

@@ -1,18 +1,23 @@
 
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
-import { colors, radius, spacing } from '../constants/theme';
+import { colors, gradientPlay, radius, shadows, spacing } from '../constants/theme';
+import { SoftGradient } from './ui/SoftGradient';
 
 type Props = {
   label: string;
   onPress: () => void;
-  variant?: 'primary' | 'ghost' | 'danger';
+  variant?: 'primary' | 'ghost' | 'danger' | 'gradient';
   disabled?: boolean;
   style?: ViewStyle;
   icon?: ReactNode;
 };
 
 export function PrimaryButton({ label, onPress, variant = 'primary', disabled = false, style, icon }: Props) {
+  const isGradient = variant === 'gradient';
+  const labelColor =
+    variant === 'ghost' ? colors.text : isGradient ? colors.text : variant === 'danger' ? colors.danger : colors.onPrimary;
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -20,16 +25,21 @@ export function PrimaryButton({ label, onPress, variant = 'primary', disabled = 
       onPress={onPress}
       style={({ pressed }) => [
         styles.base,
+        variant === 'primary' && styles.primary,
         variant === 'ghost' && styles.ghost,
         variant === 'danger' && styles.danger,
+        isGradient && styles.gradient,
         disabled && styles.disabled,
         pressed && !disabled && styles.pressed,
         style,
       ]}
     >
+      {isGradient && (
+        <SoftGradient colors={gradientPlay} direction="horizontal" borderRadius={radius.pill} style={StyleSheet.absoluteFill} />
+      )}
       <View style={styles.content}>
         {icon}
-        <Text style={[styles.label, variant === 'ghost' && styles.ghostLabel]}>{label}</Text>
+        <Text style={[styles.label, { color: labelColor }]}>{label}</Text>
       </View>
     </Pressable>
   );
@@ -39,10 +49,18 @@ const styles = StyleSheet.create({
   base: {
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 54,
+    minHeight: 56,
     paddingHorizontal: spacing.lg,
-    borderRadius: radius.md,
-    backgroundColor: colors.accent,
+    borderRadius: radius.pill,
+    overflow: 'hidden',
+  },
+  primary: {
+    backgroundColor: colors.primary,
+    ...shadows.soft,
+  },
+  gradient: {
+    backgroundColor: colors.pastelLavender,
+    ...shadows.soft,
   },
   ghost: {
     backgroundColor: 'transparent',
@@ -59,7 +77,7 @@ const styles = StyleSheet.create({
   },
   pressed: {
     transform: [{ scale: 0.98 }],
-    opacity: 0.82,
+    opacity: 0.9,
   },
   content: {
     flexDirection: 'row',
@@ -68,12 +86,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   label: {
-    color: colors.onAccent,
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
-    letterSpacing: 0.4,
-  },
-  ghostLabel: {
-    color: colors.text,
+    letterSpacing: 0.3,
   },
 });

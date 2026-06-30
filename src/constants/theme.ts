@@ -1,45 +1,60 @@
 
 // 脱ドパ デザイントークン
-// 方向性: 静かでチルい、少しリミナル。自然に近い落ち着いた色。余白広め、境界は繊細に。
+// 方向性: 明るいオフホワイト、濃いネイビーの文字、淡いパステルのアクセント。
+// 静かなウェルネスアプリのような、清潔で柔らかく軽い高級感のあるトーン。
 
 export const colors = {
-  // base surfaces ― 紙のような、少し緑みのある余白
-  background: '#F5F7F1',
-  backgroundSoft: '#EDF1E8',
+  // base surfaces ― 明るいオフホワイト（ほんのり暖かみ）
+  background: '#F6F4EF',
+  backgroundSoft: '#F1EEE7',
   card: '#FFFFFF',
-  cardStrong: '#ECF1E6',
-  surface: '#F1F4ED',
-  surfaceSunken: '#E9EEE3',
+  cardStrong: '#FBFAF7',
+  surface: '#F4F2EC',
+  surfaceSunken: '#EEEBE3',
 
   // borders ― 繊細に
-  border: 'rgba(54, 70, 52, 0.08)',
-  borderStrong: 'rgba(54, 70, 52, 0.14)',
+  border: 'rgba(46, 52, 80, 0.07)',
+  borderStrong: 'rgba(46, 52, 80, 0.13)',
 
-  // text ― 黒すぎない墨色〜霞
-  text: '#222B23',
-  textMuted: '#5E6C5A',
-  textSubtle: '#94A18D',
-  textFaint: '#B3BDAC',
+  // text ― 濃いネイビー〜チャコール、補助はグレー寄り
+  text: '#2E3450',
+  textMuted: '#6B7185',
+  textSubtle: '#9AA0B2',
+  textFaint: '#BCC0CC',
 
-  // accent ― 苔・セージのグリーン
-  blue: '#7E9E78',
-  blueDeep: '#D8E5D3',
-  accent: '#7E9E78',
-  accentSoft: 'rgba(126, 158, 120, 0.14)',
-  accentBorder: 'rgba(126, 158, 120, 0.42)',
+  // primary action ― 落ち着いた濃いネイビー
+  primary: '#3B4263',
+  primaryStrong: '#333A59',
+  primarySoft: 'rgba(59, 66, 99, 0.10)',
+  primaryBorder: 'rgba(59, 66, 99, 0.22)',
+  onPrimary: '#FFFFFF',
+
+  // accent ― 静かなセージ/ミントグリーン（達成・ポジティブ）
+  blue: '#7CA6C2',
+  blueDeep: '#CFE2F2',
+  accent: '#5F8A6E',
+  accentSoft: 'rgba(95, 138, 110, 0.12)',
+  accentBorder: 'rgba(95, 138, 110, 0.30)',
 
   // semantic
-  danger: '#B96B62',
-  dangerSoft: 'rgba(185, 107, 98, 0.10)',
-  dangerBorder: 'rgba(185, 107, 98, 0.24)',
-  success: '#6FA084',
-  warning: '#A98E45',
-  warningSoft: 'rgba(169, 142, 69, 0.10)',
-  warningBorder: 'rgba(169, 142, 69, 0.22)',
+  danger: '#C2796E',
+  dangerSoft: 'rgba(194, 121, 110, 0.10)',
+  dangerBorder: 'rgba(194, 121, 110, 0.22)',
+  success: '#5F8A6E',
+  warning: '#C8A24A',
+  warningSoft: 'rgba(200, 162, 74, 0.12)',
+  warningBorder: 'rgba(200, 162, 74, 0.24)',
 
-  black: '#1C2620',
-  onAccent: '#1C2620',
-};
+  black: '#2E3450',
+  onAccent: '#FFFFFF',
+
+  // pastel palette ― 淡いミント / ラベンダー / ピンク / ブルー / イエロー
+  pastelMint: '#C9E9D6',
+  pastelLavender: '#DCD7F2',
+  pastelPink: '#F6D9E3',
+  pastelBlue: '#D2E3F3',
+  pastelYellow: '#F6EFCF',
+} as const;
 
 export const spacing = {
   xs: 6,
@@ -58,26 +73,35 @@ export const radius = {
   pill: 999,
 };
 
-// 影は控えめ。フラットすぎず少しだけ奥行きを出す。
+// 影は柔らかく自然に。フラットすぎず、軽く浮かぶ程度。
 export const shadows = {
   soft: {
-    shadowColor: '#2A3A28',
-    shadowOpacity: 0.05,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
+    shadowColor: '#2E3450',
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
     elevation: 2,
   },
   hero: {
-    shadowColor: '#2A3A28',
-    shadowOpacity: 0.08,
-    shadowRadius: 22,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 4,
+    shadowColor: '#2E3450',
+    shadowOpacity: 0.09,
+    shadowRadius: 26,
+    shadowOffset: { width: 0, height: 14 },
+    elevation: 5,
   },
 } as const;
 
-// 安っぽいネオンではなく、少し霞んだパステルの虹。光る演出はここに限定。
-export const rainbowSoft = ['#E6A6A0', '#E7C79A', '#A9CBA2', '#9FC4D6', '#B7A8D8', '#E2A8C6'] as const;
+// 淡いパステルの虹。光る演出はここに限定して控えめに。
+export const rainbowSoft = ['#F2C9D2', '#F6E4C0', '#CDEBD6', '#CFE2F2', '#DCD7F2', '#F2C9D2'] as const;
+
+// ホームのスコアバー / 主役の細いグラデーション帯
+export const gradientBar = ['#C9E9D6', '#CFE2F2', '#DCD7F2'] as const;
+
+// ロングの「再生する」ボタンなど大きめのパステルグラデーション
+export const gradientPlay = ['#C9E9D6', '#D6DEF3', '#F4D9E4'] as const;
+
+// 主役カードの淡いウォッシュ（オーロラ）
+export const gradientWash = ['#EAF3FB', '#F2EEFB', '#FBEFF4'] as const;
 
 export const typography = {
   score: {
@@ -86,9 +110,9 @@ export const typography = {
     letterSpacing: -3,
   },
   display: {
-    fontSize: 34,
+    fontSize: 30,
     fontWeight: '800' as const,
-    letterSpacing: -0.8,
+    letterSpacing: -0.6,
   },
   h1: {
     fontSize: 26,
@@ -132,8 +156,8 @@ export const typography = {
     letterSpacing: 2.2,
   },
   brandMark: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: '900' as const,
-    letterSpacing: 3,
+    letterSpacing: 0.5,
   },
 };

@@ -7,8 +7,8 @@ import { PrimaryButton } from './PrimaryButton';
 
 type Props = {
   result?: DailyResult | null;
-  // inline: カード内に置く小さなピル / full: 単独の大きなボタン
-  variant?: 'inline' | 'full';
+  // inline: カード内に置く小さなピル / full: 単独の大きなボタン / icon: 正方形のアイコンだけのボタン
+  variant?: 'inline' | 'full' | 'icon';
 };
 
 function ShareGlyph({ color, size = 16 }: { color: string; size?: number }) {
@@ -32,7 +32,19 @@ function handleShare(result?: DailyResult | null) {
 }
 
 export function ShareButton({ result, variant = 'full' }: Props) {
-  const fullLabel = result?.mode === 'raid' ? 'このレイド記録を共有' : 'この自主練を共有';
+  if (variant === 'icon') {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="共有"
+        disabled={!result}
+        onPress={() => handleShare(result)}
+        style={({ pressed }) => [styles.iconButton, !result && styles.pillDisabled, pressed && styles.pillPressed]}
+      >
+        <ShareGlyph color={colors.text} size={18} />
+      </Pressable>
+    );
+  }
 
   if (variant === 'inline') {
     return (
@@ -51,15 +63,25 @@ export function ShareButton({ result, variant = 'full' }: Props) {
 
   return (
     <PrimaryButton
-      label={fullLabel}
+      label="共有する"
       disabled={!result}
-      icon={<ShareGlyph color={colors.onAccent} size={17} />}
+      icon={<ShareGlyph color={colors.onPrimary} size={18} />}
       onPress={() => handleShare(result)}
     />
   );
 }
 
 const styles = StyleSheet.create({
+  iconButton: {
+    width: 56,
+    height: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.card,
+  },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',

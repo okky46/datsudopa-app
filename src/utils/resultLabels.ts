@@ -8,7 +8,7 @@ export function resultStatusLabel(result: Pick<DailyResult, 'status' | 'failureR
     return '未参加';
   }
   if (result.failureReason === 'emergency_exit') {
-    return '緊急離脱';
+    return '途中離脱';
   }
   if (result.failureReason === 'backgrounded') {
     return '離脱';

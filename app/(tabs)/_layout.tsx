@@ -12,8 +12,13 @@ function HomeIcon({ color }: { color: string }) {
   );
 }
 
-function PlayIcon({ color }: { color: string }) {
-  return <View style={[styles.playIcon, { borderLeftColor: color }]} />;
+function ClockIcon({ color }: { color: string }) {
+  return (
+    <View style={[styles.clock, { borderColor: color }]}>
+      <View style={[styles.clockHandV, { backgroundColor: color }]} />
+      <View style={[styles.clockHandH, { backgroundColor: color }]} />
+    </View>
+  );
 }
 
 function MenuIcon({ color }: { color: string }) {
@@ -26,14 +31,13 @@ function MenuIcon({ color }: { color: string }) {
   );
 }
 
-function TabIcon({ type, focused, featured = false }: { type: 'home' | 'play' | 'menu'; focused: boolean; featured?: boolean }) {
-  const color = focused ? colors.accent : colors.textSubtle;
-  const iconColor = featured && focused ? colors.card : color;
+function TabIcon({ type, focused }: { type: 'home' | 'clock' | 'menu'; focused: boolean }) {
+  const color = focused ? colors.text : colors.textSubtle;
 
   return (
-    <View style={[styles.iconWrap, featured && styles.featuredIcon, focused && featured && styles.featuredIconFocused]}>
+    <View style={[styles.iconWrap, focused && styles.iconWrapFocused]}>
       {type === 'home' && <HomeIcon color={color} />}
-      {type === 'play' && <PlayIcon color={iconColor} />}
+      {type === 'clock' && <ClockIcon color={color} />}
       {type === 'menu' && <MenuIcon color={color} />}
     </View>
   );
@@ -48,29 +52,22 @@ export default function TabsLayout() {
           backgroundColor: colors.card,
           borderTopColor: colors.border,
           borderTopWidth: StyleSheet.hairlineWidth,
-          height: 84,
+          height: 88,
           paddingTop: 10,
-          paddingBottom: 10,
+          paddingBottom: 12,
         },
-        tabBarActiveTintColor: colors.accent,
+        tabBarActiveTintColor: colors.text,
         tabBarInactiveTintColor: colors.textSubtle,
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '700',
           letterSpacing: 0.3,
+          marginTop: 4,
         },
       }}
     >
       <Tabs.Screen name="index" options={{ title: 'ホーム', tabBarIcon: ({ focused }) => <TabIcon type="home" focused={focused} /> }} />
-      <Tabs.Screen
-        name="long"
-        options={{
-          title: '脱ドパロング',
-          tabBarIcon: ({ focused }) => <TabIcon type="play" focused={focused} featured />,
-          tabBarItemStyle: styles.longTabItem,
-          tabBarLabelStyle: styles.longTabLabel,
-        }}
-      />
+      <Tabs.Screen name="long" options={{ title: 'ロング', tabBarIcon: ({ focused }) => <TabIcon type="clock" focused={focused} /> }} />
       <Tabs.Screen name="menu" options={{ title: 'メニュー', tabBarIcon: ({ focused }) => <TabIcon type="menu" focused={focused} /> }} />
     </Tabs>
   );
@@ -78,22 +75,14 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   iconWrap: {
-    width: 30,
-    height: 30,
+    width: 56,
+    height: 34,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  featuredIcon: {
-    width: 46,
-    height: 40,
-    borderWidth: 1,
-    borderColor: colors.accentBorder,
-    borderRadius: 999,
-    backgroundColor: colors.accentSoft,
-  },
-  featuredIconFocused: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
+  iconWrapFocused: {
+    backgroundColor: 'rgba(214, 222, 243, 0.55)',
   },
   homeIcon: {
     width: 24,
@@ -118,15 +107,28 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 3,
     borderBottomRightRadius: 3,
   },
-  playIcon: {
-    width: 0,
-    height: 0,
-    marginLeft: 3,
-    borderTopWidth: 9,
-    borderBottomWidth: 9,
-    borderLeftWidth: 14,
-    borderTopColor: 'transparent',
-    borderBottomColor: 'transparent',
+  clock: {
+    width: 22,
+    height: 22,
+    borderRadius: 999,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clockHandV: {
+    position: 'absolute',
+    width: 2,
+    height: 6,
+    borderRadius: 2,
+    top: 4,
+  },
+  clockHandH: {
+    position: 'absolute',
+    width: 5,
+    height: 2,
+    borderRadius: 2,
+    top: 9,
+    left: 9,
   },
   menuIcon: {
     gap: 4,
@@ -135,14 +137,5 @@ const styles = StyleSheet.create({
     width: 20,
     height: 2,
     borderRadius: 999,
-  },
-  longTabItem: {
-    paddingTop: 0,
-    transform: [{ translateY: -4 }],
-  },
-  longTabLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    paddingTop: 2,
   },
 });

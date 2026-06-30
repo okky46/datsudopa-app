@@ -14,6 +14,22 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
+const SCORE_COLOR_LOW = { r: 61, g: 168, b: 106 }; // #3DA86A
+const SCORE_COLOR_HIGH = { r: 196, g: 69, b: 58 }; // #C4453A
+
+export function dopamineScoreColor(score: number): string {
+  const t = clamp(score, 0, 100) / 100;
+  const r = SCORE_COLOR_LOW.r + (SCORE_COLOR_HIGH.r - SCORE_COLOR_LOW.r) * t;
+  const g = SCORE_COLOR_LOW.g + (SCORE_COLOR_HIGH.g - SCORE_COLOR_LOW.g) * t;
+  const b = SCORE_COLOR_LOW.b + (SCORE_COLOR_HIGH.b - SCORE_COLOR_LOW.b) * t;
+  return (
+    '#' +
+    [r, g, b]
+      .map((channel) => Math.round(channel).toString(16).padStart(2, '0'))
+      .join('')
+  );
+}
+
 export function calculateDopamineScore(input: ScoreInput): number {
   const progress = input.targetSeconds > 0 ? input.watchedSeconds / input.targetSeconds : 0;
   const streakBonus = Math.min(input.streak || 0, 5) * 2;

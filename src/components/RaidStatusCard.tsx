@@ -1,6 +1,7 @@
 
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, radius, spacing } from '../constants/theme';
+import { englishLabels } from '../constants/copy';
+import { colors, radius, spacing, typography } from '../constants/theme';
 import { RaidStatusView } from '../types/raid';
 import { PrimaryButton } from './PrimaryButton';
 
@@ -16,7 +17,7 @@ export function RaidStatusCard({ raidStatus, raidTime, onStart }: Props) {
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <Text style={styles.caption}>DAILY RAID</Text>
+        <Text style={styles.caption}>{englishLabels.dailyRaid}</Text>
         <Text style={styles.badge}>{raidStatus.label}</Text>
       </View>
       <Text style={styles.time}>{raidTime}</Text>
@@ -46,8 +47,7 @@ const styles = StyleSheet.create({
   },
   caption: {
     color: colors.textSubtle,
-    fontSize: 11,
-    letterSpacing: 1.6,
+    ...typography.englishLabel,
   },
   badge: {
     overflow: 'hidden',

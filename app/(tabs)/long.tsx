@@ -6,7 +6,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AdBanner } from '../../src/components/AdBanner';
 import { PrimaryButton } from '../../src/components/PrimaryButton';
 import { VideoCard } from '../../src/components/VideoCard';
-import { colors, radius, spacing } from '../../src/constants/theme';
+import { colors, radius, spacing, typography } from '../../src/constants/theme';
+import { englishLabels } from '../../src/constants/copy';
 import { LongVideoService } from '../../src/services/LongVideoService';
 import { VideoAsset, WatchDurationOption } from '../../src/types/video';
 
@@ -34,7 +35,7 @@ export default function LongScreen() {
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
-          <Text style={styles.kicker}>DATSUDOPA LONG</Text>
+          <Text style={styles.kicker}>{englishLabels.longWatch}</Text>
           <Text style={styles.title}>静かな映像に逃げる</Text>
           <Text style={styles.subtitle}>通常視聴はいつでも可能。レイド扱いにはならないが、ドパガキ度を少しだけ冷ます。</Text>
         </View>
@@ -95,9 +96,7 @@ const styles = StyleSheet.create({
   },
   kicker: {
     color: colors.blue,
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 2.5,
+    ...typography.englishKicker,
   },
   title: {
     color: colors.text,

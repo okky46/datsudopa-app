@@ -25,7 +25,7 @@ function ShareGlyph({ color }: { color: string }) {
 export function ShareButton({ result, compact = false }: Props) {
   return (
     <PrimaryButton
-      label={compact ? '共有' : '本日の報告書を共有'}
+      label={compact ? '共有' : '脱ドパレポートを共有'}
       variant={compact ? 'ghost' : 'primary'}
       disabled={!result}
       icon={<ShareGlyph color={compact ? colors.text : colors.black} />}

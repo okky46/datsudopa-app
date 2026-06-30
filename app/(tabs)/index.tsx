@@ -8,19 +8,22 @@ import { DopamineScoreCard } from '../../src/components/DopamineScoreCard';
 import { HistoryList } from '../../src/components/HistoryList';
 import { RaidStatusCard } from '../../src/components/RaidStatusCard';
 import { ResultCard } from '../../src/components/ResultCard';
-import { colors, spacing } from '../../src/constants/theme';
+import { APP_CATCHPHRASE } from '../../src/constants/copy';
+import { colors, spacing, typography } from '../../src/constants/theme';
 import { DailyResult } from '../../src/types/result';
 import { RaidStatusView } from '../../src/types/raid';
 import { UserSettings } from '../../src/types/settings';
 import { LongVideoService } from '../../src/services/LongVideoService';
 import { RaidService } from '../../src/services/RaidService';
 import { StorageService } from '../../src/services/StorageService';
+import { getTimeBasedGreeting } from '../../src/utils/greeting';
 
 export default function HomeScreen() {
   const [settings, setSettings] = useState<UserSettings>(StorageService.getDefaultSettings());
   const [results, setResults] = useState<DailyResult[]>([]);
   const [raidStatus, setRaidStatus] = useState<RaidStatusView | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [greeting, setGreeting] = useState(getTimeBasedGreeting());
 
   const load = useCallback(async () => {
     const storedSettings = await StorageService.getSettings();
@@ -32,6 +35,7 @@ export default function HomeScreen() {
     setSettings(storedSettings);
     setResults(storedResults);
     setRaidStatus(RaidService.getRaidStatus(storedSettings, storedResults));
+    setGreeting(getTimeBasedGreeting());
   }, []);
 
   useEffect(() => {
@@ -70,12 +74,17 @@ export default function HomeScreen() {
         }
       >
         <View style={styles.hero}>
-          <Text style={styles.kicker}>脱ドパ</Text>
-          <Text style={styles.title}>今日の儀式</Text>
-          <Text style={styles.subtitle}>SNSの強い刺激から、静かな映像空間へ退避する毎日1回のレイド。</Text>
+          <View style={styles.brandRow}>
+            <View style={styles.brandLeft}>
+              <View style={styles.logoSlot} accessibilityLabel="ロゴ予定地" />
+              <Text style={styles.brandMark}>脱ドパ</Text>
+            </View>
+            <Text style={styles.catchCopy}>{APP_CATCHPHRASE}</Text>
+          </View>
+          <Text style={styles.greeting}>{greeting}</Text>
         </View>
 
-        <DopamineScoreCard score={score} result={latestResult} />
+        <DopamineScoreCard score={score} nickname={settings.nickname} result={latestResult} />
         {raidStatus && <RaidStatusCard raidStatus={raidStatus} raidTime={settings.raidTime} onStart={startRaid} />}
         {latestResult && <ResultCard result={latestResult} />}
         <HistoryList results={results} />
@@ -96,23 +105,45 @@ const styles = StyleSheet.create({
     paddingBottom: 110,
   },
   hero: {
-    gap: spacing.sm,
+    gap: spacing.md,
     paddingTop: spacing.md,
   },
-  kicker: {
-    color: colors.blue,
-    fontSize: 13,
-    letterSpacing: 3,
-    fontWeight: '700',
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
   },
-  title: {
+  brandLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flexShrink: 1,
+  },
+  logoSlot: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.accentBorder,
+    backgroundColor: colors.accentSoft,
+  },
+  brandMark: {
     color: colors.text,
-    fontSize: 38,
-    fontWeight: '800',
-    letterSpacing: -1.2,
+    ...typography.brandMark,
   },
-  subtitle: {
-    color: colors.textMuted,
+  catchCopy: {
+    flex: 1,
+    color: colors.blue,
+    fontSize: 15,
+    fontWeight: '700',
     lineHeight: 22,
+    textAlign: 'right',
+  },
+  greeting: {
+    color: colors.textMuted,
+    fontSize: 20,
+    fontWeight: '700',
+    lineHeight: 28,
   },
 });

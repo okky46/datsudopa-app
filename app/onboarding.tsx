@@ -5,7 +5,8 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PrimaryButton } from '../src/components/PrimaryButton';
 import { DEFAULT_RAID_DURATION_SECONDS, NOTIFICATION_TONE_OPTIONS, SOCIAL_TIME_OPTIONS } from '../src/constants/raid';
-import { colors, radius, spacing } from '../src/constants/theme';
+import { colors, radius, spacing, typography } from '../src/constants/theme';
+import { englishLabels } from '../src/constants/copy';
 import { NotificationService } from '../src/services/NotificationService';
 import { StorageService } from '../src/services/StorageService';
 import { NotificationTone, SocialTimeSlot } from '../src/types/settings';
@@ -28,6 +29,7 @@ export default function OnboardingScreen() {
     const settings = {
       onboardingCompleted: true,
       nickname: nickname.trim() || StorageService.getDefaultSettings().nickname,
+      frameColorId: StorageService.getDefaultSettings().frameColorId,
       socialTimeSlot: slot,
       raidTime,
       notificationEnabled: granted,
@@ -51,7 +53,7 @@ export default function OnboardingScreen() {
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
-          <Text style={styles.kicker}>FIRST RAID SETUP</Text>
+          <Text style={styles.kicker}>{englishLabels.gettingStarted}</Text>
           <Text style={styles.title}>あなたが一番ドパる時間は？</Text>
           <Text style={styles.subtitle}>その時間に、毎日1回だけ静かなレイド通知を出します。</Text>
         </View>
@@ -135,9 +137,7 @@ const styles = StyleSheet.create({
   },
   kicker: {
     color: colors.blue,
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 2.5,
+    ...typography.englishKicker,
   },
   title: {
     color: colors.text,

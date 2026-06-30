@@ -1,6 +1,7 @@
 
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, radius, spacing } from '../constants/theme';
+import { englishLabels } from '../constants/copy';
+import { colors, radius, spacing, typography } from '../constants/theme';
 import { DailyResult } from '../types/result';
 
 type Props = {
@@ -12,7 +13,7 @@ export function HistoryList({ results }: Props) {
 
   return (
     <View style={styles.card}>
-      <Text style={styles.caption}>直近7日</Text>
+      <Text style={styles.caption}>{englishLabels.lastSevenDays}</Text>
       {latest.length === 0 ? (
         <Text style={styles.empty}>まだ記録はありません。通知を見た時点で、もう始まります。</Text>
       ) : (
@@ -39,8 +40,7 @@ const styles = StyleSheet.create({
   },
   caption: {
     color: colors.textSubtle,
-    fontSize: 12,
-    letterSpacing: 1.4,
+    ...typography.englishLabel,
   },
   empty: {
     color: colors.textMuted,

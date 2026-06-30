@@ -6,13 +6,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PremiumJokeCard } from '../../src/components/PremiumJokeCard';
 import { PrimaryButton } from '../../src/components/PrimaryButton';
 import { NOTIFICATION_TONE_OPTIONS, SOCIAL_TIME_OPTIONS } from '../../src/constants/raid';
-import { colors, radius, spacing } from '../../src/constants/theme';
+import { FRAME_COLOR_OPTIONS } from '../../src/constants/frame';
+import { colors, radius, spacing, typography } from '../../src/constants/theme';
+import { englishLabels } from '../../src/constants/copy';
+import { useScreenFrame } from '../../src/contexts/ScreenFrameContext';
 import { NotificationService } from '../../src/services/NotificationService';
 import { StorageService } from '../../src/services/StorageService';
-import { NotificationTone, SocialTimeSlot, UserSettings } from '../../src/types/settings';
+import { FrameColorId, NotificationTone, SocialTimeSlot, UserSettings } from '../../src/types/settings';
 
 export default function MenuScreen() {
   const [settings, setSettings] = useState<UserSettings>(StorageService.getDefaultSettings());
+  const { setFrameColorId } = useScreenFrame();
 
   const load = useCallback(async () => {
     setSettings(await StorageService.getSettings());
@@ -43,11 +47,16 @@ export default function MenuScreen() {
     void update({ ...settings, notificationTone: tone });
   };
 
+  const selectFrameColor = (frameColorId: FrameColorId) => {
+    setFrameColorId(frameColorId);
+    void update({ ...settings, frameColorId });
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
-          <Text style={styles.kicker}>MENU</Text>
+          <Text style={styles.kicker}>{englishLabels.settings}</Text>
           <Text style={styles.title}>設定と広告増量</Text>
           <Text style={styles.subtitle}>レイド通知の時刻、煽りの強さ、まだ存在しないプレミアムの気配。</Text>
         </View>
@@ -66,6 +75,24 @@ export default function MenuScreen() {
             style={styles.input}
           />
           <Text style={styles.description}>共有文言のドパガキ度表示に使われます。</Text>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>画面の縁取り色</Text>
+          <Text style={styles.description}>脱ドパ成功時は、縁がぐるぐる虹色に光ります。</Text>
+          <View style={styles.colorRow}>
+            {FRAME_COLOR_OPTIONS.map((option) => (
+              <Pressable
+                key={option.id}
+                accessibilityRole="button"
+                accessibilityLabel={option.label}
+                onPress={() => selectFrameColor(option.id)}
+                style={[styles.colorSwatch, settings.frameColorId === option.id && styles.colorSwatchSelected]}
+              >
+                <View style={[styles.colorFill, { backgroundColor: option.color }]} />
+              </Pressable>
+            ))}
+          </View>
         </View>
 
         <View style={styles.card}>
@@ -163,9 +190,7 @@ const styles = StyleSheet.create({
   },
   kicker: {
     color: colors.blue,
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 2.5,
+    ...typography.englishKicker,
   },
   title: {
     color: colors.text,
@@ -240,6 +265,32 @@ const styles = StyleSheet.create({
   description: {
     color: colors.textMuted,
     lineHeight: 20,
+  },
+  colorRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
+  },
+  colorSwatch: {
+    width: 52,
+    height: 52,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+  },
+  colorSwatchSelected: {
+    borderColor: colors.blue,
+    backgroundColor: colors.accentSoft,
+  },
+  colorFill: {
+    width: 36,
+    height: 36,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(36, 49, 38, 0.12)',
   },
   legal: {
     color: colors.textSubtle,

@@ -1,6 +1,30 @@
 
 import { NotificationTone } from '../types/settings';
 
+export const APP_CATCHPHRASE = '刺激から、静かへ。';
+
+export const englishLabels = {
+  stimulationMeter: 'Stimulation Meter',
+  dailyRaid: 'Daily Raid',
+  latestResult: 'Latest Result',
+  lastSevenDays: 'Last 7 Days',
+  longWatch: 'Long Watch',
+  settings: 'Settings',
+  gettingStarted: 'Getting Started',
+  premiumPreview: 'Premium Preview',
+  sessionResult: 'Session Result',
+  longSessionResult: 'Long Session Result',
+} as const;
+
+export const LONG_VIDEO_DEFAULT_NOTE = '刺激がないことに、少しだけ耐える時間。';
+
+export const LONG_EXIT_CONFIRM = {
+  title: '本当にやめますか？',
+  message: 'やめたらドパガキのままだよ。今の静けさは、指先ひとつで消える。',
+  continue: '続ける',
+  quit: 'やめる',
+} as const;
+
 export const titles = [
   '脱ドパ修行僧',
   '通知だけ見た人',

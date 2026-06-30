@@ -1,7 +1,7 @@
 
 import { DailyResult, DailyResultMode, DailyResultStatus, FailureReason } from '../types/result';
-import { calculateDopamineScore, commentForResult, titleForResult } from '../utils/score';
-import { formatDateForShare, toDateKey } from '../utils/date';
+import { calculateDopamineScore, calculateSessionMetrics, commentForResult, titleForResult } from '../utils/score';
+import { formatDateForShare, formatSeconds, toDateKey } from '../utils/date';
 
 type CreateResultInput = {
   status: DailyResultStatus;
@@ -51,6 +51,29 @@ export class ResultService {
 
   static createShareText(result: DailyResult, nickname = '名無しのドパガキ'): string {
     const displayName = nickname.trim() || '名無しのドパガキ';
+    const metrics = calculateSessionMetrics(result);
+
+    if (result.mode === 'normal') {
+      const sessionLine =
+        result.status === 'completed'
+          ? `脱ドパロング：完走（${formatSeconds(result.watchedSeconds)}）`
+          : `脱ドパロング：${formatSeconds(result.watchedSeconds)} / 目標${formatSeconds(result.targetSeconds)}`;
+
+      return [
+        `${displayName}の脱ドパレポート`,
+        formatDateForShare(result.date),
+        '',
+        sessionLine,
+        `脱ドパ達成率：${metrics.detoxRate}%`,
+        `心の静けさスコア：${metrics.calmScore}`,
+        `${displayName}のドパガキ度：${result.dopamineScore}%`,
+        `称号：${result.title}`,
+        '',
+        result.comment,
+        '#脱ドパロング',
+      ].join('\n');
+    }
+
     const raidLine =
       result.status === 'completed'
         ? '脱ドパレイド：完走'
@@ -59,15 +82,15 @@ export class ResultService {
           : '脱ドパレイド：' + result.watchedSeconds + '秒で逃亡';
 
     return [
+      `${displayName}の脱ドパレポート`,
       formatDateForShare(result.date),
-      '本日のドパガキ報告書',
       '',
       raidLine,
-      displayName + 'のドパガキ度：' + result.dopamineScore + '%',
+      `${displayName}のドパガキ度：${result.dopamineScore}%`,
       '称号：' + result.title,
       '',
       result.comment,
-      '#脱ドパロングレイド',
+      '#脱ドパレイド',
     ].join('\n');
   }
 }

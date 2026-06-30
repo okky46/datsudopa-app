@@ -13,6 +13,7 @@ export type VideoMood =
 export type VideoAsset = {
   id: string;
   title: string;
+  description?: string;
   sourceType: 'local' | 'remote' | 'generated_placeholder' | 'user_uploaded';
   uri: string;
   durationSeconds?: number;

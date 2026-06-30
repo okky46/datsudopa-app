@@ -9,7 +9,7 @@ export class ShareService {
     const settings = await StorageService.getSettings();
     await Share.share({
       message: ResultService.createShareText(result, settings.nickname),
-      title: '本日のドパガキ報告書',
+      title: '脱ドパレポート',
     });
     await StorageService.markResultShared(result.date, result.mode);
   }

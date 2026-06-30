@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DailyResult } from '../types/result';
 import { CurrentRaidState } from '../types/raid';
 import { PremiumStatus, UserSettings } from '../types/settings';
+import { DEFAULT_FRAME_COLOR_ID } from '../constants/frame';
 import { VideoWatchRecord } from '../types/video';
 
 const keys = {
@@ -18,6 +19,7 @@ const keys = {
 const defaultSettings: UserSettings = {
   onboardingCompleted: false,
   nickname: '名無しのドパガキ',
+  frameColorId: DEFAULT_FRAME_COLOR_ID,
   socialTimeSlot: 'before_bed',
   raidTime: '23:00',
   notificationEnabled: true,

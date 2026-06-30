@@ -1,6 +1,7 @@
 
 import { useCallback, useMemo, useRef } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { VideoPlayerShell } from '../../src/components/VideoPlayerShell';
 import { FailureReason } from '../../src/types/result';
 import { WatchMode } from '../../src/types/video';
@@ -15,6 +16,7 @@ export default function ActiveRaidScreen() {
   const duration = Number(params.duration) || 180;
   const video = useMemo(() => LongVideoService.findById(params.videoId), [params.videoId]);
   const startedAt = useMemo(() => new Date().toISOString(), []);
+  const isLongMode = mode === 'normal';
 
   const finish = useCallback(
     async (status: 'completed' | 'escaped', watchedSeconds: number, failureReason: FailureReason = 'none') => {
@@ -52,12 +54,15 @@ export default function ActiveRaidScreen() {
   );
 
   return (
-    <VideoPlayerShell
-      video={video}
-      mode={mode}
-      targetSeconds={duration}
-      onComplete={(watchedSeconds) => void finish('completed', watchedSeconds)}
-      onFail={(reason, watchedSeconds) => void finish('escaped', watchedSeconds, reason)}
-    />
+    <>
+      <StatusBar hidden={isLongMode} style="light" />
+      <VideoPlayerShell
+        video={video}
+        mode={mode}
+        targetSeconds={duration}
+        onComplete={(watchedSeconds) => void finish('completed', watchedSeconds)}
+        onFail={(reason, watchedSeconds) => void finish('escaped', watchedSeconds, reason)}
+      />
+    </>
   );
 }

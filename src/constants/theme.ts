@@ -36,3 +36,22 @@ export const radius = {
   md: 18,
   lg: 26,
 };
+
+export const typography = {
+  englishLabel: {
+    fontSize: 13,
+    fontWeight: '700' as const,
+    letterSpacing: 1.3,
+    textTransform: 'uppercase' as const,
+  },
+  englishKicker: {
+    fontSize: 13,
+    fontWeight: '700' as const,
+    letterSpacing: 2.2,
+  },
+  brandMark: {
+    fontSize: 40,
+    fontWeight: '900' as const,
+    letterSpacing: -1.5,
+  },
+};

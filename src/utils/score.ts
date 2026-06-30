@@ -81,6 +81,25 @@ export function getDailyTitle(score: number): string {
   return '通知だけ見た人';
 }
 
+export type SessionMetrics = {
+  detoxRate: number;
+  calmScore: number;
+  untouchedMinutes: number;
+};
+
+export function calculateSessionMetrics(
+  result: Pick<DailyResult, 'watchedSeconds' | 'targetSeconds' | 'status'>,
+): SessionMetrics {
+  const progress = result.targetSeconds > 0 ? result.watchedSeconds / result.targetSeconds : 0;
+  const detoxRate = Math.min(100, Math.round(progress * 100));
+  const calmBase = Math.min(100, Math.round((result.watchedSeconds / 30) * 8));
+  const calmBonus = result.status === 'completed' ? 12 : 0;
+  const calmScore = Math.min(100, calmBase + calmBonus);
+  const untouchedMinutes = Math.max(0, Math.floor(result.watchedSeconds / 60));
+
+  return { detoxRate, calmScore, untouchedMinutes };
+}
+
 export function getDailyComment(score: number): string {
   if (score <= 35) {
     return '刺激がないことに、今日は少し耐えられた。';

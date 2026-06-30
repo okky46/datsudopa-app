@@ -1,19 +1,25 @@
 
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, radius, spacing } from '../constants/theme';
+import { englishLabels } from '../constants/copy';
+import { colors, radius, spacing, typography } from '../constants/theme';
 import { DailyResult } from '../types/result';
 import { getDailyComment, getDailyTitle } from '../utils/score';
 import { ShareButton } from './ShareButton';
 
 type Props = {
   score: number;
+  nickname: string;
   result?: DailyResult | null;
 };
 
-export function DopamineScoreCard({ score, result }: Props) {
+export function DopamineScoreCard({ score, nickname, result }: Props) {
+  const displayName = nickname.trim() || '名無しのドパガキ';
+
   return (
     <View style={styles.card}>
-      <Text style={styles.caption}>TODAY'S DOPAGAKI INDEX</Text>
+      <Text style={styles.caption}>{englishLabels.stimulationMeter}</Text>
+      <Text style={styles.scoreOwner}>{displayName}のドパガキ度</Text>
+      <Text style={styles.scoreHint}>脳内刺激の残りを、ざっくり%で表示しています</Text>
       <View style={styles.row}>
         <Text style={styles.score}>{score}%</Text>
         <View style={styles.meta}>
@@ -37,8 +43,17 @@ const styles = StyleSheet.create({
   },
   caption: {
     color: colors.textSubtle,
-    fontSize: 11,
-    letterSpacing: 1.6,
+    ...typography.englishLabel,
+  },
+  scoreOwner: {
+    color: colors.text,
+    fontSize: 22,
+    fontWeight: '800',
+  },
+  scoreHint: {
+    color: colors.textMuted,
+    fontSize: 13,
+    lineHeight: 20,
   },
   row: {
     flexDirection: 'row',

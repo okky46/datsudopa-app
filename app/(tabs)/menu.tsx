@@ -53,6 +53,22 @@ export default function MenuScreen() {
         </View>
 
         <View style={styles.card}>
+          <Text style={styles.sectionTitle}>ニックネーム</Text>
+          <TextInput
+            value={settings.nickname}
+            onChangeText={(nickname) => setSettings({ ...settings, nickname })}
+            onBlur={() => void update({ ...settings, nickname: settings.nickname.trim() || StorageService.getDefaultSettings().nickname })}
+            placeholder="例：駅前のドパガキ"
+            placeholderTextColor={colors.textSubtle}
+            maxLength={24}
+            autoCapitalize="none"
+            autoCorrect={false}
+            style={styles.input}
+          />
+          <Text style={styles.description}>共有文言のドパガキ度表示に使われます。</Text>
+        </View>
+
+        <View style={styles.card}>
           <Text style={styles.sectionTitle}>よくSNSを使う時間帯</Text>
           <View style={styles.chips}>
             {SOCIAL_TIME_OPTIONS.map((option) => (
@@ -184,11 +200,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 999,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: colors.surface,
   },
   chipSelected: {
     borderColor: colors.blue,
-    backgroundColor: 'rgba(123, 167, 215, 0.14)',
+    backgroundColor: colors.accentSoft,
   },
   chipText: {
     color: colors.textMuted,

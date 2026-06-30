@@ -17,6 +17,7 @@ const keys = {
 
 const defaultSettings: UserSettings = {
   onboardingCompleted: false,
+  nickname: '名無しのドパガキ',
   socialTimeSlot: 'before_bed',
   raidTime: '23:00',
   notificationEnabled: true,
@@ -49,7 +50,8 @@ export class StorageService {
   }
 
   static async getSettings(): Promise<UserSettings> {
-    return readJson<UserSettings>(keys.userSettings, defaultSettings);
+    const settings = await readJson<Partial<UserSettings>>(keys.userSettings, defaultSettings);
+    return { ...defaultSettings, ...settings };
   }
 
   static async saveSettings(settings: UserSettings): Promise<void> {

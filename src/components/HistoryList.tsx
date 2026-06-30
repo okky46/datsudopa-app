@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: colors.card,
   },
   caption: {
     color: colors.textSubtle,

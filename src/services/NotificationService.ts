@@ -85,7 +85,7 @@ export class NotificationService {
         name: '脱ドパレイド',
         importance: Notifications.AndroidImportance.DEFAULT,
         vibrationPattern: [0, 180, 120, 180],
-        lightColor: '#7BA7D7',
+        lightColor: '#8FAF8A',
       });
     }
 

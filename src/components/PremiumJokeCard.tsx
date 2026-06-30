@@ -21,8 +21,8 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: 'rgba(213, 185, 121, 0.28)',
-    backgroundColor: 'rgba(213, 185, 121, 0.08)',
+    borderColor: colors.warningBorder,
+    backgroundColor: colors.warningSoft,
   },
   caption: {
     color: colors.warning,

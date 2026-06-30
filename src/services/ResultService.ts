@@ -49,7 +49,8 @@ export class ResultService {
     return result;
   }
 
-  static createShareText(result: DailyResult): string {
+  static createShareText(result: DailyResult, nickname = '名無しのドパガキ'): string {
+    const displayName = nickname.trim() || '名無しのドパガキ';
     const raidLine =
       result.status === 'completed'
         ? '脱ドパレイド：完走'
@@ -62,7 +63,7 @@ export class ResultService {
       '本日のドパガキ報告書',
       '',
       raidLine,
-      'ドパガキ度：' + result.dopamineScore + '%',
+      displayName + 'のドパガキ度：' + result.dopamineScore + '%',
       '称号：' + result.title,
       '',
       result.comment,

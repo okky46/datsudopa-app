@@ -4,6 +4,7 @@ export type NotificationTone = 'gentle' | 'normal' | 'strong';
 
 export type UserSettings = {
   onboardingCompleted: boolean;
+  nickname: string;
   socialTimeSlot: SocialTimeSlot;
   customSocialTimeLabel?: string;
   raidTime: string;

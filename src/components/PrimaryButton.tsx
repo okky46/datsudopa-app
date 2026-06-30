@@ -1,5 +1,6 @@
 
-import { Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
+import type { ReactNode } from 'react';
+import { Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { colors, radius, spacing } from '../constants/theme';
 
 type Props = {
@@ -8,9 +9,10 @@ type Props = {
   variant?: 'primary' | 'ghost' | 'danger';
   disabled?: boolean;
   style?: ViewStyle;
+  icon?: ReactNode;
 };
 
-export function PrimaryButton({ label, onPress, variant = 'primary', disabled = false, style }: Props) {
+export function PrimaryButton({ label, onPress, variant = 'primary', disabled = false, style, icon }: Props) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -25,7 +27,10 @@ export function PrimaryButton({ label, onPress, variant = 'primary', disabled = 
         style,
       ]}
     >
-      <Text style={[styles.label, variant === 'ghost' && styles.ghostLabel]}>{label}</Text>
+      <View style={styles.content}>
+        {icon}
+        <Text style={[styles.label, variant === 'ghost' && styles.ghostLabel]}>{label}</Text>
+      </View>
     </Pressable>
   );
 }
@@ -45,9 +50,9 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   danger: {
-    backgroundColor: 'rgba(200, 123, 123, 0.18)',
+    backgroundColor: colors.dangerSoft,
     borderWidth: 1,
-    borderColor: 'rgba(200, 123, 123, 0.28)',
+    borderColor: colors.dangerBorder,
   },
   disabled: {
     opacity: 0.46,
@@ -55,6 +60,12 @@ const styles = StyleSheet.create({
   pressed: {
     transform: [{ scale: 0.98 }],
     opacity: 0.82,
+  },
+  content: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
   },
   label: {
     color: colors.black,

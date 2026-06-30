@@ -9,7 +9,7 @@ module.exports = ({ config }) => ({
   scheme: 'datsudopa',
   version: '1.0.0',
   orientation: 'portrait',
-  userInterfaceStyle: 'dark',
+  userInterfaceStyle: 'light',
   icon: './assets/icon.png',
   ios: {
     ...config.ios,
@@ -20,7 +20,7 @@ module.exports = ({ config }) => ({
     ...config.android,
     package: process.env.EXPO_PUBLIC_ANDROID_PACKAGE || 'com.datsudopa.app',
     adaptiveIcon: {
-      backgroundColor: '#05070D',
+      backgroundColor: '#FBFCF7',
       foregroundImage: './assets/android-icon-foreground.png',
       backgroundImage: './assets/android-icon-background.png',
       monochromeImage: './assets/android-icon-monochrome.png',

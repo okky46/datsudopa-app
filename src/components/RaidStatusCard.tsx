@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 999,
     color: colors.text,
-    backgroundColor: 'rgba(123, 167, 215, 0.16)',
+    backgroundColor: colors.accentSoft,
   },
   time: {
     color: colors.text,

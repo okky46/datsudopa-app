@@ -7,6 +7,9 @@ import { FailureReason } from '../types/result';
 import { VideoAsset, WatchMode } from '../types/video';
 import { formatSeconds } from '../utils/date';
 
+const videoText = '#F4F7FB';
+const videoTextMuted = '#DDE8D8';
+
 type Props = {
   video: VideoAsset;
   mode: WatchMode;
@@ -133,7 +136,7 @@ const styles = StyleSheet.create({
     width: 260,
     height: 260,
     borderRadius: 130,
-    backgroundColor: 'rgba(123, 167, 215, 0.26)',
+    backgroundColor: 'rgba(143, 175, 138, 0.28)',
     transform: [{ scaleX: 1.8 }],
   },
   horizon: {
@@ -142,7 +145,7 @@ const styles = StyleSheet.create({
     right: 0,
     top: '54%',
     height: 1,
-    backgroundColor: 'rgba(244, 247, 251, 0.2)',
+    backgroundColor: 'rgba(244, 247, 251, 0.22)',
   },
   horizonSoft: {
     position: 'absolute',
@@ -150,10 +153,10 @@ const styles = StyleSheet.create({
     right: 28,
     top: '62%',
     height: 2,
-    backgroundColor: 'rgba(123, 167, 215, 0.1)',
+    backgroundColor: 'rgba(143, 175, 138, 0.14)',
   },
   generatedText: {
-    color: 'rgba(244, 247, 251, 0.16)',
+    color: 'rgba(244, 247, 251, 0.18)',
     letterSpacing: 8,
     textTransform: 'uppercase',
   },
@@ -169,12 +172,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   mode: {
-    color: colors.textMuted,
+    color: videoTextMuted,
     fontSize: 13,
     letterSpacing: 1.6,
   },
   remaining: {
-    color: colors.text,
+    color: videoText,
     fontSize: 30,
     fontWeight: '800',
   },
@@ -185,12 +188,12 @@ const styles = StyleSheet.create({
     paddingBottom: 42,
   },
   title: {
-    color: colors.text,
+    color: videoText,
     fontSize: 24,
     fontWeight: '800',
   },
   note: {
-    color: colors.textMuted,
+    color: videoTextMuted,
   },
   exitButton: {
     alignSelf: 'flex-start',
@@ -198,9 +201,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderWidth: 1,
-    borderColor: 'rgba(200, 123, 123, 0.32)',
+    borderColor: colors.dangerBorder,
     borderRadius: 999,
-    backgroundColor: 'rgba(200, 123, 123, 0.1)',
+    backgroundColor: colors.dangerSoft,
   },
   exitText: {
     color: colors.danger,

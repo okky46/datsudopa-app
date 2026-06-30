@@ -127,11 +127,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 999,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: colors.surface,
   },
   chipSelected: {
     borderColor: colors.blue,
-    backgroundColor: 'rgba(123, 167, 215, 0.14)',
+    backgroundColor: colors.accentSoft,
   },
   chipText: {
     color: colors.textMuted,

@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.md,
-    backgroundColor: 'rgba(255, 255, 255, 0.035)',
+    backgroundColor: colors.surface,
   },
   label: {
     color: colors.textSubtle,

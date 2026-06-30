@@ -31,11 +31,11 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: 'rgba(255, 255, 255, 0.035)',
+    backgroundColor: colors.surface,
   },
   selected: {
-    borderColor: 'rgba(123, 167, 215, 0.62)',
-    backgroundColor: 'rgba(123, 167, 215, 0.12)',
+    borderColor: colors.accentBorder,
+    backgroundColor: colors.accentSoft,
   },
   thumb: {
     width: 82,

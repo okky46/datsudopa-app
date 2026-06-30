@@ -11,6 +11,7 @@ import { StorageService } from '../src/services/StorageService';
 import { NotificationTone, SocialTimeSlot } from '../src/types/settings';
 
 export default function OnboardingScreen() {
+  const [nickname, setNickname] = useState('');
   const [slot, setSlot] = useState<SocialTimeSlot>('before_bed');
   const [tone, setTone] = useState<NotificationTone>('normal');
   const defaultTime = useMemo(() => SOCIAL_TIME_OPTIONS.find((option) => option.value === slot)?.defaultTime || '23:00', [slot]);
@@ -26,6 +27,7 @@ export default function OnboardingScreen() {
     const granted = await NotificationService.requestPermission();
     const settings = {
       onboardingCompleted: true,
+      nickname: nickname.trim() || StorageService.getDefaultSettings().nickname,
       socialTimeSlot: slot,
       raidTime,
       notificationEnabled: granted,
@@ -52,6 +54,21 @@ export default function OnboardingScreen() {
           <Text style={styles.kicker}>FIRST RAID SETUP</Text>
           <Text style={styles.title}>あなたが一番ドパる時間は？</Text>
           <Text style={styles.subtitle}>その時間に、毎日1回だけ静かなレイド通知を出します。</Text>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>ニックネーム</Text>
+          <TextInput
+            value={nickname}
+            onChangeText={setNickname}
+            placeholder="例：駅前のドパガキ"
+            placeholderTextColor={colors.textSubtle}
+            maxLength={24}
+            autoCapitalize="none"
+            autoCorrect={false}
+            style={styles.input}
+          />
+          <Text style={styles.description}>共有するときに「あなたのドパガキ度」として表示されます。</Text>
         </View>
 
         <View style={styles.card}>
@@ -156,11 +173,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 999,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: colors.surface,
   },
   chipSelected: {
     borderColor: colors.blue,
-    backgroundColor: 'rgba(123, 167, 215, 0.14)',
+    backgroundColor: colors.accentSoft,
   },
   chipText: {
     color: colors.textMuted,

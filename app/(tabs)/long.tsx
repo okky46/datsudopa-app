@@ -105,7 +105,7 @@ export default function LongScreen() {
 
         <SectionHeading label={screenCopy.longVideoSectionLabel} value={selectedVideo.title} />
 
-        <SectionHeading label={screenCopy.longDurationSectionLabel} hint={screenCopy.longDurationSectionHint} />
+        <SectionHeading label={screenCopy.longDurationSectionLabel} />
 
         <DurationSlider valueMinutes={durationMinutes} onChange={setDurationMinutes} compact />
 

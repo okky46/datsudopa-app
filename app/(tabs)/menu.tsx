@@ -9,7 +9,7 @@ import { Card } from '../../src/components/ui/Card';
 import { Chip } from '../../src/components/ui/Chip';
 import { SOCIAL_TIME_OPTIONS } from '../../src/constants/raid';
 import { FRAME_COLOR_OPTIONS, getFrameColor } from '../../src/constants/frame';
-import { colors, radius, spacing, typography } from '../../src/constants/theme';
+import { colors, spacing, typography } from '../../src/constants/theme';
 import { screenCopy } from '../../src/constants/copy';
 import { useScreenFrame } from '../../src/contexts/ScreenFrameContext';
 import { NotificationService } from '../../src/services/NotificationService';
@@ -136,8 +136,6 @@ export default function MenuScreen() {
           </View>
         </Card>
 
-        <PremiumJokeCard />
-
         <View style={styles.footer}>
           <PrimaryButton label="オンボーディングをやり直す" variant="ghost" onPress={() => router.push('/onboarding')} />
           <PrimaryButton
@@ -156,8 +154,11 @@ export default function MenuScreen() {
               ]);
             }}
           />
-          <Text style={styles.legal}>プライバシーポリシー ・ 利用規約</Text>
         </View>
+
+        <PremiumJokeCard />
+
+        <Text style={styles.legal}>プライバシーポリシー ・ 利用規約</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -244,17 +245,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.sm,
   },
-  timeInput: {
-    minHeight: 48,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    color: colors.text,
-    fontSize: 16,
-    fontWeight: '600',
-    backgroundColor: colors.surface,
-  },
   timePreview: {
     color: colors.text,
     fontSize: 32,
@@ -287,7 +277,7 @@ const styles = StyleSheet.create({
     height: 34,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(28, 38, 32, 0.10)',
+    borderColor: colors.borderStrong,
   },
   footer: {
     gap: spacing.sm,

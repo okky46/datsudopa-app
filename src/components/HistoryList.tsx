@@ -49,7 +49,6 @@ export function HistoryList({ results }: Props) {
     <View style={styles.wrap}>
       <View style={styles.headRow}>
         <Text style={styles.heading}>最近の記録</Text>
-        <Text style={styles.seeAll}>すべて見る ›</Text>
       </View>
 
       <View style={styles.card}>
@@ -90,11 +89,6 @@ const styles = StyleSheet.create({
   heading: {
     color: colors.textMuted,
     ...typography.label,
-  },
-  seeAll: {
-    color: colors.textSubtle,
-    fontSize: 12,
-    fontWeight: '600',
   },
   card: {
     paddingHorizontal: spacing.lg,

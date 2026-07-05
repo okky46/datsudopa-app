@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
   barTrack: {
     height: 7,
     borderRadius: radius.pill,
-    backgroundColor: 'rgba(46, 52, 80, 0.07)',
+    backgroundColor: colors.border,
     overflow: 'hidden',
     marginTop: spacing.sm,
     marginBottom: spacing.lg,
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm + 2,
     paddingHorizontal: spacing.md,
     borderRadius: radius.md,
-    backgroundColor: 'rgba(255,255,255,0.7)',
+    backgroundColor: colors.cardTranslucent,
     borderWidth: 1,
     borderColor: colors.border,
   },

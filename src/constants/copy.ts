@@ -15,7 +15,6 @@ export const screenCopy = {
   longSectionOthers: 'ほかの静かな没入映像',
   longVideoSectionLabel: '今日の映像',
   longDurationSectionLabel: '視聴時間',
-  longDurationSectionHint: '1分〜120分。スライダーか下のボタンで指定できます。',
   menuTitle: '集合設定',
   raidResultTitle: '本日の脱ドパ記録',
   raidResultLine: '虚無に耐えた時間だけ、少し戻ってくる。',

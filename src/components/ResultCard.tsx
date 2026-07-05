@@ -58,7 +58,6 @@ export function ResultCard({ result }: Props) {
       <View style={styles.scoreRow}>
         <Text style={[styles.score, { color: scoreColor }]}>{result.dopamineScore}</Text>
         <Text style={[styles.percent, { color: scoreColor }]}>%</Text>
-        <Sparkle size={15} style={styles.scoreSparkle} />
       </View>
 
       <Text style={styles.titleLabel}>称号</Text>
@@ -68,6 +67,8 @@ export function ResultCard({ result }: Props) {
         </Text>
         <Sparkle size={12} />
       </View>
+
+      <Text style={styles.brandMark}>脱ドパ</Text>
     </View>
   );
 }
@@ -154,10 +155,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginLeft: 2,
   },
-  scoreSparkle: {
-    marginTop: 6,
-    marginLeft: 2,
-  },
   titleLabel: {
     color: colors.textSubtle,
     ...typography.label,
@@ -171,7 +168,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm + 1,
     borderRadius: radius.pill,
-    backgroundColor: 'rgba(255,255,255,0.7)',
+    backgroundColor: colors.cardTranslucent,
     borderWidth: 1,
     borderColor: colors.borderStrong,
   },
@@ -179,5 +176,12 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 15,
     fontWeight: '700',
+  },
+  brandMark: {
+    color: colors.textFaint,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 2,
+    marginTop: spacing.lg,
   },
 });

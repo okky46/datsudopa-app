@@ -9,6 +9,7 @@ export const colors = {
   backgroundSoft: '#F1EEE7',
   card: '#FFFFFF',
   cardStrong: '#FBFAF7',
+  cardTranslucent: 'rgba(255, 255, 255, 0.70)',
   surface: '#F4F2EC',
   surfaceSunken: '#EEEBE3',
 

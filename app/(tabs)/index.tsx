@@ -110,7 +110,7 @@ export default function HomeScreen() {
         {raidStatus && <HomeHeroCard score={score} raidStatus={raidStatus} result={latestResult} onStart={startRaid} />}
 
         <View style={styles.catchphraseRow}>
-          <Text style={styles.catchphrase}>✨ {HOME_CATCHPHRASE} ✨</Text>
+          <Text style={styles.catchphrase}>{HOME_CATCHPHRASE}</Text>
         </View>
 
         <HistoryList results={results} />

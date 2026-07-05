@@ -6,8 +6,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PrimaryButton } from '../../src/components/PrimaryButton';
 import { ResultCard } from '../../src/components/ResultCard';
 import { ShareButton } from '../../src/components/ShareButton';
+import { PresenceBadge } from '../../src/components/ui/PresenceBadge';
 import { colors, spacing, typography } from '../../src/constants/theme';
 import { screenCopy } from '../../src/constants/copy';
+import { PresenceService } from '../../src/services/PresenceService';
 import { StorageService } from '../../src/services/StorageService';
 import { DailyResult } from '../../src/types/result';
 import { useScreenFrame } from '../../src/contexts/ScreenFrameContext';
@@ -65,6 +67,17 @@ export default function ResultScreen() {
           <>
             <ResultCard result={result} />
             <Text style={styles.line}>{result.comment || hero.line}</Text>
+            {result.mode === 'raid' && result.scheduledRaidTime && (
+              <View style={styles.presenceWrap}>
+                <PresenceBadge
+                  label={
+                    result.status === 'completed'
+                      ? `他に${PresenceService.getCompanionCountForResult(result.date, result.scheduledRaidTime)}人が、この回を完走しました`
+                      : `この回は${PresenceService.getRaidStats(result.date, result.scheduledRaidTime).active}人が一緒に耐えていました`
+                  }
+                />
+              </View>
+            )}
             <ShareButton result={result} variant="full" />
             <PrimaryButton label="履歴を見る  ›" variant="ghost" onPress={() => router.replace('/(tabs)')} />
           </>
@@ -100,6 +113,10 @@ const styles = StyleSheet.create({
     ...typography.caption,
     textAlign: 'center',
     marginTop: -spacing.xs,
+  },
+  presenceWrap: {
+    alignItems: 'center',
+    marginTop: -spacing.sm,
   },
   empty: {
     color: colors.textMuted,

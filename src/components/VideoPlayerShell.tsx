@@ -8,7 +8,8 @@ import { colors, spacing } from '../constants/theme';
 import { OrientationService } from '../services/OrientationService';
 import { FailureReason } from '../types/result';
 import { VideoAsset, WatchMode } from '../types/video';
-import { formatSeconds } from '../utils/date';
+import { formatSeconds, toDateKey } from '../utils/date';
+import { PresenceField } from './ui/PresenceField';
 
 const videoText = '#F4F7FB';
 const videoTextMuted = '#DDE8D8';
@@ -109,6 +110,7 @@ function LongVideoPlayer({ video, remainingSeconds, watchedSeconds, onFail, hand
   return (
     <View style={styles.container}>
       <VideoLayer video={video} />
+      <PresenceField active seedKey={`long-${video.id}-${toDateKey()}`} />
 
       {!overlayVisible ? (
         <Pressable style={StyleSheet.absoluteFill} onPress={() => setOverlayVisible(true)}>
@@ -188,6 +190,7 @@ export function VideoPlayerShell({ video, mode, targetSeconds, onComplete, onFai
     <View style={styles.container}>
       <VideoLayer video={video} />
       <View style={styles.scrim} />
+      <PresenceField active seedKey={`raid-${video.id}-${toDateKey()}`} />
       <View style={styles.top}>
         <Text style={styles.mode}>本日の脱ドパレイド</Text>
         <Text style={styles.remaining}>{formatSeconds(remainingSeconds)}</Text>

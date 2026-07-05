@@ -1,12 +1,15 @@
 
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, gradientBar, radius, shadows, spacing, typography } from '../constants/theme';
+import { PresenceService } from '../services/PresenceService';
 import { DailyResult } from '../types/result';
 import { RaidStatusView } from '../types/raid';
+import { toDateKey } from '../utils/date';
 import { dopamineScoreColor } from '../utils/score';
 import { PrimaryButton } from './PrimaryButton';
 import { ShareButton } from './ShareButton';
 import { PastelWash } from './ui/PastelWash';
+import { PresenceBadge } from './ui/PresenceBadge';
 import { SoftGradient } from './ui/SoftGradient';
 
 type Props = {
@@ -32,6 +35,11 @@ export function HomeHeroCard({ score, raidStatus, result, onStart }: Props) {
   const scoreColor = dopamineScoreColor(score);
 
   const buttonLabel = raidStatus.canStart ? 'レイドに参加' : devCanStart ? 'レイド開始（確認用）' : '集合を待つ';
+  const showPresence = raidStatus.status === 'not_started' || raidStatus.status === 'available';
+  const presenceStats = showPresence ? PresenceService.getRaidStats(toDateKey(), raidStatus.raidTime) : null;
+  const presenceLabel = raidStatus.status === 'available'
+    ? `${presenceStats?.active ?? 0}人が今、同じ枠に集まっています`
+    : `今日はすでに${presenceStats?.completed ?? 0}人が耐えています`;
 
   return (
     <View style={styles.card}>
@@ -56,6 +64,12 @@ export function HomeHeroCard({ score, raidStatus, result, onStart }: Props) {
           <Text style={styles.raidSub}>{raidStatus.remainingText}</Text>
         </View>
       </View>
+
+      {showPresence && (
+        <View style={styles.presenceRow}>
+          <PresenceBadge label={presenceLabel} />
+        </View>
+      )}
 
       <View style={styles.actions}>
         <PrimaryButton label={`${buttonLabel}   ›`} onPress={onStart} disabled={!active} style={styles.joinButton} />
@@ -137,6 +151,10 @@ const styles = StyleSheet.create({
     color: colors.textSubtle,
     fontSize: 13,
     fontWeight: '500',
+  },
+  presenceRow: {
+    marginTop: spacing.sm,
+    paddingLeft: 2,
   },
   actions: {
     flexDirection: 'row',

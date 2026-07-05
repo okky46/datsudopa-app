@@ -1,6 +1,8 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, radius, spacing, typography } from '../constants/theme';
+import { PresenceService } from '../services/PresenceService';
 import { RaidStatusView } from '../types/raid';
+import { toDateKey } from '../utils/date';
 import { Card } from './ui/Card';
 import { PrimaryButton } from './PrimaryButton';
 
@@ -18,6 +20,7 @@ export function RaidStatusCard({ raidStatus, onStart }: Props) {
     : raidStatus.status === 'not_started'
       ? '同じ時間帯の人と、ある程度そろって集合します。'
       : '今日の耐久結果として、レイド記録に残ります。';
+  const stats = PresenceService.getRaidStats(toDateKey(), raidStatus.raidTime);
 
   return (
     <Card style={[styles.card, urgent && styles.cardUrgent]}>
@@ -45,15 +48,15 @@ export function RaidStatusCard({ raidStatus, onStart }: Props) {
       </View>
       <View style={styles.raidMeta}>
         <View style={styles.metaItem}>
-          <Text style={styles.metaValue}>{urgent ? '集合中' : '--'}</Text>
+          <Text style={styles.metaValue}>{urgent ? stats.active : '--'}</Text>
           <Text style={styles.metaLabel}>同時参加中</Text>
         </View>
         <View style={styles.metaItem}>
-          <Text style={styles.metaValue}>--</Text>
+          <Text style={styles.metaValue}>{stats.completed}</Text>
           <Text style={styles.metaLabel}>完走者</Text>
         </View>
         <View style={styles.metaItem}>
-          <Text style={styles.metaValue}>--</Text>
+          <Text style={styles.metaValue}>{stats.escaped}</Text>
           <Text style={styles.metaLabel}>未完了者</Text>
         </View>
       </View>

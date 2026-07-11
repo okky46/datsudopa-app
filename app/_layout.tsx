@@ -11,13 +11,15 @@ export default function RootLayout() {
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: colors.background },
+          animation: 'slide_from_right',
+          animationDuration: 260,
         }}
       >
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="onboarding" />
-        <Stack.Screen name="howto" />
-        <Stack.Screen name="raid/active" options={{ gestureEnabled: false }} />
-        <Stack.Screen name="raid/result" />
+        <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
+        <Stack.Screen name="howto" options={{ animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="raid/active" options={{ gestureEnabled: false, animation: 'fade' }} />
+        <Stack.Screen name="raid/result" options={{ animation: 'fade_from_bottom' }} />
       </Stack>
     </>
   );

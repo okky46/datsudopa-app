@@ -17,7 +17,7 @@ type Props = {
 };
 
 // ムードごとに、夕暮れ・雨・夜などのチルで美しい色調をグラデーションで表現する。
-const moodTone: Record<VideoMood, { sky: string[]; ground: string; label: string }> = {
+export const moodTone: Record<VideoMood, { sky: string[]; ground: string; label: string }> = {
   chill: { sky: ['#3A4A6B', '#5E6E8C', '#9AA6BE'], ground: '#2A3242', label: 'chill' },
   liminal: { sky: ['#3B4156', '#5A6276', '#8B92A6'], ground: '#272C3A', label: 'liminal' },
   walk: { sky: ['#46405A', '#6E6480', '#A89BB0'], ground: '#2E2A38', label: 'night walk' },

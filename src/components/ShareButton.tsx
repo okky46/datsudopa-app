@@ -9,9 +9,11 @@ type Props = {
   result?: DailyResult | null;
   // inline: カード内に置く小さなピル / full: 単独の大きなボタン / icon: 正方形のアイコンだけのボタン
   variant?: 'inline' | 'full' | 'icon';
+  // 共有完了後に呼ばれる（共有でドパガキ度が微増するため、呼び出し側で表示を更新できる）
+  onShared?: () => void;
 };
 
-function ShareGlyph({ color, size = 16 }: { color: string; size?: number }) {
+export function ShareGlyph({ color, size = 16 }: { color: string; size?: number }) {
   return (
     <View style={[styles.shareIcon, { width: size, height: size }]} accessibilityElementsHidden importantForAccessibility="no">
       <View style={[styles.shareLine, styles.shareLineTop, { backgroundColor: color }]} />
@@ -23,22 +25,22 @@ function ShareGlyph({ color, size = 16 }: { color: string; size?: number }) {
   );
 }
 
-function handleShare(result?: DailyResult | null) {
+function handleShare(result: DailyResult | null | undefined, onShared?: () => void) {
   if (!result) {
     Alert.alert('まだ共有できる記録がない', 'レイドか自主練を終えると共有できます。');
     return;
   }
-  void ShareService.shareResult(result);
+  void ShareService.shareResult(result).then(() => onShared?.());
 }
 
-export function ShareButton({ result, variant = 'full' }: Props) {
+export function ShareButton({ result, variant = 'full', onShared }: Props) {
   if (variant === 'icon') {
     return (
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="共有"
         disabled={!result}
-        onPress={() => handleShare(result)}
+        onPress={() => handleShare(result, onShared)}
         style={({ pressed }) => [styles.iconButton, !result && styles.pillDisabled, pressed && styles.pillPressed]}
       >
         <ShareGlyph color={colors.text} size={18} />
@@ -52,7 +54,7 @@ export function ShareButton({ result, variant = 'full' }: Props) {
         accessibilityRole="button"
         accessibilityLabel="共有"
         disabled={!result}
-        onPress={() => handleShare(result)}
+        onPress={() => handleShare(result, onShared)}
         style={({ pressed }) => [styles.pill, !result && styles.pillDisabled, pressed && styles.pillPressed]}
       >
         <ShareGlyph color={colors.text} size={15} />
@@ -66,7 +68,7 @@ export function ShareButton({ result, variant = 'full' }: Props) {
       label="共有する"
       disabled={!result}
       icon={<ShareGlyph color={colors.onPrimary} size={18} />}
-      onPress={() => handleShare(result)}
+      onPress={() => handleShare(result, onShared)}
     />
   );
 }

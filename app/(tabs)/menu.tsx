@@ -5,13 +5,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AdBanner } from '../../src/components/AdBanner';
 import { PremiumJokeCard } from '../../src/components/PremiumJokeCard';
 import { PrimaryButton } from '../../src/components/PrimaryButton';
+import { ShareGlyph } from '../../src/components/ShareButton';
+import { LegalModal } from '../../src/components/menu/LegalModal';
+import { TitleCollectionCard } from '../../src/components/menu/TitleCollectionCard';
 import { Card } from '../../src/components/ui/Card';
 import { Chip } from '../../src/components/ui/Chip';
+import { EnterCard, PressableScale } from '../../src/components/ui/Motion';
 import { SOCIAL_TIME_OPTIONS } from '../../src/constants/raid';
-import { colors, spacing, typography } from '../../src/constants/theme';
-import { screenCopy } from '../../src/constants/copy';
+import { colors, radius, spacing, typography } from '../../src/constants/theme';
+import { homeCopy, menuCopy, screenCopy } from '../../src/constants/copy';
+import { PRIVACY_POLICY, TERMS_OF_SERVICE } from '../../src/constants/legal';
 import { NotificationService } from '../../src/services/NotificationService';
+import { ShareService } from '../../src/services/ShareService';
 import { StorageService } from '../../src/services/StorageService';
+import { TitleEntry, TitleService } from '../../src/services/TitleService';
 import { AvatarColorId, SocialTimeSlot, UserSettings } from '../../src/types/settings';
 
 const AVATAR_COLORS: Array<{ id: AvatarColorId; color: string }> = [
@@ -44,6 +51,8 @@ function CheckGlyph() {
   );
 }
 
+type LegalDoc = { title: string; body: string };
+
 export default function MenuScreen() {
   const [settings, setSettings] = useState<UserSettings>(StorageService.getDefaultSettings());
   const [editingProfile, setEditingProfile] = useState(false);
@@ -51,6 +60,9 @@ export default function MenuScreen() {
   const [draftAvatarColorId, setDraftAvatarColorId] = useState<AvatarColorId>(
     StorageService.getDefaultSettings().avatarColorId,
   );
+  const [titles, setTitles] = useState<TitleEntry[]>([]);
+  const [displayTitleId, setDisplayTitleId] = useState('');
+  const [legalDoc, setLegalDoc] = useState<LegalDoc | null>(null);
 
   const load = useCallback(async () => {
     const next = await StorageService.getSettings();
@@ -59,6 +71,10 @@ export default function MenuScreen() {
       setDraftNickname(next.nickname);
       setDraftAvatarColorId(next.avatarColorId);
     }
+    const results = await StorageService.getDailyResults();
+    const unlockStats = await TitleService.getUnlockStats(results);
+    setTitles(TitleService.listTitles(unlockStats));
+    setDisplayTitleId(TitleService.displayTitle(unlockStats, next).id);
   }, [editingProfile]);
 
   useEffect(() => {
@@ -84,6 +100,13 @@ export default function MenuScreen() {
       socialTimeSlot: slot,
       raidTime: option?.defaultTime || settings.raidTime,
     });
+  };
+
+  const selectTitle = (id: string) => {
+    const next = { ...settings, selectedTitleId: id };
+    setSettings(next);
+    setDisplayTitleId(id);
+    void StorageService.saveSettings(next);
   };
 
   const beginEditProfile = () => {
@@ -114,106 +137,126 @@ export default function MenuScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.screenTitle}>{screenCopy.menuTitle}</Text>
 
-        <Card style={styles.profileCard}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.sectionTitle}>{screenCopy.menuProfileTitle}</Text>
-            <Pressable
+        <EnterCard index={0}>
+          <Card style={styles.profileCard}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.sectionTitle}>{screenCopy.menuProfileTitle}</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={editingProfile ? 'プロフィールを保存' : 'プロフィールを編集'}
+                onPress={() => (editingProfile ? commitEditProfile() : beginEditProfile())}
+                style={({ pressed }) => [styles.editButton, pressed && styles.editButtonPressed]}
+              >
+                {editingProfile ? <CheckGlyph /> : <PenGlyph />}
+              </Pressable>
+            </View>
+
+            <View style={styles.profileRow}>
+              <Pressable
+                disabled={!editingProfile}
+                accessibilityRole={editingProfile ? 'button' : undefined}
+                accessibilityLabel="アイコンの色を変更"
+                onPress={() => {
+                  const index = AVATAR_COLORS.findIndex((item) => item.id === draftAvatarColorId);
+                  const next = AVATAR_COLORS[(index + 1) % AVATAR_COLORS.length];
+                  setDraftAvatarColorId(next.id);
+                }}
+                style={[styles.avatar, { backgroundColor: avatarBackground(activeAvatarId) }]}
+              >
+                <Text style={styles.avatarText}>{(activeName.trim() || displayName).slice(0, 1)}</Text>
+              </Pressable>
+
+              <View style={styles.profileText}>
+                <Text style={styles.profileLabel}>{screenCopy.menuNicknameLabel}</Text>
+                {editingProfile ? (
+                  <TextInput
+                    value={draftNickname}
+                    onChangeText={setDraftNickname}
+                    placeholder="駅前のドパガキ"
+                    placeholderTextColor={colors.textSubtle}
+                    maxLength={24}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    style={styles.nameInput}
+                  />
+                ) : (
+                  <Text style={styles.nameText}>{displayName}</Text>
+                )}
+              </View>
+            </View>
+
+            {editingProfile && (
+              <View style={styles.avatarColors}>
+                {AVATAR_COLORS.map((item) => (
+                  <Pressable
+                    key={item.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`アイコン色 ${item.id}`}
+                    onPress={() => setDraftAvatarColorId(item.id)}
+                    style={[
+                      styles.avatarColorDot,
+                      { backgroundColor: item.color },
+                      draftAvatarColorId === item.id && styles.avatarColorDotSelected,
+                    ]}
+                  />
+                ))}
+              </View>
+            )}
+
+            <PressableScale
               accessibilityRole="button"
-              accessibilityLabel={editingProfile ? 'プロフィールを保存' : 'プロフィールを編集'}
-              onPress={() => (editingProfile ? commitEditProfile() : beginEditProfile())}
-              style={({ pressed }) => [styles.editButton, pressed && styles.editButtonPressed]}
+              accessibilityLabel={homeCopy.shareLabel}
+              onPress={() => void ShareService.shareStatus()}
+              style={styles.shareButton}
             >
-              {editingProfile ? <CheckGlyph /> : <PenGlyph />}
-            </Pressable>
-          </View>
+              <ShareGlyph color={colors.text} size={16} />
+              <Text style={styles.shareLabel}>{homeCopy.shareLabel}</Text>
+            </PressableScale>
+          </Card>
+        </EnterCard>
 
-          <View style={styles.profileRow}>
-            <Pressable
-              disabled={!editingProfile}
-              accessibilityRole={editingProfile ? 'button' : undefined}
-              accessibilityLabel="アイコンの色を変更"
-              onPress={() => {
-                const index = AVATAR_COLORS.findIndex((item) => item.id === draftAvatarColorId);
-                const next = AVATAR_COLORS[(index + 1) % AVATAR_COLORS.length];
-                setDraftAvatarColorId(next.id);
-              }}
-              style={[styles.avatar, { backgroundColor: avatarBackground(activeAvatarId) }]}
-            >
-              <Text style={styles.avatarText}>{(activeName.trim() || displayName).slice(0, 1)}</Text>
-            </Pressable>
+        <EnterCard index={1}>
+          <TitleCollectionCard titles={titles} selectedId={displayTitleId} onSelect={selectTitle} />
+        </EnterCard>
 
-            <View style={styles.profileText}>
-              <Text style={styles.profileLabel}>{screenCopy.menuNicknameLabel}</Text>
-              {editingProfile ? (
-                <TextInput
-                  value={draftNickname}
-                  onChangeText={setDraftNickname}
-                  placeholder="駅前のドパガキ"
-                  placeholderTextColor={colors.textSubtle}
-                  maxLength={24}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  style={styles.nameInput}
-                />
-              ) : (
-                <Text style={styles.nameText}>{displayName}</Text>
-              )}
+        <EnterCard index={2}>
+          <Card style={styles.card}>
+            <Text style={styles.sectionTitle}>{screenCopy.menuNotificationTitle}</Text>
+
+            <View style={styles.switchRow}>
+              <Text style={styles.rowLabel}>{screenCopy.menuNotificationLabel}</Text>
+              <Switch
+                value={settings.notificationEnabled}
+                onValueChange={(notificationEnabled) => void update({ ...settings, notificationEnabled })}
+                thumbColor={settings.notificationEnabled ? colors.accent : colors.textSubtle}
+                trackColor={{ false: colors.surfaceSunken, true: colors.blueDeep }}
+              />
             </View>
-          </View>
 
-          {editingProfile && (
-            <View style={styles.avatarColors}>
-              {AVATAR_COLORS.map((item) => (
-                <Pressable
-                  key={item.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={`アイコン色 ${item.id}`}
-                  onPress={() => setDraftAvatarColorId(item.id)}
-                  style={[
-                    styles.avatarColorDot,
-                    { backgroundColor: item.color },
-                    draftAvatarColorId === item.id && styles.avatarColorDotSelected,
-                  ]}
-                />
-              ))}
+            <View style={styles.field}>
+              <Text style={styles.rowLabel}>{screenCopy.menuTimeSlotLabel}</Text>
+              <View style={styles.chips}>
+                {SOCIAL_TIME_OPTIONS.map((option) => (
+                  <Chip
+                    key={option.value}
+                    label={option.label}
+                    selected={settings.socialTimeSlot === option.value}
+                    onPress={() => selectSlot(option.value)}
+                  />
+                ))}
+              </View>
             </View>
-          )}
-        </Card>
 
-        <Card style={styles.card}>
-          <Text style={styles.sectionTitle}>{screenCopy.menuNotificationTitle}</Text>
-
-          <View style={styles.switchRow}>
-            <Text style={styles.rowLabel}>{screenCopy.menuNotificationLabel}</Text>
-            <Switch
-              value={settings.notificationEnabled}
-              onValueChange={(notificationEnabled) => void update({ ...settings, notificationEnabled })}
-              thumbColor={settings.notificationEnabled ? colors.accent : colors.textSubtle}
-              trackColor={{ false: colors.surfaceSunken, true: colors.blueDeep }}
-            />
-          </View>
-
-          <View style={styles.field}>
-            <Text style={styles.rowLabel}>{screenCopy.menuTimeSlotLabel}</Text>
-            <View style={styles.chips}>
-              {SOCIAL_TIME_OPTIONS.map((option) => (
-                <Chip
-                  key={option.value}
-                  label={option.label}
-                  selected={settings.socialTimeSlot === option.value}
-                  onPress={() => selectSlot(option.value)}
-                />
-              ))}
+            <View style={styles.field}>
+              <Text style={styles.timePreview}>{timeRangeLabel}</Text>
+              <Text style={styles.timeHint}>{screenCopy.menuTimeSlotHint}</Text>
             </View>
-          </View>
+          </Card>
+        </EnterCard>
 
-          <View style={styles.field}>
-            <Text style={styles.timePreview}>{timeRangeLabel}</Text>
-            <Text style={styles.timeHint}>{screenCopy.menuTimeSlotHint}</Text>
-          </View>
-        </Card>
-
-        <PremiumJokeCard />
+        <EnterCard index={3}>
+          <PremiumJokeCard />
+        </EnterCard>
 
         <View style={styles.footer}>
           <PrimaryButton
@@ -238,11 +281,27 @@ export default function MenuScreen() {
               ]);
             }}
           />
-          <Text style={styles.legal}>{screenCopy.menuLegal}</Text>
+
+          <View style={styles.legalRow}>
+            <Pressable accessibilityRole="button" onPress={() => setLegalDoc(PRIVACY_POLICY)}>
+              <Text style={styles.legalLink}>プライバシーポリシー</Text>
+            </Pressable>
+            <Text style={styles.legalDivider}>・</Text>
+            <Pressable accessibilityRole="button" onPress={() => setLegalDoc(TERMS_OF_SERVICE)}>
+              <Text style={styles.legalLink}>利用規約</Text>
+            </Pressable>
+          </View>
         </View>
 
         <AdBanner />
       </ScrollView>
+
+      <LegalModal
+        visible={legalDoc !== null}
+        title={legalDoc?.title ?? ''}
+        body={legalDoc?.body ?? ''}
+        onClose={() => setLegalDoc(null)}
+      />
     </SafeAreaView>
   );
 }
@@ -389,6 +448,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     paddingVertical: 2,
   },
+  shareButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    minHeight: 48,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.cardStrong,
+  },
+  shareLabel: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '700',
+  },
   card: {
     gap: spacing.md,
   },
@@ -428,10 +503,21 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingTop: spacing.xs,
   },
-  legal: {
+  legalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    paddingTop: spacing.sm,
+  },
+  legalLink: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
+  legalDivider: {
     color: colors.textSubtle,
     fontSize: 12,
-    textAlign: 'center',
-    paddingTop: spacing.sm,
   },
 });

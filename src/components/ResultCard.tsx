@@ -1,5 +1,6 @@
 
 import { StyleSheet, Text, View } from 'react-native';
+import { resultCopy } from '../constants/copy';
 import { colors, radius, shadows, spacing, typography } from '../constants/theme';
 import { DailyResult } from '../types/result';
 import { resultStatusLabel } from '../utils/resultLabels';
@@ -9,13 +10,10 @@ import { PastelWash } from './ui/PastelWash';
 
 type Props = {
   result: DailyResult;
+  // 現在の持続ドパガキ度と、このセッションでの増減
+  level: number;
+  levelDelta: number | null;
 };
-
-function formatMMSS(totalSeconds: number): string {
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = Math.max(0, totalSeconds % 60);
-  return `${minutes}:${String(seconds).padStart(2, '0')}`;
-}
 
 function headlineLabel(result: DailyResult): string {
   if (result.status === 'completed') return '完走';
@@ -23,15 +21,34 @@ function headlineLabel(result: DailyResult): string {
   return resultStatusLabel(result);
 }
 
-export function ResultCard({ result }: Props) {
+function reclaimedLabel(watchedSeconds: number): { value: string; unit: string } {
+  if (watchedSeconds < 60) {
+    return { value: String(Math.max(0, watchedSeconds)), unit: '秒' };
+  }
+  return { value: String(Math.floor(watchedSeconds / 60)), unit: '分' };
+}
+
+function deltaBadgeText(delta: number | null): string | null {
+  if (delta === null) {
+    return null;
+  }
+  if (delta > 0) return `+${delta}%`;
+  if (delta < 0) return `${delta}%`;
+  return '±0%';
+}
+
+export function ResultCard({ result, level, levelDelta }: Props) {
   const completed = result.status === 'completed';
   const watched = completed ? result.targetSeconds : result.watchedSeconds;
-  const scoreColor = dopamineScoreColor(result.dopamineScore);
+  const reclaimed = reclaimedLabel(watched);
+  const scoreColor = dopamineScoreColor(level);
+  const deltaText = deltaBadgeText(levelDelta);
+  const deltaGood = (levelDelta ?? 0) < 0;
 
   return (
     <View style={styles.card}>
       <PastelWash borderRadius={radius.xl} variant="result" />
-      <Confetti />
+      {completed && <Confetti />}
 
       <View style={styles.badgeRow}>
         <LaurelLeaves />
@@ -48,17 +65,25 @@ export function ResultCard({ result }: Props) {
       </View>
 
       <Text style={styles.headline}>{headlineLabel(result)}</Text>
-      <Text style={styles.time}>
-        {formatMMSS(watched)} / {formatMMSS(result.targetSeconds)}
-      </Text>
 
       <View style={styles.divider} />
 
-      <Text style={styles.scoreLabel}>ドパガキ度</Text>
-      <View style={styles.scoreRow}>
-        <Text style={[styles.score, { color: scoreColor }]}>{result.dopamineScore}</Text>
-        <Text style={[styles.percent, { color: scoreColor }]}>%</Text>
-        <Sparkle size={15} style={styles.scoreSparkle} />
+      <Text style={styles.metricLabel}>{resultCopy.reclaimedLabel}</Text>
+      <View style={styles.metricRow}>
+        <Text style={[styles.metricValue, { color: colors.accent }]}>{reclaimed.value}</Text>
+        <Text style={[styles.metricUnit, { color: colors.accent }]}>{reclaimed.unit}</Text>
+        {completed && <Sparkle size={15} style={styles.metricSparkle} />}
+      </View>
+
+      <Text style={[styles.metricLabel, styles.scoreGap]}>{resultCopy.scoreLabel}</Text>
+      <View style={styles.metricRow}>
+        <Text style={[styles.score, { color: scoreColor }]}>{level}</Text>
+        <Text style={[styles.scorePercent, { color: scoreColor }]}>%</Text>
+        {deltaText && (
+          <View style={[styles.deltaBadge, deltaGood ? styles.deltaBadgeGood : styles.deltaBadgeBad]}>
+            <Text style={[styles.deltaBadgeText, { color: deltaGood ? colors.accent : colors.danger }]}>{deltaText}</Text>
+          </View>
+        )}
       </View>
 
       <Text style={styles.titleLabel}>称号</Text>
@@ -117,46 +142,75 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     marginTop: spacing.md,
   },
-  time: {
-    color: colors.textSubtle,
-    fontSize: 15,
-    fontWeight: '600',
-    marginTop: 2,
-    fontVariant: ['tabular-nums'],
-  },
   divider: {
     width: '70%',
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.borderStrong,
     marginVertical: spacing.lg,
   },
-  scoreLabel: {
+  metricLabel: {
     color: colors.textMuted,
     ...typography.label,
   },
-  scoreRow: {
+  scoreGap: {
+    marginTop: spacing.lg,
+  },
+  metricRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'center',
     marginTop: spacing.xs,
   },
+  metricValue: {
+    fontSize: 48,
+    fontWeight: '800',
+    letterSpacing: -1.5,
+    lineHeight: 52,
+    fontVariant: ['tabular-nums'],
+  },
+  metricUnit: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginTop: 22,
+    marginLeft: 2,
+  },
+  metricSparkle: {
+    marginTop: 4,
+    marginLeft: 4,
+  },
   score: {
-    color: colors.accent,
     fontSize: 56,
     fontWeight: '800',
     letterSpacing: -2,
     lineHeight: 60,
+    fontVariant: ['tabular-nums'],
   },
-  percent: {
-    color: colors.accent,
+  scorePercent: {
     fontSize: 22,
     fontWeight: '700',
     marginTop: 8,
     marginLeft: 2,
   },
-  scoreSparkle: {
-    marginTop: 6,
-    marginLeft: 2,
+  deltaBadge: {
+    marginTop: 16,
+    marginLeft: spacing.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+  },
+  deltaBadgeGood: {
+    backgroundColor: colors.accentSoft,
+    borderColor: colors.accentBorder,
+  },
+  deltaBadgeBad: {
+    backgroundColor: colors.dangerSoft,
+    borderColor: colors.dangerBorder,
+  },
+  deltaBadgeText: {
+    fontSize: 14,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
   },
   titleLabel: {
     color: colors.textSubtle,

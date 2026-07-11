@@ -4,18 +4,25 @@ import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'r
 import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AdBanner } from '../../src/components/AdBanner';
-import { HistoryList } from '../../src/components/HistoryList';
-import { HomeHeroCard } from '../../src/components/HomeHeroCard';
+import { DopaHeroCard } from '../../src/components/home/DopaHeroCard';
+import { RecordCard } from '../../src/components/home/RecordCard';
+import { WeeklyBalanceCard } from '../../src/components/home/WeeklyBalanceCard';
 import { AuroraDot } from '../../src/components/ui/Decorations';
+import { EnterCard } from '../../src/components/ui/Motion';
 import { HOME_CATCHPHRASE } from '../../src/constants/copy';
 import { colors, spacing, typography } from '../../src/constants/theme';
 import { DailyResult } from '../../src/types/result';
+import { DopamineDeltas } from '../../src/types/dopamine';
 import { RaidStatusView } from '../../src/types/raid';
 import { UserSettings } from '../../src/types/settings';
+import { DopamineService } from '../../src/services/DopamineService';
 import { LongVideoService } from '../../src/services/LongVideoService';
 import { NotificationService } from '../../src/services/NotificationService';
 import { RaidService } from '../../src/services/RaidService';
+import { ShareService } from '../../src/services/ShareService';
+import { StatsService, WeeklyBalance } from '../../src/services/StatsService';
 import { StorageService } from '../../src/services/StorageService';
+import { TitleService } from '../../src/services/TitleService';
 
 function BellIcon() {
   return (
@@ -30,6 +37,10 @@ export default function HomeScreen() {
   const [settings, setSettings] = useState<UserSettings>(StorageService.getDefaultSettings());
   const [results, setResults] = useState<DailyResult[]>([]);
   const [raidStatus, setRaidStatus] = useState<RaidStatusView | null>(null);
+  const [level, setLevel] = useState<number | null>(null);
+  const [deltas, setDeltas] = useState<DopamineDeltas>({ vsYesterday: null, vsLastWeek: null, vsLastMonth: null });
+  const [titleName, setTitleName] = useState('ドパガキ見習い');
+  const [balance, setBalance] = useState<WeeklyBalance | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
@@ -41,9 +52,18 @@ export default function HomeScreen() {
     let storedResults = await StorageService.getDailyResults();
     storedResults = await RaidService.ensureMissedResultRecorded(storedSettings, storedResults);
     await NotificationService.scheduleDailyRaid(storedSettings);
+
+    const storedLevel = await DopamineService.getLevel();
+    const storedDeltas = await DopamineService.getDeltas();
+    const unlockStats = await TitleService.getUnlockStats(storedResults);
+
     setSettings(storedSettings);
     setResults(storedResults);
     setRaidStatus(RaidService.getRaidStatus(storedSettings, storedResults));
+    setLevel(storedLevel);
+    setDeltas(storedDeltas);
+    setTitleName(TitleService.displayTitle(unlockStats, storedSettings).name);
+    setBalance(StatsService.getWeeklyBalance(storedResults));
   }, []);
 
   useEffect(() => {
@@ -70,16 +90,21 @@ export default function HomeScreen() {
     return () => clearInterval(timer);
   }, [raidStatus?.status, settings, results]);
 
-  const latestRaidResult = results.find((result) => result.mode === 'raid');
-  const latestResult = latestRaidResult ?? results[0];
-  const score = latestResult?.dopamineScore ?? 72;
-
   const startRaid = async () => {
     const video = LongVideoService.getRecommendedVideo();
     const state = RaidService.createRaidState(settings, video);
     await StorageService.saveCurrentRaidState(state);
     router.push({ pathname: '/raid/active', params: { mode: 'raid', videoId: video.id, duration: String(state.targetSeconds) } });
   };
+
+  const shareStatus = async () => {
+    await ShareService.shareStatus();
+    // 共有でドパガキ度が微増するので表示を更新
+    await load();
+  };
+
+  const streakDays = StatsService.getStreakDays(results);
+  const calendar = StatsService.getMonthCalendar(results);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -107,13 +132,33 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
-        {raidStatus && <HomeHeroCard score={score} raidStatus={raidStatus} result={latestResult} onStart={startRaid} />}
+        {raidStatus && level !== null && (
+          <EnterCard index={0}>
+            <DopaHeroCard
+              level={level}
+              deltas={deltas}
+              titleName={titleName}
+              raidStatus={raidStatus}
+              onStart={() => void startRaid()}
+              onShare={() => void shareStatus()}
+            />
+          </EnterCard>
+        )}
 
         <View style={styles.catchphraseRow}>
           <Text style={styles.catchphrase}>✨ {HOME_CATCHPHRASE} ✨</Text>
         </View>
 
-        <HistoryList results={results} />
+        {balance && (
+          <EnterCard index={1}>
+            <WeeklyBalanceCard balance={balance} />
+          </EnterCard>
+        )}
+
+        <EnterCard index={2}>
+          <RecordCard streakDays={streakDays} calendarLabel={calendar.label} weeks={calendar.weeks} />
+        </EnterCard>
+
         <AdBanner />
       </ScrollView>
     </SafeAreaView>

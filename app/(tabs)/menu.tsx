@@ -1,29 +1,65 @@
-
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AdBanner } from '../../src/components/AdBanner';
 import { PremiumJokeCard } from '../../src/components/PremiumJokeCard';
 import { PrimaryButton } from '../../src/components/PrimaryButton';
 import { Card } from '../../src/components/ui/Card';
 import { Chip } from '../../src/components/ui/Chip';
 import { SOCIAL_TIME_OPTIONS } from '../../src/constants/raid';
-import { FRAME_COLOR_OPTIONS, getFrameColor } from '../../src/constants/frame';
-import { colors, radius, spacing, typography } from '../../src/constants/theme';
+import { colors, spacing, typography } from '../../src/constants/theme';
 import { screenCopy } from '../../src/constants/copy';
-import { useScreenFrame } from '../../src/contexts/ScreenFrameContext';
 import { NotificationService } from '../../src/services/NotificationService';
-import { RaidScheduleService } from '../../src/services/RaidScheduleService';
 import { StorageService } from '../../src/services/StorageService';
-import { FrameColorId, SocialTimeSlot, UserSettings } from '../../src/types/settings';
+import { AvatarColorId, SocialTimeSlot, UserSettings } from '../../src/types/settings';
+
+const AVATAR_COLORS: Array<{ id: AvatarColorId; color: string }> = [
+  { id: 'mint', color: colors.pastelMint },
+  { id: 'lavender', color: colors.pastelLavender },
+  { id: 'pink', color: colors.pastelPink },
+  { id: 'blue', color: colors.pastelBlue },
+  { id: 'yellow', color: colors.pastelYellow },
+];
+
+function avatarBackground(id: AvatarColorId) {
+  return AVATAR_COLORS.find((item) => item.id === id)?.color ?? colors.pastelMint;
+}
+
+function PenGlyph() {
+  return (
+    <View style={styles.penGlyph}>
+      <View style={styles.penBody} />
+      <View style={styles.penTip} />
+    </View>
+  );
+}
+
+function CheckGlyph() {
+  return (
+    <View style={styles.checkGlyph}>
+      <View style={styles.checkShort} />
+      <View style={styles.checkLong} />
+    </View>
+  );
+}
 
 export default function MenuScreen() {
   const [settings, setSettings] = useState<UserSettings>(StorageService.getDefaultSettings());
-  const { setFrameColorId } = useScreenFrame();
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [draftNickname, setDraftNickname] = useState(StorageService.getDefaultSettings().nickname);
+  const [draftAvatarColorId, setDraftAvatarColorId] = useState<AvatarColorId>(
+    StorageService.getDefaultSettings().avatarColorId,
+  );
 
   const load = useCallback(async () => {
-    setSettings(await StorageService.getSettings());
-  }, []);
+    const next = await StorageService.getSettings();
+    setSettings(next);
+    if (!editingProfile) {
+      setDraftNickname(next.nickname);
+      setDraftAvatarColorId(next.avatarColorId);
+    }
+  }, [editingProfile]);
 
   useEffect(() => {
     void load();
@@ -50,13 +86,28 @@ export default function MenuScreen() {
     });
   };
 
-  const selectFrameColor = (frameColorId: FrameColorId) => {
-    setFrameColorId(frameColorId);
-    void update({ ...settings, frameColorId });
+  const beginEditProfile = () => {
+    setDraftNickname(settings.nickname);
+    setDraftAvatarColorId(settings.avatarColorId);
+    setEditingProfile(true);
+  };
+
+  const commitEditProfile = () => {
+    const nickname = draftNickname.trim() || StorageService.getDefaultSettings().nickname;
+    void update({
+      ...settings,
+      nickname,
+      avatarColorId: draftAvatarColorId,
+    });
+    setDraftNickname(nickname);
+    setEditingProfile(false);
   };
 
   const displayName = (settings.nickname ?? '').trim() || '名無しのドパガキ';
-  const todayRaidTime = RaidScheduleService.resolveRaidTimeForDate(settings).raidTime;
+  const activeName = editingProfile ? draftNickname : displayName;
+  const activeAvatarId = editingProfile ? draftAvatarColorId : settings.avatarColorId;
+  const selectedSlot = SOCIAL_TIME_OPTIONS.find((item) => item.value === settings.socialTimeSlot);
+  const timeRangeLabel = selectedSlot ? `脱ドパタイム${selectedSlot.rangeLabel}` : '脱ドパタイム';
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -64,49 +115,76 @@ export default function MenuScreen() {
         <Text style={styles.screenTitle}>{screenCopy.menuTitle}</Text>
 
         <Card style={styles.profileCard}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.sectionTitle}>{screenCopy.menuProfileTitle}</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={editingProfile ? 'プロフィールを保存' : 'プロフィールを編集'}
+              onPress={() => (editingProfile ? commitEditProfile() : beginEditProfile())}
+              style={({ pressed }) => [styles.editButton, pressed && styles.editButtonPressed]}
+            >
+              {editingProfile ? <CheckGlyph /> : <PenGlyph />}
+            </Pressable>
+          </View>
+
           <View style={styles.profileRow}>
-            <View style={[styles.avatar, { borderColor: getFrameColor(settings.frameColorId) }]}>
-              <Text style={styles.avatarText}>{displayName.slice(0, 1)}</Text>
-            </View>
+            <Pressable
+              disabled={!editingProfile}
+              accessibilityRole={editingProfile ? 'button' : undefined}
+              accessibilityLabel="アイコンの色を変更"
+              onPress={() => {
+                const index = AVATAR_COLORS.findIndex((item) => item.id === draftAvatarColorId);
+                const next = AVATAR_COLORS[(index + 1) % AVATAR_COLORS.length];
+                setDraftAvatarColorId(next.id);
+              }}
+              style={[styles.avatar, { backgroundColor: avatarBackground(activeAvatarId) }]}
+            >
+              <Text style={styles.avatarText}>{(activeName.trim() || displayName).slice(0, 1)}</Text>
+            </Pressable>
+
             <View style={styles.profileText}>
-              <Text style={styles.profileLabel}>ニックネーム</Text>
-              <TextInput
-                value={settings.nickname}
-                onChangeText={(nickname) => setSettings({ ...settings, nickname })}
-                onBlur={() => void update({ ...settings, nickname: settings.nickname.trim() || StorageService.getDefaultSettings().nickname })}
-                placeholder="駅前のドパガキ"
-                placeholderTextColor={colors.textSubtle}
-                maxLength={24}
-                autoCapitalize="none"
-                autoCorrect={false}
-                style={styles.nameInput}
-              />
+              <Text style={styles.profileLabel}>{screenCopy.menuNicknameLabel}</Text>
+              {editingProfile ? (
+                <TextInput
+                  value={draftNickname}
+                  onChangeText={setDraftNickname}
+                  placeholder="駅前のドパガキ"
+                  placeholderTextColor={colors.textSubtle}
+                  maxLength={24}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  style={styles.nameInput}
+                />
+              ) : (
+                <Text style={styles.nameText}>{displayName}</Text>
+              )}
             </View>
           </View>
 
-          <View style={styles.divider} />
-
-          <Text style={styles.rowLabel}>光る縁の色</Text>
-          <View style={styles.colorRow}>
-            {FRAME_COLOR_OPTIONS.map((option) => (
-              <Pressable
-                key={option.id}
-                accessibilityRole="button"
-                accessibilityLabel={option.label}
-                onPress={() => selectFrameColor(option.id)}
-                style={[styles.colorSwatch, settings.frameColorId === option.id && styles.colorSwatchSelected]}
-              >
-                <View style={[styles.colorFill, { backgroundColor: option.color }]} />
-              </Pressable>
-            ))}
-          </View>
+          {editingProfile && (
+            <View style={styles.avatarColors}>
+              {AVATAR_COLORS.map((item) => (
+                <Pressable
+                  key={item.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`アイコン色 ${item.id}`}
+                  onPress={() => setDraftAvatarColorId(item.id)}
+                  style={[
+                    styles.avatarColorDot,
+                    { backgroundColor: item.color },
+                    draftAvatarColorId === item.id && styles.avatarColorDotSelected,
+                  ]}
+                />
+              ))}
+            </View>
+          )}
         </Card>
 
         <Card style={styles.card}>
-          <Text style={styles.sectionTitle}>集合の合図</Text>
+          <Text style={styles.sectionTitle}>{screenCopy.menuNotificationTitle}</Text>
 
           <View style={styles.switchRow}>
-            <Text style={styles.rowLabel}>毎日1回、レイド開始</Text>
+            <Text style={styles.rowLabel}>{screenCopy.menuNotificationLabel}</Text>
             <Switch
               value={settings.notificationEnabled}
               onValueChange={(notificationEnabled) => void update({ ...settings, notificationEnabled })}
@@ -116,7 +194,7 @@ export default function MenuScreen() {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.rowLabel}>時間帯</Text>
+            <Text style={styles.rowLabel}>{screenCopy.menuTimeSlotLabel}</Text>
             <View style={styles.chips}>
               {SOCIAL_TIME_OPTIONS.map((option) => (
                 <Chip
@@ -130,18 +208,22 @@ export default function MenuScreen() {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.rowLabel}>今日の集合予定</Text>
-            <Text style={styles.timePreview}>{todayRaidTime}</Text>
-            <Text style={styles.timeHint}>選んだ時間帯のどこかで、毎日レイドの合図が届きます。</Text>
+            <Text style={styles.timePreview}>{timeRangeLabel}</Text>
+            <Text style={styles.timeHint}>{screenCopy.menuTimeSlotHint}</Text>
           </View>
         </Card>
 
         <PremiumJokeCard />
 
         <View style={styles.footer}>
-          <PrimaryButton label="オンボーディングをやり直す" variant="ghost" onPress={() => router.push('/onboarding')} />
           <PrimaryButton
-            label="データを削除"
+            label={screenCopy.menuRedoOnboarding}
+            variant="ghost"
+            onPress={() => router.push('/onboarding')}
+          />
+          <PrimaryButton label={screenCopy.menuHowTo} variant="ghost" onPress={() => router.push('/howto')} />
+          <PrimaryButton
+            label={screenCopy.menuDeleteData}
             variant="danger"
             onPress={() => {
               Alert.alert('データ削除', '記録と設定をすべて消します。', [
@@ -156,8 +238,10 @@ export default function MenuScreen() {
               ]);
             }}
           />
-          <Text style={styles.legal}>プライバシーポリシー ・ 利用規約</Text>
+          <Text style={styles.legal}>{screenCopy.menuLegal}</Text>
         </View>
+
+        <AdBanner />
       </ScrollView>
     </SafeAreaView>
   );
@@ -182,6 +266,75 @@ const styles = StyleSheet.create({
   profileCard: {
     gap: spacing.md,
   },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  editButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  editButtonPressed: {
+    opacity: 0.75,
+  },
+  penGlyph: {
+    width: 14,
+    height: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    transform: [{ rotate: '-45deg' }],
+  },
+  penBody: {
+    width: 3,
+    height: 10,
+    borderRadius: 1.5,
+    backgroundColor: colors.textMuted,
+  },
+  penTip: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 2.5,
+    borderRightWidth: 2.5,
+    borderTopWidth: 4,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: colors.textMuted,
+    marginTop: -1,
+  },
+  checkGlyph: {
+    width: 16,
+    height: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkShort: {
+    position: 'absolute',
+    left: 1,
+    bottom: 3,
+    width: 6,
+    height: 2.5,
+    borderRadius: 2,
+    backgroundColor: colors.accent,
+    transform: [{ rotate: '45deg' }],
+  },
+  checkLong: {
+    position: 'absolute',
+    right: 0,
+    bottom: 5,
+    width: 11,
+    height: 2.5,
+    borderRadius: 2,
+    backgroundColor: colors.accent,
+    transform: [{ rotate: '-50deg' }],
+  },
   profileRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -192,14 +345,29 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 999,
     borderWidth: 2,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.surface,
   },
   avatarText: {
     color: colors.text,
     fontSize: 22,
     fontWeight: '800',
+  },
+  avatarColors: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  avatarColorDot: {
+    width: 28,
+    height: 28,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: colors.border,
+  },
+  avatarColorDotSelected: {
+    borderColor: colors.primary,
   },
   profileText: {
     flex: 1,
@@ -215,9 +383,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     paddingVertical: 2,
   },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.border,
+  nameText: {
+    color: colors.text,
+    fontSize: 20,
+    fontWeight: '700',
+    paddingVertical: 2,
   },
   card: {
     gap: spacing.md,
@@ -244,50 +414,15 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.sm,
   },
-  timeInput: {
-    minHeight: 48,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    color: colors.text,
-    fontSize: 16,
-    fontWeight: '600',
-    backgroundColor: colors.surface,
-  },
   timePreview: {
     color: colors.text,
-    fontSize: 32,
+    fontSize: 22,
     fontWeight: '800',
-    fontVariant: ['tabular-nums'],
+    letterSpacing: -0.3,
   },
   timeHint: {
     color: colors.textSubtle,
     ...typography.caption,
-  },
-  colorRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.md,
-  },
-  colorSwatch: {
-    width: 48,
-    height: 48,
-    borderRadius: 999,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  colorSwatchSelected: {
-    borderColor: colors.accent,
-  },
-  colorFill: {
-    width: 34,
-    height: 34,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(28, 38, 32, 0.10)',
   },
   footer: {
     gap: spacing.sm,

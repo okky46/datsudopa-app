@@ -15,11 +15,16 @@ export const RAID_TIME_SLOT_CANDIDATES: Record<SocialTimeSlot, string[]> = {
   late_night: ['00:10', '00:35', '01:00', '01:25', '01:50', '02:10', '02:30'],
 };
 
-export const SOCIAL_TIME_OPTIONS: Array<{ value: SocialTimeSlot; label: string; defaultTime: string }> = [
-  { value: 'early_morning', label: '早朝', defaultTime: '06:30' },
-  { value: 'morning', label: '朝', defaultTime: '08:00' },
-  { value: 'noon', label: '昼', defaultTime: '12:20' },
-  { value: 'evening', label: '夕方', defaultTime: '19:00' },
-  { value: 'night', label: '夜', defaultTime: '23:00' },
-  { value: 'late_night', label: '深夜', defaultTime: '01:00' },
+export const SOCIAL_TIME_OPTIONS: Array<{
+  value: SocialTimeSlot;
+  label: string;
+  defaultTime: string;
+  rangeLabel: string;
+}> = [
+  { value: 'early_morning', label: '早朝', defaultTime: '06:30', rangeLabel: '5時～7時' },
+  { value: 'morning', label: '朝', defaultTime: '08:00', rangeLabel: '7時～10時' },
+  { value: 'noon', label: '昼', defaultTime: '12:20', rangeLabel: '11時～13時' },
+  { value: 'evening', label: '夕方', defaultTime: '19:00', rangeLabel: '17時～20時' },
+  { value: 'night', label: '夜', defaultTime: '23:00', rangeLabel: '21時～23時' },
+  { value: 'late_night', label: '深夜', defaultTime: '01:00', rangeLabel: '0時～3時' },
 ];

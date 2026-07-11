@@ -2,8 +2,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DailyResult } from '../types/result';
 import { CurrentRaidState } from '../types/raid';
-import { PremiumStatus, SocialTimeSlot, UserSettings } from '../types/settings';
-import { DEFAULT_FRAME_COLOR_ID } from '../constants/frame';
+import { AvatarColorId, PremiumStatus, SocialTimeSlot, UserSettings } from '../types/settings';
 import { VideoWatchRecord } from '../types/video';
 
 const keys = {
@@ -19,12 +18,21 @@ const keys = {
 const defaultSettings: UserSettings = {
   onboardingCompleted: false,
   nickname: '名無しのドパガキ',
-  frameColorId: DEFAULT_FRAME_COLOR_ID,
+  avatarColorId: 'mint',
   socialTimeSlot: 'night',
   raidTime: '23:00',
   notificationEnabled: true,
   raidDurationSeconds: 180,
 };
+
+const VALID_AVATAR_COLOR_IDS: AvatarColorId[] = ['mint', 'lavender', 'pink', 'blue', 'yellow'];
+
+function migrateAvatarColorId(id?: string): AvatarColorId {
+  if (id && VALID_AVATAR_COLOR_IDS.includes(id as AvatarColorId)) {
+    return id as AvatarColorId;
+  }
+  return 'mint';
+}
 
 const defaultPremiumStatus: PremiumStatus = {
   isPremium: false,
@@ -69,10 +77,12 @@ export class StorageService {
   }
 
   static async getSettings(): Promise<UserSettings> {
-    const settings = await readJson<Partial<UserSettings>>(keys.userSettings, defaultSettings);
-    const merged = { ...defaultSettings, ...settings };
+    const settings = await readJson<Partial<UserSettings> & { frameColorId?: string }>(keys.userSettings, defaultSettings);
+    const { frameColorId: _removed, ...rest } = settings;
+    const merged = { ...defaultSettings, ...rest };
     return {
       ...merged,
+      avatarColorId: migrateAvatarColorId(merged.avatarColorId as string | undefined),
       socialTimeSlot: migrateSocialTimeSlot(merged.socialTimeSlot as string | undefined),
     };
   }

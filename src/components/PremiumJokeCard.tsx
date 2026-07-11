@@ -1,5 +1,5 @@
-
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { screenCopy } from '../constants/copy';
 import { colors, radius, spacing, typography } from '../constants/theme';
 import { PremiumService } from '../services/PremiumService';
 
@@ -13,8 +13,8 @@ export function PremiumJokeCard() {
       <View style={styles.badge}>
         <Text style={styles.badgeText}>PREMIUM</Text>
       </View>
-      <Text style={styles.title}>課金すると、広告が増えます</Text>
-      <Text style={styles.body}>減らすのではなく、向き合う。</Text>
+      <Text style={styles.title}>{screenCopy.menuPremiumTitle}</Text>
+      <Text style={styles.body}>{screenCopy.menuPremiumBody}</Text>
     </Pressable>
   );
 }

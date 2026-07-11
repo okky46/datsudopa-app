@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
@@ -12,15 +11,6 @@ import { screenCopy } from '../../src/constants/copy';
 import { PresenceService } from '../../src/services/PresenceService';
 import { StorageService } from '../../src/services/StorageService';
 import { DailyResult } from '../../src/types/result';
-import { useScreenFrame } from '../../src/contexts/ScreenFrameContext';
-import { formatClock } from '../../src/utils/date';
-
-function getCelebrationTime(result: DailyResult): string {
-  if (result.raidEndedAt) {
-    return formatClock(new Date(result.raidEndedAt));
-  }
-  return formatClock(new Date());
-}
 
 function getHeroCopy(result: DailyResult | null) {
   if (result?.mode === 'normal') {
@@ -32,7 +22,6 @@ function getHeroCopy(result: DailyResult | null) {
 export default function ResultScreen() {
   const params = useLocalSearchParams<{ date?: string; mode?: DailyResult['mode'] }>();
   const [result, setResult] = useState<DailyResult | null>(null);
-  const { triggerCelebration } = useScreenFrame();
 
   const load = useCallback(async () => {
     const results = await StorageService.getDailyResults();
@@ -49,12 +38,6 @@ export default function ResultScreen() {
       void load();
     }, [load]),
   );
-
-  useEffect(() => {
-    if (result?.status === 'completed') {
-      triggerCelebration(7000, getCelebrationTime(result));
-    }
-  }, [result, triggerCelebration]);
 
   const hero = getHeroCopy(result);
 

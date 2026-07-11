@@ -11,7 +11,7 @@ Expo + React Native + TypeScript(expo-router)のMVP。このファイルはUI修
 ## UIデザイン原則
 
 1. 静かで軽い高級感。派手な装飾より余白と階層で見せる。
-2. 光る演出(虹・グラデーション)は「ここぞ」に限定: スコアバー、再生ボタン、完走セレブレーション(ScreenFrame)、AuroraDot程度。
+2. 光る演出(グラデーション)は「ここぞ」に限定: スコアバー、再生ボタン、AuroraDot程度。画面縁の光る枠・虹色セレブレーションは廃止済み。
 3. アイコンは絵文字やアイコンフォントではなく、View で手描きした小さなグリフ(BellIcon, ClockGlyph, LockGlyph 等)。この手作り感を維持する。
 4. コピーは `src/constants/copy.ts` に集約。画面に説明文を増やさず、世界観の一文で語る。
 5. 新しい色・数値をハードコードしない。必ず `src/constants/theme.ts` のトークンを使う。
@@ -41,13 +41,13 @@ Expo + React Native + TypeScript(expo-router)のMVP。このファイルはUI修
 
 ### リザルト `app/raid/result.tsx`
 - 縦一列・中央揃え: タイトル✨ → ResultCard → コメント1行 → ShareButton → ゴーストの「履歴を見る」。
-- 完走時は `triggerCelebration`(ScreenFrame の虹縁演出、約7秒)が発火する。この演出は最重要のご褒美なので削らない・多用もしない。
 - 称号・コメントは `copy.ts` の titles / comments から。真面目な達成メッセージに置き換えない。
 
 ### メニュー `app/(tabs)/menu.tsx`
-- タイトルは「集合設定」。Card 単位のセクション: プロフィール(ニックネーム + 光る縁の色スワッチ) → 集合の合図(通知Switch + 時間帯Chip) → その他 → PremiumJokeCard。
+- タイトルは「設定」。Card 単位のセクション: ユーザープロフィール(アイコン色 + ニックネーム、右上ペンで編集) → 通知設定(通知Switch + 時間帯Chip 1つ + 「脱ドパタイム○時～○時」) → PremiumJokeCard → オンボーディングやり直し / 使い方を見る / データ削除 → AdBanner。
 - 設定変更は即 `StorageService.saveSettings` + `NotificationService.scheduleDailyRaid` を呼ぶ流れを維持。
-- PremiumJokeCard(「課金するとさらに多くの広告が登場」)はネタとして残す。
+- PremiumJokeCard(「脱ドパ　プレミアム」/ 広告増量ハードモードのネタ)は残す。
+- 「集合の合図」「集合予定」など集合系の文言は使わない。
 
 ## 避けるべきAIっぽいUI
 
@@ -63,8 +63,7 @@ Expo + React Native + TypeScript(expo-router)のMVP。このファイルはUI修
 - レイドフロー: 通知 → 3分以内の開始判定 → `raid/active` 全画面再生 → AppState による background/inactive 失敗判定 → リザルト生成・保存 → 共有。
 - AsyncStorage キー(onboardingCompleted, userSettings, dailyResults, currentRaidState, videoWatchHistory 等)と `StorageService` 経由のアクセス。
 - `NotificationService.scheduleDailyRaid` の再スケジュール(ホームフォーカス時・設定変更時)。
-- AdBanner の配置(ホーム下部・ロング下部)と Expo Go での placeholder フォールバック。
-- ScreenFrame(光る縁 + セレブレーション)と frameColorId のユーザー設定。
+- AdBanner の配置(ホーム下部・ロング下部・メニュー下部)と Expo Go での placeholder フォールバック。
 - オンボーディング完了前のリダイレクト、リザルトの OS標準共有。
 - __DEV__ 限定の「レイド開始(確認用)」ボタン。
 

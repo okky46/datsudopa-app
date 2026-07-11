@@ -1,21 +1,21 @@
 
 import type { ReactNode } from 'react';
 import { Pressable, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
-import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { FadeIn, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 type EnterCardProps = {
   children: ReactNode;
-  // カードの並び順。少しずつ遅らせて、ふわっと積み上がる入場にする
+  // カードの並び順。少しずつ遅らせて、順にフェードインさせる
   index?: number;
   style?: StyleProp<ViewStyle>;
 };
 
-// 画面表示時にカードが下からふわっと現れる共通ラッパー
+// 画面表示時にカードが控えめにフェードインする共通ラッパー。揺れや移動は入れない。
 export function EnterCard({ children, index = 0, style }: EnterCardProps) {
   return (
-    <Animated.View entering={FadeInDown.delay(index * 70).duration(420).springify().damping(19)} style={style}>
+    <Animated.View entering={FadeIn.delay(index * 50).duration(220)} style={style}>
       {children}
     </Animated.View>
   );

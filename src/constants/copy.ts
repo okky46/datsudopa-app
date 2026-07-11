@@ -36,6 +36,53 @@ export const englishLabels = {
   longSessionResult: 'Long Session Result',
 } as const;
 
+// オンボーディング（初回起動時のみ）。説明ではなく、自分ごと化の導線。
+export const onboardingCopy = {
+  start: {
+    title: 'さっそく、ドパ中毒から離れよう',
+    subtitle: 'ショートの逆をやるアプリです。',
+    cta: 'はじめる',
+  },
+  problem: {
+    title: '気づいたら、またショートを開いている。',
+    subtitle: '短い刺激は、思っているより静かに時間を奪います。',
+    cta: '次へ',
+  },
+  usage: {
+    title: '1日にどれくらいショート動画を見ていますか？',
+  },
+  loss: {
+    monthlyPrefix: '今、月に約',
+    monthlyBody: 'ショートに消えています。',
+    lifetimeBefore: 'このままでは、人生で',
+    lifetimeAfter: 'の自発的な時間を失うかもしれません。',
+    recover: '脱ドパを使えば、その時間を少しずつ取り返せます。',
+    cta: '次へ',
+  },
+  motto: {
+    title: '脱ドパは、ショートの逆をやるアプリ。',
+    subtitle: 'スマホの刺激から離れるアプリです。',
+    principles: ['長い映像を見る', 'スキップしない', 'スマホから離れる', '同じ時間にみんなで見る'],
+    cta: '次へ',
+  },
+  firstLong: {
+    title: 'まずは、脱ドパロングを視聴しよう。',
+    subtitle: '短い刺激から離れて、静かな映像に切り替えます。',
+    cta: '脱ドパロングをはじめる',
+  },
+  raid: {
+    title: '毎日、ドーパミンが出ない映像をみんなで見て、スマホから離れよう。',
+    subtitle: '同じ時間に、同じ映像を見るだけ。',
+    cta: '次へ',
+  },
+  done: {
+    title: '準備完了。',
+    subtitle: 'まずは1本、ショートの逆を見てみよう。',
+    cta: '最初の脱ドパロングを視聴する',
+  },
+  back: '戻る',
+} as const;
+
 export const LONG_VIDEO_META_LABEL = '余白のあるロング映像';
 
 export const LONG_VIDEO_DEFAULT_NOTE = '低刺激ロング。静かな空間に浸り、脳に余白を戻す。';

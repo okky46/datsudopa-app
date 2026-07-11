@@ -9,22 +9,14 @@ type Props = {
   balance: WeeklyBalance;
 };
 
-function HourglassGlyph({ color }: { color: string }) {
+function BalanceRow({ label, minutes, color }: { label: string; minutes: number; color: string }) {
   return (
-    <View style={styles.hourglass}>
-      <View style={[styles.hourglassCap, { backgroundColor: color }]} />
-      <View style={[styles.hourglassTop, { borderTopColor: color }]} />
-      <View style={[styles.hourglassBottom, { borderBottomColor: color }]} />
-      <View style={[styles.hourglassCap, { backgroundColor: color }]} />
-    </View>
-  );
-}
-
-function LeafGlyph({ color }: { color: string }) {
-  return (
-    <View style={styles.leafWrap}>
-      <View style={[styles.leaf, { backgroundColor: color }]} />
-      <View style={[styles.leafStem, { backgroundColor: color }]} />
+    <View style={styles.row}>
+      <Text style={styles.rowLabel}>{label}</Text>
+      <Text style={[styles.rowValue, { color }]}>
+        {minutes}
+        <Text style={styles.rowUnit}>分</Text>
+      </Text>
     </View>
   );
 }
@@ -34,33 +26,9 @@ export function WeeklyBalanceCard({ balance }: Props) {
     <Card style={styles.card}>
       <Text style={styles.heading}>{homeCopy.weeklyTitle}</Text>
 
-      <View style={styles.row}>
-        <View style={[styles.iconBadge, { backgroundColor: colors.dangerSoft }]}>
-          <HourglassGlyph color={colors.danger} />
-        </View>
-        <View style={styles.rowText}>
-          <Text style={styles.rowLabel}>{homeCopy.weeklyFailedLabel}</Text>
-          <Text style={[styles.rowValue, { color: colors.danger }]}>
-            {balance.failedMinutes}
-            <Text style={styles.rowUnit}>分</Text>
-          </Text>
-        </View>
-      </View>
-
+      <BalanceRow label={homeCopy.weeklyFailedLabel} minutes={balance.failedMinutes} color={colors.danger} />
       <View style={styles.divider} />
-
-      <View style={styles.row}>
-        <View style={[styles.iconBadge, { backgroundColor: colors.accentSoft }]}>
-          <LeafGlyph color={colors.accent} />
-        </View>
-        <View style={styles.rowText}>
-          <Text style={styles.rowLabel}>{homeCopy.weeklyReclaimedLabel}</Text>
-          <Text style={[styles.rowValue, { color: colors.accent }]}>
-            {balance.reclaimedMinutes}
-            <Text style={styles.rowUnit}>分</Text>
-          </Text>
-        </View>
-      </View>
+      <BalanceRow label={homeCopy.weeklyReclaimedLabel} minutes={balance.reclaimedMinutes} color={colors.accent} />
 
       <View style={styles.projection}>
         <Text style={styles.projectionText}>
@@ -75,41 +43,34 @@ export function WeeklyBalanceCard({ balance }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    gap: spacing.md,
+    gap: spacing.sm,
   },
   heading: {
     color: colors.textMuted,
     ...typography.label,
+    marginBottom: spacing.xs,
   },
   row: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
     gap: spacing.md,
-  },
-  iconBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rowText: {
-    flex: 1,
-    gap: 2,
+    paddingVertical: spacing.xs,
   },
   rowLabel: {
+    flex: 1,
     color: colors.textMuted,
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
   },
   rowValue: {
-    fontSize: 30,
+    fontSize: 28,
     fontWeight: '800',
     letterSpacing: -0.6,
     fontVariant: ['tabular-nums'],
   },
   rowUnit: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
     letterSpacing: 0,
   },
@@ -118,6 +79,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
   },
   projection: {
+    marginTop: spacing.xs,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderRadius: radius.md,
@@ -131,50 +93,5 @@ const styles = StyleSheet.create({
   projectionStrong: {
     color: colors.accent,
     fontWeight: '800',
-  },
-  hourglass: {
-    width: 16,
-    alignItems: 'center',
-    gap: 1,
-  },
-  hourglassCap: {
-    width: 14,
-    height: 2,
-    borderRadius: 2,
-  },
-  hourglassTop: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 6,
-    borderRightWidth: 6,
-    borderTopWidth: 6,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-  },
-  hourglassBottom: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 6,
-    borderRightWidth: 6,
-    borderBottomWidth: 6,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-  },
-  leafWrap: {
-    alignItems: 'center',
-  },
-  leaf: {
-    width: 12,
-    height: 16,
-    borderTopLeftRadius: 12,
-    borderBottomRightRadius: 12,
-    borderTopRightRadius: 3,
-    borderBottomLeftRadius: 3,
-  },
-  leafStem: {
-    width: 2,
-    height: 4,
-    borderRadius: 2,
-    marginTop: 1,
   },
 });

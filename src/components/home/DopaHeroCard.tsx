@@ -52,19 +52,19 @@ function deltaColor(value: number | null): string {
 
 function DeltaCell({ label, value }: { label: string; value: number | null }) {
   return (
-    <View style={styles.deltaCell}>
-      <Text style={styles.deltaLabel}>{label}</Text>
-      <Text style={[styles.deltaValue, { color: deltaColor(value) }]}>{deltaText(value)}</Text>
-    </View>
+    <Text style={styles.deltaCell}>
+      {label} <Text style={[styles.deltaValue, { color: deltaColor(value) }]}>{deltaText(value)}</Text>
+    </Text>
   );
 }
 
 export function DopaHeroCard({ level, deltas, titleName, raidStatus, onStart, onShare }: Props) {
   const devCanStart = __DEV__ && raidStatus.status !== 'completed' && raidStatus.status !== 'failed';
   const active = raidStatus.canStart || devCanStart;
+  const completed = raidStatus.status === 'completed';
   const fill = Math.max(6, Math.min(100, level));
   const scoreColor = dopamineScoreColor(level);
-  const buttonLabel = raidStatus.canStart ? 'レイドに参加' : devCanStart ? 'レイド開始（確認用）' : '集合を待つ';
+  const buttonLabel = raidStatus.canStart ? '参加する' : 'レイド開始（確認用）';
 
   return (
     <View style={styles.card}>
@@ -87,14 +87,11 @@ export function DopaHeroCard({ level, deltas, titleName, raidStatus, onStart, on
 
       <View style={styles.deltaRow}>
         <DeltaCell label={homeCopy.deltaYesterday} value={deltas.vsYesterday} />
-        <View style={styles.deltaDivider} />
         <DeltaCell label={homeCopy.deltaLastWeek} value={deltas.vsLastWeek} />
-        <View style={styles.deltaDivider} />
         <DeltaCell label={homeCopy.deltaLastMonth} value={deltas.vsLastMonth} />
       </View>
 
       <View style={styles.titleRow}>
-        <Text style={styles.titleLabel}>{homeCopy.titleLabel}</Text>
         <View style={styles.titleCapsule}>
           <Text style={styles.titleText} numberOfLines={1}>
             「{titleName}」
@@ -102,19 +99,21 @@ export function DopaHeroCard({ level, deltas, titleName, raidStatus, onStart, on
         </View>
       </View>
 
-      <View style={styles.raidBox}>
-        <ClockGlyph color={colors.textMuted} />
+      <View style={styles.divider} />
+
+      <View style={styles.raidRow}>
+        <ClockGlyph color={completed ? colors.accent : colors.textMuted} />
         <View style={styles.raidTextWrap}>
           <Text style={styles.raidLine}>
             今日のレイド <Text style={styles.raidTime}>{raidStatus.raidTime}</Text>
           </Text>
-          <Text style={styles.raidSub}>{raidStatus.remainingText}</Text>
+          <Text style={[styles.raidSub, completed && styles.raidSubCompleted]}>{raidStatus.remainingText}</Text>
         </View>
-        {active && <PrimaryButton label="参加" onPress={onStart} style={styles.joinButton} />}
+        {active && <PrimaryButton label={buttonLabel} onPress={onStart} style={styles.joinButton} />}
       </View>
 
-      <PressableScale accessibilityRole="button" accessibilityLabel={homeCopy.shareLabel} onPress={onShare} style={styles.shareButton}>
-        <ShareGlyph color={colors.text} size={16} />
+      <PressableScale accessibilityRole="button" accessibilityLabel={homeCopy.shareLabel} onPress={onShare} style={styles.shareLink}>
+        <ShareGlyph color={colors.textMuted} size={14} />
         <Text style={styles.shareLabel}>{homeCopy.shareLabel}</Text>
       </PressableScale>
     </View>
@@ -143,69 +142,49 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   score: {
-    fontSize: 74,
-    fontWeight: '800',
-    letterSpacing: -3,
-    lineHeight: 80,
+    ...typography.score,
+    lineHeight: 82,
   },
   percent: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: '700',
     marginTop: 14,
     marginLeft: 4,
   },
   barTrack: {
-    height: 7,
+    height: 6,
     borderRadius: radius.pill,
     backgroundColor: 'rgba(46, 52, 80, 0.07)',
     overflow: 'hidden',
     marginTop: spacing.sm,
+    marginHorizontal: spacing.xs,
   },
   deltaRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.md,
     marginTop: spacing.md,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radius.md,
-    backgroundColor: 'rgba(255,255,255,0.7)',
-    borderWidth: 1,
-    borderColor: colors.border,
   },
   deltaCell: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 2,
-  },
-  deltaDivider: {
-    width: StyleSheet.hairlineWidth,
-    height: 26,
-    backgroundColor: colors.borderStrong,
-  },
-  deltaLabel: {
     color: colors.textSubtle,
-    fontSize: 11,
+    fontSize: 12.5,
     fontWeight: '600',
   },
   deltaValue: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
   },
   titleRow: {
     alignItems: 'center',
-    gap: spacing.xs,
     marginTop: spacing.md,
-  },
-  titleLabel: {
-    color: colors.textSubtle,
-    ...typography.label,
   },
   titleCapsule: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderRadius: radius.pill,
-    backgroundColor: 'rgba(255,255,255,0.7)',
+    backgroundColor: 'rgba(255,255,255,0.75)',
     borderWidth: 1,
     borderColor: colors.borderStrong,
     maxWidth: '92%',
@@ -215,17 +194,17 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
   },
-  raidBox: {
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.borderStrong,
+    marginTop: spacing.md,
+    marginHorizontal: -spacing.lg,
+  },
+  raidRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    marginTop: spacing.md,
-    paddingVertical: spacing.sm + 2,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.md,
-    backgroundColor: 'rgba(255,255,255,0.7)',
-    borderWidth: 1,
-    borderColor: colors.border,
+    paddingTop: spacing.md,
   },
   raidTextWrap: {
     flex: 1,
@@ -234,7 +213,7 @@ const styles = StyleSheet.create({
   raidLine: {
     color: colors.text,
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   raidTime: {
     fontSize: 16,
@@ -246,26 +225,29 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
   },
-  joinButton: {
-    minHeight: 44,
-    paddingHorizontal: spacing.md,
+  raidSubCompleted: {
+    color: colors.accent,
+    fontWeight: '600',
   },
-  shareButton: {
+  joinButton: {
+    minHeight: 48,
+    paddingHorizontal: spacing.lg,
+  },
+  shareLink: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
+    alignSelf: 'center',
+    gap: spacing.xs,
     marginTop: spacing.md,
-    minHeight: 48,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
-    backgroundColor: colors.card,
+    minHeight: 40,
+    paddingHorizontal: spacing.sm,
   },
   shareLabel: {
-    color: colors.text,
-    fontSize: 14,
+    color: colors.textMuted,
+    fontSize: 13,
     fontWeight: '700',
+    textDecorationLine: 'underline',
   },
   clock: {
     width: 22,

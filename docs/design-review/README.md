@@ -116,6 +116,23 @@
 
 ---
 
+## 5. 提案Aの実装結果
+
+提案Aはこのブランチで実装済み。実装後にExpo Webで再度実操作して確認したスクリーンショット:
+
+| ホーム(完走後) | ロング | ロング(ランダム選択後) |
+|---|---|---|
+| <img src="images/implemented/new-home-top.png" width="220"> | <img src="images/implemented/new-long-top.png" width="220"> | <img src="images/implemented/new-long-random.png" width="220"> |
+
+実装内容:
+
+- **DopaHeroCard**: デルタ行・レイド行の白い小箱を廃止し、ヘアライン区切り+余白の階層に変更。スコアは `typography.score` トークンに統一。参加ボタン(canStart時 / __DEV__確認用)がカード内唯一の強いボタンになり、共有は下線テキストリンクへ。完走後はレイド行のステータスがセージグリーンになる「静かなご褒美」を追加
+- **WeeklyBalanceCard**: アイコンバッジをやめ、ラベル左・数値右のベースライン揃え行+ヘアライン区切りに。「あなたらしい人生を取り戻した時間」→「取り戻した時間」(copy.ts)
+- **ロング画面**: 「今日の映像(ヒーロー) → 視聴時間(セグメント+スライダー) → gradient『再生する』」の一直線構成に再編。CLAUDE.mdに記載の「再生するボタンが画面唯一の華」を復元。他の映像はコンパクトな行リストに。時間の値表示はセクション見出し右の1箇所に集約(従来は3箇所)
+- **新規UI部品**: `src/components/ui/SegmentedPills.tsx`(Chipの流儀のセグメント選択)
+- **クイックウィン**: キャッチコピーの✨を削除、ベルアイコンをメニュー(通知設定)への導線化
+- 既存ロジック(canStart / __DEV__ボタン / missed記録 / 再生パラメータ / AdBanner配置)は不変。`npm run typecheck` 通過
+
 ### 検証メモ
 
 - Expo SDK 56 / React Native 0.85 のWebビルドで確認(`react-native-google-mobile-ads` と `expo-notifications` はWeb非対応のためローカル限定のシムで代替。リポジトリには含めていない)

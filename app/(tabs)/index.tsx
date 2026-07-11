@@ -127,7 +127,12 @@ export default function HomeScreen() {
             <Text style={styles.brand}>脱ドパ</Text>
             <AuroraDot size={22} style={styles.brandDot} />
           </View>
-          <Pressable accessibilityRole="button" accessibilityLabel="通知" style={styles.bellWrap} onPress={() => {}}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="通知設定を開く"
+            style={styles.bellWrap}
+            onPress={() => router.push('/menu')}
+          >
             <BellIcon />
           </Pressable>
         </View>
@@ -146,7 +151,7 @@ export default function HomeScreen() {
         )}
 
         <View style={styles.catchphraseRow}>
-          <Text style={styles.catchphrase}>✨ {HOME_CATCHPHRASE} ✨</Text>
+          <Text style={styles.catchphrase}>{HOME_CATCHPHRASE}</Text>
         </View>
 
         {balance && (

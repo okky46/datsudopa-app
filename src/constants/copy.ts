@@ -126,7 +126,7 @@ export const homeCopy = {
   deltaLastMonth: '先月から',
   weeklyTitle: '今週のドパ収支',
   weeklyFailedLabel: '脱ドパに失敗した時間',
-  weeklyReclaimedLabel: 'あなたらしい人生を取り戻した時間',
+  weeklyReclaimedLabel: '取り戻した時間',
   weeklyProjectionPrefix: 'このままのペースでいくと',
   weeklyProjectionSuffix: 'の豊かな時間が生まれそう',
   recordTitle: '脱ドパ記録',

@@ -18,9 +18,11 @@ type Props = {
   valueMinutes: number;
   onChange: (minutes: number) => void;
   compact?: boolean;
+  // 値を画面の別の場所(セクション見出しなど)に出す場合はfalse
+  showValue?: boolean;
 };
 
-export function DurationSlider({ valueMinutes, onChange, compact = false }: Props) {
+export function DurationSlider({ valueMinutes, onChange, compact = false, showValue = true }: Props) {
   const [trackWidth, setTrackWidth] = useState(0);
   const snappedMinutes = snapToDurationStep(valueMinutes);
   const ratio = minutesToRatio(snappedMinutes);
@@ -55,7 +57,9 @@ export function DurationSlider({ valueMinutes, onChange, compact = false }: Prop
 
   return (
     <View style={[styles.card, compact && styles.cardCompact]}>
-      <Text style={[styles.value, compact && styles.valueCompact]}>{formatDurationMinutes(snappedMinutes)}</Text>
+      {showValue && (
+        <Text style={[styles.value, compact && styles.valueCompact]}>{formatDurationMinutes(snappedMinutes)}</Text>
+      )}
 
       <View style={styles.rangeRow}>
         <Text style={styles.rangeLabel}>{formatDurationMinutes(LONG_DURATION_MIN_MINUTES)}</Text>

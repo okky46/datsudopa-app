@@ -14,6 +14,8 @@ export type UserSettings = {
   customTimeEnd?: string;
   notificationEnabled: boolean;
   raidDurationSeconds: number;
+  // 共有時に見せるドパガキ称号（メニューで選択）
+  selectedTitleId?: string;
 };
 
 export type PremiumStatus = {

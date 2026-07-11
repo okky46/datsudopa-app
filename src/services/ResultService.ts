@@ -49,8 +49,9 @@ export class ResultService {
     return result;
   }
 
-  static createShareText(result: DailyResult, nickname = '名無しのドパガキ'): string {
+  static createShareText(result: DailyResult, nickname = '名無しのドパガキ', titleOverride?: string): string {
     const displayName = nickname.trim() || '名無しのドパガキ';
+    const shownTitle = titleOverride || result.title;
     const metrics = calculateSessionMetrics(result);
 
     if (result.mode === 'normal') {
@@ -67,7 +68,7 @@ export class ResultService {
         `余白のあるロング：${formatSeconds(result.targetSeconds)}`,
         `脱ドパ達成率：${metrics.detoxRate}%`,
         `${displayName}のドパガキ度：${result.dopamineScore}%`,
-        `称号：${result.title}`,
+        `称号：${shownTitle}`,
         '',
         result.comment,
         '#脱ドパロング',
@@ -88,7 +89,7 @@ export class ResultService {
       raidLine,
       result.scheduledRaidTime ? '集合時刻：' + result.scheduledRaidTime : '毎日一回、余白ロングに集合',
       '今日のドパガキ度：' + result.dopamineScore + '%',
-      '称号：' + result.title,
+      '称号：' + shownTitle,
       '',
       result.comment,
       'ショートの真逆を、みんなでやる。',

@@ -1,13 +1,13 @@
 
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { AdBanner } from '../../src/components/AdBanner';
-import { PrimaryButton } from '../../src/components/PrimaryButton';
-import { VideoCard } from '../../src/components/VideoCard';
+import { VideoFeedCard } from '../../src/components/VideoFeedCard';
 import { Chip } from '../../src/components/ui/Chip';
 import { DurationSlider } from '../../src/components/ui/DurationSlider';
+import { EnterCard } from '../../src/components/ui/Motion';
 import { screenCopy } from '../../src/constants/copy';
 import { colors, radius, spacing, typography } from '../../src/constants/theme';
 import { LONG_DURATION_DEFAULT_SECONDS, LongVideoService } from '../../src/services/LongVideoService';
@@ -17,6 +17,7 @@ const DURATION_PRESETS = [
   { label: '3分', seconds: 180 },
   { label: '10分', seconds: 600 },
   { label: '30分', seconds: 1800 },
+  { label: '60分', seconds: 3600 },
 ] as const;
 
 function ShuffleGlyph() {
@@ -28,10 +29,6 @@ function ShuffleGlyph() {
   );
 }
 
-function PlayTriangle() {
-  return <View style={styles.playTriangle} />;
-}
-
 function LockGlyph() {
   return (
     <View style={styles.lock}>
@@ -41,126 +38,71 @@ function LockGlyph() {
   );
 }
 
-type SectionHeadingProps = {
-  label: string;
-  value?: string;
-  hint?: string;
-};
-
-function SectionHeading({ label, value, hint }: SectionHeadingProps) {
-  return (
-    <View style={styles.sectionHeading}>
-      <Text style={styles.sectionLabel}>{label}</Text>
-      {value ? (
-        <Text style={styles.sectionValue} numberOfLines={1}>
-          {value}
-        </Text>
-      ) : null}
-      {hint ? <Text style={styles.sectionHint}>{hint}</Text> : null}
-    </View>
-  );
-}
-
 export default function LongScreen() {
-  const { height: windowHeight } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
   const videos = useMemo(() => LongVideoService.listVideos(), []);
   const recommended = useMemo(() => LongVideoService.getRecommendedVideo(), []);
-  const [selectedVideo, setSelectedVideo] = useState<VideoAsset>(recommended);
   const [durationSeconds, setDurationSeconds] = useState(LONG_DURATION_DEFAULT_SECONDS);
-  const others = videos.filter((video) => video.id !== recommended.id);
-
-  const heroHeight = useMemo(() => {
-    const available = windowHeight - insets.top - 88 - 300;
-    if (available < 120) {
-      return 120;
-    }
-    return Math.min(168, Math.max(132, Math.round(available)));
-  }, [insets.top, windowHeight]);
 
   const durationMinutes = LongVideoService.minutesFromSeconds(durationSeconds);
+  const durationLabel = `${durationMinutes}分`;
 
-  const setDurationMinutes = (minutes: number) => {
-    setDurationSeconds(minutes * 60);
-  };
+  const ordered = useMemo(
+    () => [recommended, ...videos.filter((video) => video.id !== recommended.id)],
+    [recommended, videos],
+  );
 
-  const start = () => {
+  const play = (video: VideoAsset) => {
     router.push({
       pathname: '/raid/active',
-      params: { mode: 'normal', videoId: selectedVideo.id, duration: String(durationSeconds) },
+      params: { mode: 'normal', videoId: video.id, duration: String(durationSeconds) },
     });
   };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <View style={styles.setupPanel}>
-        <View style={styles.header}>
-          <Text style={styles.title}>{screenCopy.longTitle}</Text>
-          <Text style={styles.tagline} numberOfLines={1}>
-            {screenCopy.longTagline}
-          </Text>
-        </View>
-
-        <VideoCard video={selectedVideo} variant="hero" selected interactive={false} compact heroHeight={heroHeight} />
-
-        <SectionHeading label={screenCopy.longVideoSectionLabel} value={selectedVideo.title} />
-
-        <SectionHeading label={screenCopy.longDurationSectionLabel} hint={screenCopy.longDurationSectionHint} />
-
-        <DurationSlider valueMinutes={durationMinutes} onChange={setDurationMinutes} compact />
-
-        <View style={styles.presetRow}>
-          <Chip
-            label="ランダム"
-            compact
-            icon={<ShuffleGlyph />}
-            onPress={() => setDurationSeconds(LongVideoService.randomDurationSeconds())}
-          />
-          {DURATION_PRESETS.map((preset) => (
-            <Chip
-              key={preset.label}
-              label={preset.label}
-              compact
-              selected={durationSeconds === preset.seconds}
-              onPress={() => setDurationSeconds(preset.seconds)}
-            />
-          ))}
-        </View>
-
-        <PrimaryButton
-          label="再生する"
-          variant="gradient"
-          onPress={start}
-          icon={<PlayTriangle />}
-          style={styles.playButton}
-        />
-
+      <View style={styles.header}>
+        <Text style={styles.title}>{screenCopy.longTitle}</Text>
         <View style={styles.lockRow}>
           <LockGlyph />
-          <Text style={styles.lockText}>スキップ不可</Text>
+          <Text style={styles.lockText}>スキップ不可・倍速なし・次の動画もなし</Text>
         </View>
       </View>
 
-      <ScrollView
-        style={styles.extraScroll}
-        contentContainerStyle={styles.extraContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {others.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>{screenCopy.longSectionOthers}</Text>
-            <View style={styles.list}>
-              {others.map((video) => (
-                <VideoCard
-                  key={video.id}
-                  video={video}
-                  selected={selectedVideo.id === video.id}
-                  onPress={() => setSelectedVideo(video)}
-                />
-              ))}
-            </View>
+      <View style={styles.durationPanel}>
+        <View style={styles.durationHead}>
+          <Text style={styles.durationLabel}>{screenCopy.longDurationSectionLabel}</Text>
+          <View style={styles.presetRow}>
+            <Chip
+              label="ランダム"
+              compact
+              icon={<ShuffleGlyph />}
+              onPress={() => setDurationSeconds(LongVideoService.randomDurationSeconds())}
+            />
+            {DURATION_PRESETS.map((preset) => (
+              <Chip
+                key={preset.label}
+                label={preset.label}
+                compact
+                selected={durationSeconds === preset.seconds}
+                onPress={() => setDurationSeconds(preset.seconds)}
+              />
+            ))}
           </View>
-        )}
+        </View>
+        <DurationSlider valueMinutes={durationMinutes} onChange={(minutes) => setDurationSeconds(minutes * 60)} compact />
+      </View>
+
+      <ScrollView style={styles.feed} contentContainerStyle={styles.feedContent} showsVerticalScrollIndicator={false}>
+        {ordered.map((video, index) => (
+          <EnterCard key={video.id} index={index}>
+            <VideoFeedCard
+              video={video}
+              durationLabel={durationLabel}
+              recommended={video.id === recommended.id}
+              onPress={() => play(video)}
+            />
+          </EnterCard>
+        ))}
 
         <Text style={styles.description}>{screenCopy.longDescription}</Text>
         <AdBanner />
@@ -174,15 +116,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  setupPanel: {
-    flexShrink: 0,
-    gap: spacing.sm,
+  header: {
+    gap: 4,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.xs,
     paddingBottom: spacing.sm,
-  },
-  header: {
-    gap: 2,
     alignItems: 'center',
   },
   title: {
@@ -191,58 +129,10 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: -0.3,
   },
-  tagline: {
-    color: colors.textMuted,
-    fontSize: 13,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  sectionHeading: {
-    gap: 2,
-    paddingHorizontal: spacing.xs,
-  },
-  sectionLabel: {
-    color: colors.textMuted,
-    ...typography.label,
-  },
-  sectionValue: {
-    color: colors.text,
-    fontSize: 17,
-    fontWeight: '700',
-    letterSpacing: -0.2,
-  },
-  sectionHint: {
-    color: colors.textSubtle,
-    fontSize: 12,
-    fontWeight: '500',
-    lineHeight: 17,
-  },
-  presetRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-  },
-  playButton: {
-    minHeight: 50,
-    marginTop: 2,
-  },
-  playTriangle: {
-    width: 0,
-    height: 0,
-    borderTopWidth: 7,
-    borderBottomWidth: 7,
-    borderLeftWidth: 12,
-    borderTopColor: 'transparent',
-    borderBottomColor: 'transparent',
-    borderLeftColor: colors.text,
-    marginLeft: 2,
-  },
   lockRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: spacing.xs,
-    marginTop: -2,
   },
   lockText: {
     color: colors.textSubtle,
@@ -269,6 +159,43 @@ const styles = StyleSheet.create({
     marginTop: -1,
     backgroundColor: colors.textSubtle,
   },
+  durationPanel: {
+    gap: spacing.sm,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+  durationHead: {
+    gap: spacing.xs,
+  },
+  durationLabel: {
+    color: colors.textMuted,
+    ...typography.label,
+    paddingHorizontal: spacing.xs,
+  },
+  presetRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+  },
+  feed: {
+    flex: 1,
+  },
+  feedContent: {
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xs,
+    paddingBottom: 120,
+  },
+  description: {
+    color: colors.textSubtle,
+    ...typography.caption,
+    textAlign: 'center',
+    lineHeight: 20,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+  },
   shuffle: {
     width: 13,
     height: 10,
@@ -283,30 +210,5 @@ const styles = StyleSheet.create({
   },
   shuffleLine2: {
     transform: [{ rotate: '8deg' }],
-  },
-  extraScroll: {
-    flex: 1,
-  },
-  extraContent: {
-    gap: spacing.md,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xs,
-    paddingBottom: 120,
-  },
-  section: {
-    gap: spacing.sm,
-  },
-  list: {
-    gap: spacing.md,
-  },
-  description: {
-    color: colors.textSubtle,
-    ...typography.caption,
-    textAlign: 'center',
-    lineHeight: 20,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.md,
-    backgroundColor: colors.surface,
   },
 });

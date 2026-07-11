@@ -1,6 +1,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DailyResult } from '../types/result';
+import { DopamineSnapshot } from '../types/dopamine';
 import { CurrentRaidState } from '../types/raid';
 import { AvatarColorId, PremiumStatus, SocialTimeSlot, UserSettings } from '../types/settings';
 import { VideoWatchRecord } from '../types/video';
@@ -13,6 +14,9 @@ const keys = {
   notificationPermission: 'notificationPermission',
   premiumStatus: 'premiumStatus',
   videoWatchHistory: 'videoWatchHistory',
+  dopamineLevel: 'dopamineLevel',
+  dopamineHistory: 'dopamineHistory',
+  temptationTotal: 'temptationTotal',
 };
 
 const defaultSettings: UserSettings = {
@@ -144,6 +148,30 @@ export class StorageService {
   static async appendVideoWatchHistory(record: VideoWatchRecord): Promise<void> {
     const history = await StorageService.getVideoWatchHistory();
     await writeJson(keys.videoWatchHistory, [record, ...history].slice(0, 100));
+  }
+
+  static async getDopamineLevel(fallback: number): Promise<number> {
+    return readJson<number>(keys.dopamineLevel, fallback);
+  }
+
+  static async saveDopamineLevel(level: number): Promise<void> {
+    await writeJson(keys.dopamineLevel, level);
+  }
+
+  static async getDopamineHistory(): Promise<DopamineSnapshot[]> {
+    return readJson<DopamineSnapshot[]>(keys.dopamineHistory, []);
+  }
+
+  static async saveDopamineHistory(history: DopamineSnapshot[]): Promise<void> {
+    await writeJson(keys.dopamineHistory, history.slice(-400));
+  }
+
+  static async getTemptationTotal(): Promise<number> {
+    return readJson<number>(keys.temptationTotal, 0);
+  }
+
+  static async saveTemptationTotal(total: number): Promise<void> {
+    await writeJson(keys.temptationTotal, total);
   }
 
   static async clearAll(): Promise<void> {

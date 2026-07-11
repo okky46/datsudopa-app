@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { VideoPlayerShell } from '../../src/components/VideoPlayerShell';
 import { FailureReason } from '../../src/types/result';
 import { WatchMode } from '../../src/types/video';
+import { DopamineService } from '../../src/services/DopamineService';
 import { LongVideoService } from '../../src/services/LongVideoService';
 import { RaidService } from '../../src/services/RaidService';
 import { ResultService } from '../../src/services/ResultService';
@@ -20,7 +21,12 @@ export default function ActiveRaidScreen() {
   const isLongMode = mode === 'normal';
 
   const finish = useCallback(
-    async (status: 'completed' | 'escaped', watchedSeconds: number, failureReason: FailureReason = 'none') => {
+    async (
+      status: 'completed' | 'escaped',
+      watchedSeconds: number,
+      spikeDelta: number,
+      failureReason: FailureReason = 'none',
+    ) => {
       if (handledRef.current) {
         return;
       }
@@ -49,7 +55,17 @@ export default function ActiveRaidScreen() {
       if (mode === 'raid') {
         await StorageService.saveCurrentRaidState(null);
       }
-      router.replace({ pathname: '/raid/result', params: { date: result.date, mode: result.mode } });
+
+      // セッションの結果を持続的なドパガキ度へ反映し、増減をリザルトに渡す
+      const outcome = await DopamineService.adjust(
+        DopamineService.sessionOutcomeDelta(status === 'completed', Math.min(watchedSeconds, duration)),
+      );
+      const sessionDelta = spikeDelta + outcome.applied;
+
+      router.replace({
+        pathname: '/raid/result',
+        params: { date: result.date, mode: result.mode, level: String(outcome.level), delta: String(sessionDelta) },
+      });
     },
     [duration, mode, startedAt, video.id],
   );
@@ -61,8 +77,8 @@ export default function ActiveRaidScreen() {
         video={video}
         mode={mode}
         targetSeconds={duration}
-        onComplete={(watchedSeconds) => void finish('completed', watchedSeconds)}
-        onFail={(reason, watchedSeconds) => void finish('escaped', watchedSeconds, reason)}
+        onComplete={(watchedSeconds, spikeDelta) => void finish('completed', watchedSeconds, spikeDelta)}
+        onFail={(reason, watchedSeconds, spikeDelta) => void finish('escaped', watchedSeconds, spikeDelta, reason)}
       />
     </>
   );

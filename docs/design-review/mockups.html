@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>脱ドパ design mocks</title>
+<style>
+  :root{
+    --bg:#F6F4EF; --bg-soft:#F1EEE7; --card:#FFFFFF; --card-strong:#FBFAF7;
+    --surface:#F4F2EC; --sunken:#EEEBE3;
+    --border:rgba(46,52,80,.07); --border-strong:rgba(46,52,80,.13);
+    --text:#2E3450; --muted:#6B7185; --subtle:#9AA0B2; --faint:#BCC0CC;
+    --primary:#3B4263; --accent:#5F8A6E; --accent-soft:rgba(95,138,110,.12);
+    --danger:#C2796E; --danger-soft:rgba(194,121,110,.10);
+    --mint:#C9E9D6; --lav:#DCD7F2; --pink:#F6D9E3; --blue:#D2E3F3; --yellow:#F6EFCF;
+    --grad-bar:linear-gradient(90deg,#C9E9D6,#CFE2F2,#DCD7F2);
+    --grad-play:linear-gradient(120deg,#C9E9D6,#D6DEF3,#F4D9E4);
+    --grad-wash:linear-gradient(160deg,#EAF3FB,#F2EEFB,#FBEFF4);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased}
+  body{background:#DDD9D0;font-family:"Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif;color:var(--text);display:flex;flex-wrap:wrap;gap:40px;padding:40px}
+  .phone{width:390px;height:844px;background:var(--bg);border-radius:0;overflow:hidden;position:relative;display:flex;flex-direction:column;flex:none}
+  .screen{flex:1;overflow:hidden;padding:14px 22px 0;display:flex;flex-direction:column}
+  .screen>*{flex:none}
+  /* tab bar */
+  .tabbar{height:84px;background:var(--card);border-top:1px solid var(--border);display:flex;align-items:flex-start;padding-top:10px}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:700;letter-spacing:.3px;color:var(--subtle)}
+  .tab.on{color:var(--text)}
+  .tab .pill{width:56px;height:34px;border-radius:14px;display:flex;align-items:center;justify-content:center}
+  .tab.on .pill{background:rgba(214,222,243,.55)}
+  .gi{width:22px;height:22px;position:relative}
+  .gi.home::before{content:"";position:absolute;left:2px;top:9px;width:14px;height:10px;border:2px solid currentColor;border-top:0;border-radius:0 0 3px 3px}
+  .gi.home::after{content:"";position:absolute;left:0;top:0;border-left:11px solid transparent;border-right:11px solid transparent;border-bottom:10px solid currentColor}
+  .gi.clock{border:2px solid currentColor;border-radius:999px}
+  .gi.clock::before{content:"";position:absolute;left:8px;top:2px;width:2px;height:7px;background:currentColor;border-radius:2px}
+  .gi.clock::after{content:"";position:absolute;left:8px;top:8px;width:6px;height:2px;background:currentColor;border-radius:2px}
+  .gi.menu::before{content:"";position:absolute;left:1px;top:4px;width:20px;height:2px;background:currentColor;border-radius:9px;box-shadow:0 6px 0 currentColor,0 12px 0 currentColor}
+  /* shared bits */
+  .label{font-size:12px;font-weight:700;letter-spacing:.6px;color:var(--muted)}
+  .cap{font-size:11px;font-weight:600;color:var(--subtle)}
+  .dot{width:22px;height:22px;border-radius:999px;background:radial-gradient(circle at 35% 30%,#F2C9D2,#CDEBD6 45%,#CFE2F2 70%,#DCD7F2)}
+  .bell{width:20px;height:22px;position:relative;opacity:.55}
+  .bell::before{content:"";position:absolute;left:1px;top:0;width:14px;height:14px;border:2px solid var(--text);border-radius:9px 9px 4px 4px}
+  .bell::after{content:"";position:absolute;left:6px;top:17px;width:6px;height:3px;background:var(--text);border-radius:0 0 3px 3px}
+  .ad{min-height:52px;border-radius:18px;background:var(--sunken);display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:10px;font-weight:700;letter-spacing:2px}
+  .grad-txt{background:var(--grad-bar)}
+  .caption{position:absolute;left:0;right:0;bottom:-30px;text-align:center;font-size:13px;color:#555}
+  .wrap{position:relative;flex:none}
+
+  /* ============ DIRECTION A : 余白と階層 ============ */
+  .a .brandrow{display:flex;align-items:center;justify-content:space-between;padding:6px 2px 18px}
+  .a .brand{font-size:22px;font-weight:900;letter-spacing:.5px;display:flex;align-items:center;gap:9px}
+  .a .hero{background:var(--card);border:1px solid var(--border);border-radius:30px;padding:26px 24px 20px;box-shadow:0 14px 26px rgba(46,52,80,.08);position:relative;overflow:hidden}
+  .a .hero .wash{position:absolute;inset:0;background:var(--grad-wash);opacity:.5;mask-image:linear-gradient(180deg,#000, transparent 62%);-webkit-mask-image:linear-gradient(180deg,#000,transparent 62%)}
+  .a .hero>*{position:relative}
+  .a .scorelabel{text-align:center;font-size:12px;font-weight:700;letter-spacing:.6px;color:var(--muted)}
+  .a .score{display:flex;justify-content:center;align-items:flex-start;margin-top:2px}
+  .a .score b{font-size:82px;font-weight:800;letter-spacing:-4px;line-height:1.02;color:#5F8A6E;font-feature-settings:"tnum"}
+  .a .score span{font-size:22px;font-weight:700;color:#5F8A6E;margin-top:14px;margin-left:2px}
+  .a .bar{height:6px;border-radius:99px;background:rgba(46,52,80,.07);margin-top:10px;overflow:hidden}
+  .a .bar i{display:block;width:34%;height:100%;border-radius:99px;background:var(--grad-bar)}
+  .a .deltas{display:flex;justify-content:center;gap:18px;margin-top:14px;font-size:12.5px;font-weight:600;color:var(--subtle)}
+  .a .deltas b{font-weight:800;font-feature-settings:"tnum"}
+  .a .deltas .down{color:var(--accent)} .a .deltas .up{color:var(--danger)}
+  .a .titleline{display:flex;justify-content:center;margin-top:16px}
+  .a .titleline em{font-style:normal;font-size:14px;font-weight:700;color:var(--text);background:rgba(255,255,255,.8);border:1px solid var(--border-strong);border-radius:999px;padding:8px 20px}
+  .a .hr{height:1px;background:var(--border);margin:18px -24px 0}
+  .a .raid{display:flex;align-items:center;gap:12px;padding:16px 0 4px}
+  .a .raid .t{flex:1}
+  .a .raid .t .l1{font-size:15px;font-weight:700}
+  .a .raid .t .l1 b{font-size:16px;font-weight:800;font-feature-settings:"tnum"}
+  .a .raid .t .l2{font-size:12.5px;color:var(--subtle);font-weight:500;margin-top:2px}
+  .a .raid .go{background:var(--primary);color:#fff;font-size:14px;font-weight:700;border-radius:999px;padding:13px 26px}
+  .a .clockg{width:22px;height:22px;border:2px solid var(--muted);border-radius:999px;position:relative}
+  .a .clockg::before{content:"";position:absolute;left:8px;top:3px;width:2px;height:7px;background:var(--muted);border-radius:2px}
+  .a .clockg::after{content:"";position:absolute;left:8px;top:9px;width:6px;height:2px;background:var(--muted);border-radius:2px}
+  .a .sharemin{display:flex;justify-content:center;margin-top:10px}
+  .a .sharemin span{font-size:13px;font-weight:700;color:var(--muted);border-bottom:1.5px solid var(--border-strong);padding-bottom:2px}
+  .a .catch{text-align:center;font-size:13px;font-weight:600;color:var(--muted);margin:18px 0}
+  .a .sec{background:var(--card);border:1px solid var(--border);border-radius:24px;padding:18px 20px;box-shadow:0 8px 16px rgba(46,52,80,.05)}
+  .a .sec+.sec{margin-top:14px}
+  .a .balrow{display:flex;align-items:baseline;justify-content:space-between;padding:10px 0}
+  .a .balrow+.balrow{border-top:1px solid var(--border)}
+  .a .balrow .k{font-size:13px;font-weight:600;color:var(--muted)}
+  .a .balrow .v{font-size:26px;font-weight:800;letter-spacing:-.5px;font-feature-settings:"tnum"}
+  .a .balrow .v small{font-size:14px;font-weight:700}
+  .a .proj{margin-top:8px;padding:10px 14px;border-radius:14px;background:var(--accent-soft);font-size:12px;color:var(--muted);text-align:center}
+  .a .proj b{color:var(--accent)}
+  /* A long */
+  .a .lhead{text-align:center;padding:4px 0 2px}
+  .a .lhead h1{font-size:22px;font-weight:800;letter-spacing:-.3px}
+  .a .lock{display:flex;justify-content:center;align-items:center;gap:6px;margin-top:4px;font-size:11px;font-weight:600;color:var(--subtle)}
+  .a .lockg{width:11px;height:12px;position:relative;opacity:.8}
+  .a .lockg::before{content:"";position:absolute;left:2px;top:0;width:7px;height:6px;border:1.4px solid var(--subtle);border-bottom:0;border-radius:4px 4px 0 0}
+  .a .lockg::after{content:"";position:absolute;left:0;top:5px;width:11px;height:7px;background:var(--subtle);border-radius:2px}
+  .a .heroVid{margin-top:14px;border-radius:24px;overflow:hidden;position:relative;box-shadow:0 14px 26px rgba(46,52,80,.09)}
+  .a .heroVid .img{height:210px;background:linear-gradient(180deg,#6d7591,#3c415c 70%,#2c3049)}
+  .a .heroVid .tag{position:absolute;left:14px;top:14px;background:rgba(255,255,255,.92);border-radius:999px;padding:6px 12px;font-size:11px;font-weight:700}
+  .a .heroVid .len{position:absolute;right:14px;top:172px;background:rgba(20,22,35,.75);color:#fff;border-radius:8px;padding:4px 8px;font-size:11px;font-weight:700}
+  .a .heroVid .meta{background:var(--card);padding:14px 18px 16px}
+  .a .heroVid .meta h2{font-size:17px;font-weight:700}
+  .a .heroVid .meta p{font-size:12px;color:var(--subtle);margin-top:3px}
+  .a .durlabel{margin:18px 2px 8px}
+  .a .seg{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:4px}
+  .a .seg span{flex:1;text-align:center;font-size:13px;font-weight:700;color:var(--muted);padding:9px 0;border-radius:999px}
+  .a .seg span.on{background:var(--card);color:var(--text);box-shadow:0 2px 6px rgba(46,52,80,.10);border:1px solid var(--border)}
+  .a .playbtn{margin-top:16px;height:58px;border-radius:999px;background:var(--grad-play);display:flex;align-items:center;justify-content:center;gap:10px;font-size:16px;font-weight:800;color:var(--text);box-shadow:0 10px 22px rgba(46,52,80,.12)}
+  .a .playbtn .tri{width:0;height:0;border-left:11px solid var(--text);border-top:7px solid transparent;border-bottom:7px solid transparent}
+  .a .others{margin-top:20px}
+  .a .otherrow{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--border)}
+  .a .otherrow:first-of-type{border-top:0}
+  .a .thumb{width:74px;height:48px;border-radius:12px;background:linear-gradient(180deg,#8a90a8,#4a4f6a)}
+  .a .otherrow .t{flex:1}
+  .a .otherrow .t h3{font-size:14px;font-weight:700}
+  .a .otherrow .t p{font-size:11px;color:var(--subtle);margin-top:2px}
+
+  /* ============ DIRECTION B : やわらかポップ ============ */
+  .b .brandrow{display:flex;align-items:center;justify-content:space-between;padding:6px 2px 16px}
+  .b .brand{font-size:23px;font-weight:900;letter-spacing:.5px;display:flex;align-items:center;gap:9px}
+  .b .hero{background:var(--grad-wash);border:1px solid var(--border);border-radius:30px;padding:24px 22px 22px;box-shadow:0 14px 26px rgba(46,52,80,.09);position:relative;overflow:hidden}
+  .b .blob1{position:absolute;width:220px;height:220px;border-radius:999px;background:var(--pink);opacity:.35;right:-70px;top:-80px}
+  .b .blob2{position:absolute;width:190px;height:190px;border-radius:999px;background:var(--mint);opacity:.4;left:-60px;bottom:-70px}
+  .b .hero>*:not(.blob1):not(.blob2){position:relative}
+  .b .scorelabel{font-size:12px;font-weight:700;letter-spacing:.6px;color:var(--muted);text-align:center}
+  .b .scorebubble{width:168px;height:168px;margin:10px auto 0;border-radius:999px;background:rgba(255,255,255,.85);border:1px solid var(--border-strong);display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 10px 24px rgba(46,52,80,.08)}
+  .b .scorebubble b{font-size:64px;font-weight:800;letter-spacing:-3px;line-height:1;color:#5F8A6E}
+  .b .scorebubble b span{font-size:22px;letter-spacing:0}
+  .b .scorebubble i{font-style:normal;font-size:12px;font-weight:700;color:var(--subtle);margin-top:4px}
+  .b .chips{display:flex;justify-content:center;gap:8px;margin-top:16px}
+  .b .chip{border-radius:999px;padding:8px 13px;font-size:12px;font-weight:700;background:rgba(255,255,255,.8);border:1px solid var(--border-strong);color:var(--subtle)}
+  .b .chip.down{color:var(--accent);background:var(--mint);border-color:transparent}
+  .b .chip.up{color:var(--danger);background:var(--pink);border-color:transparent}
+  .b .bubble{margin:18px auto 0;max-width:86%;background:#fff;border:1px solid var(--border-strong);border-radius:18px;padding:12px 18px;text-align:center;position:relative}
+  .b .bubble::after{content:"";position:absolute;left:50%;top:-7px;transform:translateX(-50%) rotate(45deg);width:12px;height:12px;background:#fff;border-left:1px solid var(--border-strong);border-top:1px solid var(--border-strong)}
+  .b .bubble .l{font-size:10.5px;font-weight:700;letter-spacing:.6px;color:var(--subtle)}
+  .b .bubble .v{font-size:15px;font-weight:800;margin-top:2px}
+  .b .ticket{margin-top:18px;background:#fff;border:1px solid var(--border-strong);border-radius:20px;display:flex;align-items:center;position:relative;padding:16px 18px}
+  .b .ticket::before,.b .ticket::after{content:"";position:absolute;width:16px;height:16px;border-radius:999px;background:#F3F0FA;border:1px solid var(--border-strong);top:50%;transform:translateY(-50%)}
+  .b .ticket::before{left:-9px}.b .ticket::after{right:-9px}
+  .b .ticket .t{flex:1}
+  .b .ticket .t .l1{font-size:11px;font-weight:700;letter-spacing:.6px;color:var(--subtle)}
+  .b .ticket .t .l2{font-size:20px;font-weight:800;font-feature-settings:"tnum";margin-top:2px}
+  .b .ticket .t .l3{font-size:12px;color:var(--subtle);margin-top:2px;font-weight:600}
+  .b .ticket .go{background:var(--primary);color:#fff;font-size:14px;font-weight:800;border-radius:999px;padding:14px 24px}
+  .b .catch{text-align:center;font-size:13px;font-weight:600;color:var(--muted);margin:16px 0}
+  .b .duo{display:flex;gap:12px}
+  .b .stat{flex:1;border-radius:24px;padding:16px;border:1px solid var(--border)}
+  .b .stat.bad{background:#FBEDEA}
+  .b .stat.good{background:#E9F4EE}
+  .b .stat .k{font-size:11.5px;font-weight:700;color:var(--muted);line-height:1.45}
+  .b .stat .v{font-size:30px;font-weight:800;letter-spacing:-.5px;margin-top:6px}
+  .b .stat.bad .v{color:var(--danger)} .b .stat.good .v{color:var(--accent)}
+  .b .stat .v small{font-size:14px}
+  .b .cal{margin-top:14px;background:#fff;border:1px solid var(--border);border-radius:24px;padding:18px 20px;box-shadow:0 8px 16px rgba(46,52,80,.05)}
+  .b .streak{margin-top:10px;background:var(--mint);border-radius:999px;text-align:center;font-size:14px;font-weight:800;color:#3E6B4F;padding:10px}
+  .b .days{display:flex;justify-content:space-between;margin-top:14px}
+  .b .days span{width:34px;text-align:center;font-size:11px;font-weight:600;color:var(--subtle)}
+  .b .week{display:flex;justify-content:space-between;margin-top:8px}
+  .b .cell{width:34px;height:34px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--muted);font-feature-settings:"tnum"}
+  .b .cell.st{background:var(--mint);color:#3E6B4F;font-weight:800}
+  .b .cell.today{border:1.5px solid rgba(59,66,99,.4)}
+  /* B long */
+  .b .lhead h1{font-size:24px;font-weight:900;letter-spacing:-.3px;text-align:center;padding-top:4px}
+  .b .lockpill{margin:8px auto 0;width:fit-content;background:var(--lav);border-radius:999px;padding:7px 16px;font-size:11px;font-weight:700;color:var(--primary)}
+  .b .heroVid{margin-top:16px;border-radius:26px;overflow:hidden;position:relative;box-shadow:0 14px 26px rgba(46,52,80,.1);border:1px solid var(--border)}
+  .b .heroVid .img{height:200px;background:linear-gradient(180deg,#7d85a3,#454a66 70%,#30344e);position:relative}
+  .b .heroVid .tag{position:absolute;left:14px;top:14px;background:var(--yellow);border-radius:999px;padding:6px 13px;font-size:11px;font-weight:800}
+  .b .heroVid .meta{background:#fff;padding:14px 18px}
+  .b .heroVid .meta h2{font-size:17px;font-weight:800}
+  .b .heroVid .meta p{font-size:12px;color:var(--subtle);margin-top:3px}
+  .b .durchips{display:flex;gap:8px;margin-top:16px;justify-content:center;flex-wrap:wrap}
+  .b .dchip{border-radius:999px;padding:11px 18px;font-size:13px;font-weight:700;background:#fff;border:1px solid var(--border-strong);color:var(--muted)}
+  .b .dchip.on{background:var(--primary);border-color:var(--primary);color:#fff}
+  .b .playbtn{margin-top:18px;height:62px;border-radius:999px;background:var(--grad-play);display:flex;align-items:center;justify-content:center;gap:10px;font-size:17px;font-weight:800;color:var(--text);box-shadow:0 12px 24px rgba(46,52,80,.14)}
+  .b .playbtn .tri{width:0;height:0;border-left:12px solid var(--text);border-top:8px solid transparent;border-bottom:8px solid transparent}
+  .b .under{display:flex;justify-content:center;margin-top:12px}
+  .b .others{display:flex;gap:12px;margin-top:18px;overflow:hidden}
+  .b .ocard{flex:none;width:150px;border-radius:18px;overflow:hidden;border:1px solid var(--border);background:#fff}
+  .b .ocard .img{height:84px;background:linear-gradient(180deg,#8a90a8,#4a4f6a)}
+  .b .ocard .t{padding:9px 11px;font-size:12px;font-weight:700;line-height:1.35}
+
+  /* ============ DIRECTION C : 一枚の紙(エディトリアル) ============ */
+  .c{background:var(--bg)}
+  .c .screen{padding:18px 26px 0}
+  .c .kicker{font-size:11px;font-weight:700;letter-spacing:2.4px;color:var(--subtle)}
+  .c .brandrow{display:flex;align-items:baseline;justify-content:space-between;padding:2px 0 6px}
+  .c .brand{font-size:26px;font-weight:900;letter-spacing:.5px}
+  .c .date{font-size:12px;font-weight:600;color:var(--subtle);font-feature-settings:"tnum"}
+  .c .rule{height:1.5px;background:var(--text);opacity:.85;margin:10px 0 0}
+  .c .rule.thin{height:1px;background:var(--border-strong);opacity:1}
+  .c .scoreblock{padding:22px 0 6px}
+  .c .scoreblock .lab{font-size:12px;font-weight:700;letter-spacing:.6px;color:var(--muted)}
+  .c .bigline{display:flex;align-items:flex-end;justify-content:space-between}
+  .c .big{font-size:96px;font-weight:800;letter-spacing:-5px;line-height:1;color:#5F8A6E;font-feature-settings:"tnum"}
+  .c .big span{font-size:26px;letter-spacing:-1px}
+  .c .trend{text-align:right;font-size:12.5px;font-weight:600;color:var(--subtle);line-height:1.9;padding-bottom:8px}
+  .c .trend b{font-weight:800}
+  .c .trend .down{color:var(--accent)} .c .trend .up{color:var(--danger)}
+  .c .bar{height:5px;border-radius:99px;background:rgba(46,52,80,.08);overflow:hidden;margin-top:12px}
+  .c .bar i{display:block;width:34%;height:100%;background:var(--grad-bar)}
+  .c .titlerow{display:flex;justify-content:space-between;align-items:center;padding:14px 0}
+  .c .titlerow .k{font-size:12px;font-weight:700;letter-spacing:.6px;color:var(--subtle)}
+  .c .titlerow .v{font-size:14.5px;font-weight:800}
+  .c .raidrow{display:flex;align-items:center;justify-content:space-between;padding:16px 0}
+  .c .raidrow .t .l1{font-size:15px;font-weight:800}
+  .c .raidrow .t .l1 b{font-feature-settings:"tnum"}
+  .c .raidrow .t .l2{font-size:12px;color:var(--subtle);font-weight:600;margin-top:3px}
+  .c .gobtn{background:var(--primary);color:#fff;border-radius:999px;font-size:14px;font-weight:800;padding:14px 28px}
+  .c .duo{display:flex;padding:14px 0}
+  .c .duo .cellst{flex:1}
+  .c .duo .cellst+.cellst{border-left:1px solid var(--border-strong);padding-left:18px}
+  .c .duo .k{font-size:11.5px;font-weight:700;color:var(--muted)}
+  .c .duo .v{font-size:30px;font-weight:800;letter-spacing:-1px;margin-top:4px;font-feature-settings:"tnum"}
+  .c .duo .v small{font-size:14px;letter-spacing:0}
+  .c .duo .bad{color:var(--danger)} .c .duo .good{color:var(--accent)}
+  .c .stamps{display:flex;gap:7px;padding:12px 0 4px;align-items:center}
+  .c .stamp{width:30px;height:30px;border-radius:999px;background:var(--mint);display:flex;align-items:center;justify-content:center}
+  .c .stamp.off{background:var(--sunken)}
+  .c .stamp .chk{width:12px;height:7px;border-left:2.4px solid #3E6B4F;border-bottom:2.4px solid #3E6B4F;transform:rotate(-45deg);margin-top:-3px}
+  .c .stampnote{font-size:12px;color:var(--subtle);font-weight:600;margin-left:6px}
+  .c .foot{margin-top:auto;padding:12px 0 14px}
+  .c .catch{font-size:12.5px;color:var(--muted);font-weight:600;text-align:center}
+  .chk{border-color:#3E6B4F}
+  /* C long */
+  .c .lkicker{padding-top:2px}
+  .c .lh1{font-size:30px;font-weight:900;letter-spacing:-.5px;margin-top:2px}
+  .c .lsub{font-size:12px;color:var(--subtle);font-weight:600;margin-top:6px}
+  .c .heroVid{margin-top:16px;position:relative}
+  .c .heroVid .img{height:216px;border-radius:18px;background:linear-gradient(180deg,#6d7591,#3c415c 70%,#2c3049)}
+  .c .heroVid .len{position:absolute;right:12px;bottom:12px;background:rgba(20,22,35,.75);color:#fff;border-radius:8px;padding:4px 8px;font-size:11px;font-weight:700}
+  .c .vmeta{display:flex;justify-content:space-between;align-items:baseline;padding:12px 2px 0}
+  .c .vmeta h2{font-size:18px;font-weight:800}
+  .c .vmeta span{font-size:11.5px;color:var(--subtle);font-weight:600}
+  .c .durline{display:flex;align-items:center;justify-content:space-between;padding:18px 2px 10px}
+  .c .durline .k{font-size:12px;font-weight:700;letter-spacing:.6px;color:var(--subtle)}
+  .c .durline .v{font-size:13px;font-weight:800}
+  .c .dots{display:flex;gap:8px;padding:0 2px}
+  .c .dchip{flex:1;text-align:center;border:1px solid var(--border-strong);border-radius:999px;padding:10px 0;font-size:13px;font-weight:700;color:var(--muted);background:transparent}
+  .c .dchip.on{background:var(--text);color:#fff;border-color:var(--text)}
+  .c .playbtn{margin-top:20px;height:60px;border-radius:999px;background:var(--grad-play);display:flex;align-items:center;justify-content:center;gap:10px;font-size:16px;font-weight:800;color:var(--text);box-shadow:0 12px 24px rgba(46,52,80,.13)}
+  .c .playbtn .tri{width:0;height:0;border-left:11px solid var(--text);border-top:7px solid transparent;border-bottom:7px solid transparent}
+  .c .locknote{text-align:center;font-size:11.5px;font-weight:600;color:var(--subtle);margin-top:12px}
+  .c .otherhead{padding:20px 2px 6px;font-size:12px;font-weight:700;letter-spacing:.6px;color:var(--subtle)}
+  .c .otherrow{display:flex;justify-content:space-between;align-items:center;padding:13px 2px;border-top:1px solid var(--border-strong)}
+  .c .otherrow h3{font-size:14.5px;font-weight:700}
+  .c .otherrow span{font-size:11.5px;color:var(--subtle);font-weight:600}
+</style>
+</head>
+<body>
+
+<!-- ===================== A: HOME ===================== -->
+<div class="wrap"><div class="phone a" id="a-home">
+  <div class="screen">
+    <div class="brandrow">
+      <div class="brand">脱ドパ <span class="dot"></span></div>
+      <div class="bell"></div>
+    </div>
+    <div class="hero">
+      <div class="wash"></div>
+      <div class="scorelabel">あなたのドパガキ度</div>
+      <div class="score"><b>34</b><span>%</span></div>
+      <div class="bar"><i></i></div>
+      <div class="deltas">
+        <span>昨日 <b class="up">+1%</b></span>
+        <span>先週 <b class="down">-7%</b></span>
+        <span>先月 <b class="down">-26%</b></span>
+      </div>
+      <div class="titleline"><em>「ドパ抜け初段」</em></div>
+      <div class="hr"></div>
+      <div class="raid">
+        <div class="clockg"></div>
+        <div class="t">
+          <div class="l1">今日のレイド <b>23:00</b></div>
+          <div class="l2">あと5時間12分</div>
+        </div>
+        <div class="go">参加する</div>
+      </div>
+      <div class="sharemin"><span>ドパるけど共有する</span></div>
+    </div>
+    <div class="catch">ショートで過熱した脳を、3分だけ冷ます。</div>
+    <div class="sec">
+      <div class="label">今週のドパ収支</div>
+      <div class="balrow" style="margin-top:6px"><span class="k">脱ドパに失敗した時間</span><span class="v" style="color:var(--danger)">5<small>分</small></span></div>
+      <div class="balrow"><span class="k">取り戻した時間</span><span class="v" style="color:var(--accent)">13<small>分</small></span></div>
+      <div class="proj">このままいくと <b>23日分</b> の豊かな時間が生まれそう</div>
+    </div>
+  </div>
+  <div class="tabbar">
+    <div class="tab on"><span class="pill"><span class="gi home"></span></span>ホーム</div>
+    <div class="tab"><span class="pill"><span class="gi clock"></span></span>ロング</div>
+    <div class="tab"><span class="pill"><span class="gi menu"></span></span>メニュー</div>
+  </div>
+</div></div>
+
+<!-- ===================== A: LONG ===================== -->
+<div class="wrap"><div class="phone a" id="a-long">
+  <div class="screen">
+    <div class="lhead">
+      <h1>脱ドパロング</h1>
+      <div class="lock"><span class="lockg"></span>スキップ不可・倍速なし・次の動画もなし</div>
+    </div>
+    <div class="heroVid">
+      <div class="img"></div>
+      <div class="tag">今日の映像</div>
+      <div class="len">3分</div>
+      <div class="meta">
+        <h2>蛍光灯の廊下</h2>
+        <p>Datsudopa Lab ・ 余白のあるロング映像</p>
+      </div>
+    </div>
+    <div class="label durlabel">視聴時間</div>
+    <div class="seg">
+      <span class="on">3分</span><span>10分</span><span>30分</span><span>60分</span><span>◎</span>
+    </div>
+    <div class="playbtn"><span class="tri"></span>再生する</div>
+    <div class="others">
+      <div class="label" style="margin:0 2px 4px">ほかの静かな没入映像</div>
+      <div class="otherrow"><div class="thumb"></div><div class="t"><h3>誰もいない駅の明かり</h3><p>余白のあるロング映像</p></div></div>
+      <div class="otherrow"><div class="thumb" style="background:linear-gradient(180deg,#9aa08f,#565c4e)"></div><div class="t"><h3>夜の観葉植物</h3><p>余白のあるロング映像</p></div></div>
+    </div>
+  </div>
+  <div class="tabbar">
+    <div class="tab"><span class="pill"><span class="gi home"></span></span>ホーム</div>
+    <div class="tab on"><span class="pill"><span class="gi clock"></span></span>ロング</div>
+    <div class="tab"><span class="pill"><span class="gi menu"></span></span>メニュー</div>
+  </div>
+</div></div>
+
+<!-- ===================== B: HOME ===================== -->
+<div class="wrap"><div class="phone b" id="b-home">
+  <div class="screen">
+    <div class="brandrow">
+      <div class="brand">脱ドパ <span class="dot"></span></div>
+      <div class="bell"></div>
+    </div>
+    <div class="hero">
+      <div class="blob1"></div><div class="blob2"></div>
+      <div class="scorelabel">あなたのドパガキ度</div>
+      <div class="scorebubble">
+        <b>34<span>%</span></b>
+      </div>
+      <div class="chips">
+        <span class="chip up">昨日 +1%</span>
+        <span class="chip down">先週 -7%</span>
+        <span class="chip down">先月 -26%</span>
+      </div>
+      <div class="bubble">
+        <div class="l">あなたのドパガキ称号</div>
+        <div class="v">「ドパ抜け初段」</div>
+      </div>
+    </div>
+    <div class="ticket">
+      <div class="t">
+        <div class="l1">今日のレイド</div>
+        <div class="l2">23:00</div>
+        <div class="l3">あと5時間12分・みんなで虚無</div>
+      </div>
+      <div class="go">参加する</div>
+    </div>
+    <div class="catch">ショートで過熱した脳を、3分だけ冷ます。</div>
+    <div class="duo">
+      <div class="stat bad"><div class="k">脱ドパに<br>失敗した時間</div><div class="v">5<small>分</small></div></div>
+      <div class="stat good"><div class="k">取り戻した<br>時間</div><div class="v">13<small>分</small></div></div>
+    </div>
+    <div class="cal">
+      <div class="label">脱ドパ記録</div>
+      <div class="streak">2日連続で脱ドパ中！</div>
+      <div class="week">
+        <div class="cell st"><span class="chk" style="width:12px;height:7px;border-left:2.4px solid #3E6B4F;border-bottom:2.4px solid #3E6B4F;transform:rotate(-45deg);margin-top:-3px"></span></div>
+        <div class="cell">7</div>
+        <div class="cell st"><span style="width:12px;height:7px;border-left:2.4px solid #3E6B4F;border-bottom:2.4px solid #3E6B4F;transform:rotate(-45deg);margin-top:-3px"></span></div>
+        <div class="cell">9</div>
+        <div class="cell st"><span style="width:12px;height:7px;border-left:2.4px solid #3E6B4F;border-bottom:2.4px solid #3E6B4F;transform:rotate(-45deg);margin-top:-3px"></span></div>
+        <div class="cell st today"><span style="width:12px;height:7px;border-left:2.4px solid #3E6B4F;border-bottom:2.4px solid #3E6B4F;transform:rotate(-45deg);margin-top:-3px"></span></div>
+        <div class="cell">12</div>
+      </div>
+    </div>
+  </div>
+  <div class="tabbar">
+    <div class="tab on"><span class="pill"><span class="gi home"></span></span>ホーム</div>
+    <div class="tab"><span class="pill"><span class="gi clock"></span></span>ロング</div>
+    <div class="tab"><span class="pill"><span class="gi menu"></span></span>メニュー</div>
+  </div>
+</div></div>
+
+<!-- ===================== B: LONG ===================== -->
+<div class="wrap"><div class="phone b" id="b-long">
+  <div class="screen">
+    <div class="lhead"><h1>脱ドパロング</h1></div>
+    <div class="lockpill">スキップ不可・倍速なし・次の動画もなし</div>
+    <div class="heroVid">
+      <div class="img"><div class="tag">今日の映像</div></div>
+      <div class="meta">
+        <h2>蛍光灯の廊下</h2>
+        <p>Datsudopa Lab ・ 余白のあるロング映像</p>
+      </div>
+    </div>
+    <div class="durchips">
+      <span class="dchip on">3分</span>
+      <span class="dchip">10分</span>
+      <span class="dchip">30分</span>
+      <span class="dchip">60分</span>
+      <span class="dchip">ランダム</span>
+    </div>
+    <div class="playbtn"><span class="tri"></span>再生する</div>
+    <div class="label" style="margin:18px 2px 0">ほかの静かな没入映像</div>
+    <div class="others">
+      <div class="ocard"><div class="img"></div><div class="t">誰もいない駅の明かり</div></div>
+      <div class="ocard"><div class="img" style="background:linear-gradient(180deg,#9aa08f,#565c4e)"></div><div class="t">夜の観葉植物</div></div>
+      <div class="ocard"><div class="img" style="background:linear-gradient(180deg,#a89a90,#5c5049)"></div><div class="t">雨上がりの立体駐車場</div></div>
+    </div>
+  </div>
+  <div class="tabbar">
+    <div class="tab"><span class="pill"><span class="gi home"></span></span>ホーム</div>
+    <div class="tab on"><span class="pill"><span class="gi clock"></span></span>ロング</div>
+    <div class="tab"><span class="pill"><span class="gi menu"></span></span>メニュー</div>
+  </div>
+</div></div>
+
+<!-- ===================== C: HOME ===================== -->
+<div class="wrap"><div class="phone c" id="c-home">
+  <div class="screen">
+    <div class="kicker">DATSUDOPA</div>
+    <div class="brandrow">
+      <div class="brand">脱ドパ</div>
+      <div class="date">7月11日(土)</div>
+    </div>
+    <div class="rule"></div>
+    <div class="scoreblock">
+      <div class="lab">あなたのドパガキ度</div>
+      <div class="bigline">
+        <div class="big">34<span>%</span></div>
+        <div class="trend">
+          昨日 <b class="up">+1%</b><br>
+          先週 <b class="down">-7%</b><br>
+          先月 <b class="down">-26%</b>
+        </div>
+      </div>
+      <div class="bar"><i></i></div>
+    </div>
+    <div class="rule thin"></div>
+    <div class="titlerow"><span class="k">称号</span><span class="v">「ドパ抜け初段」</span></div>
+    <div class="rule thin"></div>
+    <div class="raidrow">
+      <div class="t">
+        <div class="l1">今日のレイド <b>23:00</b></div>
+        <div class="l2">あと5時間12分・みんなで虚無</div>
+      </div>
+      <div class="gobtn">参加する</div>
+    </div>
+    <div class="rule thin"></div>
+    <div class="duo">
+      <div class="cellst"><div class="k">脱ドパに失敗した時間</div><div class="v bad">5<small>分</small></div></div>
+      <div class="cellst"><div class="k">取り戻した時間</div><div class="v good">13<small>分</small></div></div>
+    </div>
+    <div class="rule thin"></div>
+    <div class="stamps">
+      <div class="stamp"><span class="chk" style="width:12px;height:7px;border-left:2.4px solid #3E6B4F;border-bottom:2.4px solid #3E6B4F;transform:rotate(-45deg);margin-top:-3px"></span></div>
+      <div class="stamp"><span style="width:12px;height:7px;border-left:2.4px solid #3E6B4F;border-bottom:2.4px solid #3E6B4F;transform:rotate(-45deg);margin-top:-3px;display:block"></span></div>
+      <div class="stamp off"></div>
+      <div class="stamp"><span style="width:12px;height:7px;border-left:2.4px solid #3E6B4F;border-bottom:2.4px solid #3E6B4F;transform:rotate(-45deg);margin-top:-3px;display:block"></span></div>
+      <div class="stamp"><span style="width:12px;height:7px;border-left:2.4px solid #3E6B4F;border-bottom:2.4px solid #3E6B4F;transform:rotate(-45deg);margin-top:-3px;display:block"></span></div>
+      <div class="stamp off"></div>
+      <div class="stamp off"></div>
+      <span class="stampnote">2日連続で脱ドパ中</span>
+    </div>
+    <div class="foot">
+      <div class="rule thin" style="margin-bottom:12px"></div>
+      <div class="catch">ショートで過熱した脳を、3分だけ冷ます。</div>
+    </div>
+  </div>
+  <div class="tabbar">
+    <div class="tab on"><span class="pill"><span class="gi home"></span></span>ホーム</div>
+    <div class="tab"><span class="pill"><span class="gi clock"></span></span>ロング</div>
+    <div class="tab"><span class="pill"><span class="gi menu"></span></span>メニュー</div>
+  </div>
+</div></div>
+
+<!-- ===================== C: LONG ===================== -->
+<div class="wrap"><div class="phone c" id="c-long">
+  <div class="screen">
+    <div class="kicker lkicker">LONG WATCH</div>
+    <div class="lh1">脱ドパロング</div>
+    <div class="lsub">何かが起きそうで、何も起きない。</div>
+    <div class="heroVid">
+      <div class="img"></div>
+      <div class="len">3分</div>
+    </div>
+    <div class="vmeta"><h2>蛍光灯の廊下</h2><span>今日の映像</span></div>
+    <div class="durline"><span class="k">視聴時間</span><span class="v">3分</span></div>
+    <div class="dots">
+      <span class="dchip on">3分</span>
+      <span class="dchip">10分</span>
+      <span class="dchip">30分</span>
+      <span class="dchip">60分</span>
+      <span class="dchip">◎</span>
+    </div>
+    <div class="playbtn"><span class="tri"></span>再生する</div>
+    <div class="locknote">スキップ不可・倍速なし・次の動画もなし</div>
+    <div class="otherhead">ほかの静かな没入映像</div>
+    <div class="otherrow"><h3>誰もいない駅の明かり</h3><span>60分まで</span></div>
+    <div class="otherrow"><h3>夜の観葉植物</h3><span>60分まで</span></div>
+    <div class="otherrow"><h3>雨上がりの立体駐車場</h3><span>60分まで</span></div>
+  </div>
+  <div class="tabbar">
+    <div class="tab"><span class="pill"><span class="gi home"></span></span>ホーム</div>
+    <div class="tab on"><span class="pill"><span class="gi clock"></span></span>ロング</div>
+    <div class="tab"><span class="pill"><span class="gi menu"></span></span>メニュー</div>
+  </div>
+</div></div>
+
+</body>
+</html>

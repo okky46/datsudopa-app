@@ -1,7 +1,7 @@
 
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
-import { colors, radius, spacing } from '../../constants/theme';
+import { colors, fontFamily, radius, spacing } from '../../constants/theme';
 
 type Props = {
   label: string;
@@ -52,6 +52,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 14,
     fontWeight: '600',
+    fontFamily: fontFamily.medium,
   },
   textCompact: {
     fontSize: 13,
@@ -59,5 +60,6 @@ const styles = StyleSheet.create({
   textSelected: {
     color: colors.onPrimary,
     fontWeight: '700',
+    fontFamily: fontFamily.bold,
   },
 });

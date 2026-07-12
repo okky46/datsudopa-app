@@ -1,7 +1,7 @@
 
 import { StyleSheet, Text, View } from 'react-native';
 import { LONG_VIDEO_META_LABEL } from '../constants/copy';
-import { colors, radius, shadows, spacing, typography } from '../constants/theme';
+import { colors, fontFamily, radius, shadows, spacing, typography } from '../constants/theme';
 import { VideoAsset } from '../types/video';
 import { PressableScale } from './ui/Motion';
 import { SoftGradient } from './ui/SoftGradient';
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 15,
     borderTopColor: 'transparent',
     borderBottomColor: 'transparent',
-    borderLeftColor: colors.text,
+    borderLeftColor: colors.onPrimary,
     marginLeft: 4,
   },
   recommendTag: {
@@ -120,9 +120,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.88)',
   },
   recommendTagText: {
-    color: colors.text,
+    color: colors.onPrimary,
     fontSize: 11,
     fontWeight: '700',
+    fontFamily: fontFamily.bold,
   },
   durationTag: {
     position: 'absolute',
@@ -158,11 +159,13 @@ const styles = StyleSheet.create({
     color: colors.textSubtle,
     fontSize: 12,
     fontWeight: '500',
+    fontFamily: fontFamily.medium,
   },
   noSkip: {
     color: colors.textSubtle,
     fontSize: 11,
     fontWeight: '700',
+    fontFamily: fontFamily.bold,
     letterSpacing: 0.4,
   },
 });

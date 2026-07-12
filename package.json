@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "dependencies": {
+    "@expo-google-fonts/zen-maru-gothic": "^0.4.1",
     "@react-native-async-storage/async-storage": "2.2.0",
     "expo": "~56.0.12",
     "expo-constants": "~56.0.18",
+    "expo-font": "~56.0.7",
     "expo-linking": "~56.0.14",
     "expo-notifications": "~56.0.18",
     "expo-router": "~56.2.11",
@@ -20,6 +22,7 @@
     "react-native-reanimated": "4.3.1",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "4.25.2",
+    "react-native-web": "^0.21.2",
     "react-native-worklets": "0.8.3"
   },
   "devDependencies": {

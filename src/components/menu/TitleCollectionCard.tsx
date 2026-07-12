@@ -1,7 +1,7 @@
 
 import { StyleSheet, Text, View } from 'react-native';
 import { menuCopy } from '../../constants/copy';
-import { colors, radius, spacing, typography } from '../../constants/theme';
+import { colors, fontFamily, radius, spacing, typography } from '../../constants/theme';
 import { TitleEntry } from '../../services/TitleService';
 import { Card } from '../ui/Card';
 import { PressableScale } from '../ui/Motion';
@@ -107,6 +107,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 15,
     fontWeight: '700',
+    fontFamily: fontFamily.bold,
   },
   titleNameLocked: {
     color: colors.textSubtle,
@@ -116,6 +117,7 @@ const styles = StyleSheet.create({
     color: colors.textSubtle,
     fontSize: 12,
     fontWeight: '500',
+    fontFamily: fontFamily.medium,
   },
   radio: {
     width: 22,

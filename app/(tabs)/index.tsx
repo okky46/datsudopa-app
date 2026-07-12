@@ -5,12 +5,14 @@ import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AdBanner } from '../../src/components/AdBanner';
 import { DopaHeroCard } from '../../src/components/home/DopaHeroCard';
+import { RaidCard } from '../../src/components/home/RaidCard';
 import { RecordCard } from '../../src/components/home/RecordCard';
+import { SharePill } from '../../src/components/home/SharePill';
 import { WeeklyBalanceCard } from '../../src/components/home/WeeklyBalanceCard';
-import { AuroraDot } from '../../src/components/ui/Decorations';
 import { EnterCard } from '../../src/components/ui/Motion';
-import { HOME_CATCHPHRASE } from '../../src/constants/copy';
-import { colors, spacing, typography } from '../../src/constants/theme';
+import { SoftGradient } from '../../src/components/ui/SoftGradient';
+import { homeCopy } from '../../src/constants/copy';
+import { colors, fontFamily, spacing } from '../../src/constants/theme';
 import { DailyResult } from '../../src/types/result';
 import { DopamineDeltas } from '../../src/types/dopamine';
 import { RaidStatusView } from '../../src/types/raid';
@@ -24,11 +26,11 @@ import { StatsService, WeeklyBalance } from '../../src/services/StatsService';
 import { StorageService } from '../../src/services/StorageService';
 import { TitleService } from '../../src/services/TitleService';
 
-function BellIcon() {
+function ProfileGlyph() {
   return (
-    <View style={styles.bell}>
-      <View style={styles.bellBody} />
-      <View style={styles.bellClapper} />
+    <View style={styles.profileRing}>
+      <View style={styles.profileDot} />
+      <View style={styles.profileArc} />
     </View>
   );
 }
@@ -107,71 +109,78 @@ export default function HomeScreen() {
   const calendar = StatsService.getMonthCalendar(results);
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            tintColor={colors.accent}
-            onRefresh={() => {
-              setRefreshing(true);
-              void load().finally(() => setRefreshing(false));
-            }}
-          />
-        }
-      >
-        <View style={styles.header}>
-          <View style={styles.brandRow}>
-            <Text style={styles.brand}>脱ドパ</Text>
-            <AuroraDot size={22} style={styles.brandDot} />
-          </View>
-          <Pressable accessibilityRole="button" accessibilityLabel="通知" style={styles.bellWrap} onPress={() => {}}>
-            <BellIcon />
-          </Pressable>
-        </View>
-
-        {raidStatus && level !== null && (
-          <EnterCard index={0}>
-            <DopaHeroCard
-              level={level}
-              deltas={deltas}
-              titleName={titleName}
-              raidStatus={raidStatus}
-              onStart={() => void startRaid()}
-              onShare={() => void shareStatus()}
+    <View style={styles.root}>
+      <SoftGradient
+        colors={[colors.backgroundTop, colors.background]}
+        direction="vertical"
+        style={StyleSheet.absoluteFill}
+        steps={40}
+      />
+      <SafeAreaView style={styles.safe}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              tintColor={colors.primary}
+              onRefresh={() => {
+                setRefreshing(true);
+                void load().finally(() => setRefreshing(false));
+              }}
             />
+          }
+        >
+          <View style={styles.header}>
+            <Text style={styles.brand}>脱ドパ</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel="プロフィール" style={styles.profileWrap} onPress={() => {}}>
+              <ProfileGlyph />
+            </Pressable>
+          </View>
+
+          {raidStatus && level !== null && (
+            <EnterCard index={0}>
+              <DopaHeroCard level={level} deltas={deltas} titleName={titleName} />
+            </EnterCard>
+          )}
+
+          {raidStatus && (
+            <EnterCard index={1}>
+              <RaidCard raidStatus={raidStatus} onStart={() => void startRaid()} />
+            </EnterCard>
+          )}
+
+          <EnterCard index={2}>
+            <SharePill label={homeCopy.shareLabel} onPress={() => void shareStatus()} />
           </EnterCard>
-        )}
 
-        <View style={styles.catchphraseRow}>
-          <Text style={styles.catchphrase}>✨ {HOME_CATCHPHRASE} ✨</Text>
-        </View>
+          {balance && (
+            <EnterCard index={3}>
+              <WeeklyBalanceCard balance={balance} />
+            </EnterCard>
+          )}
 
-        {balance && (
-          <EnterCard index={1}>
-            <WeeklyBalanceCard balance={balance} />
+          <EnterCard index={4}>
+            <RecordCard streakDays={streakDays} calendarLabel={calendar.label} weeks={calendar.weeks} />
           </EnterCard>
-        )}
 
-        <EnterCard index={2}>
-          <RecordCard streakDays={streakDays} calendarLabel={calendar.label} weeks={calendar.weeks} />
-        </EnterCard>
-
-        <AdBanner />
-      </ScrollView>
-    </SafeAreaView>
+          <AdBanner />
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: {
+  root: {
     flex: 1,
     backgroundColor: colors.background,
   },
+  safe: {
+    flex: 1,
+  },
   content: {
-    gap: spacing.lg,
+    gap: spacing.md,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
     paddingBottom: 120,
@@ -182,55 +191,44 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingTop: spacing.xs,
     paddingHorizontal: spacing.xs,
-  },
-  brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
+    marginBottom: spacing.xs,
   },
   brand: {
-    color: colors.text,
-    ...typography.brandMark,
+    color: colors.primary,
+    fontSize: 22,
+    fontWeight: '900',
+    fontFamily: fontFamily.black,
+    letterSpacing: 1,
   },
-  brandDot: {
-    marginTop: 2,
-  },
-  bellWrap: {
-    width: 38,
-    height: 38,
+  profileWrap: {
+    width: 34,
+    height: 34,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  bell: {
-    width: 22,
-    height: 24,
+  profileRing: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1,
+    borderColor: 'rgba(201, 169, 106, 0.4)',
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  bellBody: {
-    width: 18,
-    height: 16,
-    borderWidth: 2,
-    borderColor: colors.textSubtle,
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
-    borderBottomLeftRadius: 4,
-    borderBottomRightRadius: 4,
-  },
-  bellClapper: {
+  profileDot: {
     width: 6,
-    height: 3,
-    marginTop: 1,
-    borderBottomLeftRadius: 3,
-    borderBottomRightRadius: 3,
-    backgroundColor: colors.textSubtle,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.primary,
   },
-  catchphraseRow: {
-    alignItems: 'center',
-    marginTop: -spacing.xs,
-  },
-  catchphrase: {
-    color: colors.textMuted,
-    fontSize: 13,
-    fontWeight: '600',
+  profileArc: {
+    position: 'absolute',
+    width: 16,
+    height: 8,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderTopWidth: 1.5,
+    borderColor: colors.primary,
+    bottom: 7,
   },
 });

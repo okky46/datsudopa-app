@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { screenCopy } from '../constants/copy';
-import { colors, radius, spacing, typography } from '../constants/theme';
+import { colors, fontFamily, radius, spacing, typography } from '../constants/theme';
 import { PremiumService } from '../services/PremiumService';
 
 export function PremiumJokeCard() {
@@ -42,6 +42,7 @@ const styles = StyleSheet.create({
     color: colors.warning,
     fontSize: 11,
     fontWeight: '800',
+    fontFamily: fontFamily.black,
     letterSpacing: 1.6,
   },
   title: {

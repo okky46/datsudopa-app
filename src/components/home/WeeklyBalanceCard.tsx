@@ -1,7 +1,7 @@
 
 import { StyleSheet, Text, View } from 'react-native';
 import { homeCopy } from '../../constants/copy';
-import { colors, radius, spacing, typography } from '../../constants/theme';
+import { colors, fontFamily, radius, spacing, typography } from '../../constants/theme';
 import { WeeklyBalance } from '../../services/StatsService';
 import { Card } from '../ui/Card';
 
@@ -101,16 +101,19 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 13,
     fontWeight: '600',
+    fontFamily: fontFamily.bold,
   },
   rowValue: {
     fontSize: 30,
     fontWeight: '800',
+    fontFamily: fontFamily.black,
     letterSpacing: -0.6,
     fontVariant: ['tabular-nums'],
   },
   rowUnit: {
     fontSize: 15,
     fontWeight: '700',
+    fontFamily: fontFamily.bold,
     letterSpacing: 0,
   },
   divider: {
@@ -131,6 +134,7 @@ const styles = StyleSheet.create({
   projectionStrong: {
     color: colors.accent,
     fontWeight: '800',
+    fontFamily: fontFamily.black,
   },
   hourglass: {
     width: 16,

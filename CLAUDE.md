@@ -76,6 +76,16 @@ Expo + React Native + TypeScript(expo-router)のMVP。このファイルはUI修
 - コピー変更・追加は `src/constants/copy.ts` に置き、世界観のトーン(脱力 + 静けさ)を合わせる。
 - 変更後は `npm run typecheck` を通す。
 
+### 依存関係(npm)のバージョン揃え
+
+Expo SDK が指定する React / React Native 系の版を崩さない。`npm install` の ERESOLVE や peer 食い違いを防ぐため:
+
+- `react` / `react-dom` / `react-native` は Expo SDK の推奨版に**正確にピン**する(例: SDK 56 → `react`/`react-dom` ともに `19.2.3`)。片方だけ上げない。
+- Expo 関連パッケージの追加・更新は `npm install <pkg>` ではなく `npx expo install <pkg>` を使う(SDK 互換版が選ばれる)。
+- `expo-router` 等が peer で要求する `react-dom` は、transitive 任せにせず `package.json` の dependencies に SDK 推奨版を明示する。
+- `react` だけ固定して `react-dom` が最新パッチに浮くと、`react-dom` 側の peer(`react@^x.y.z`)と衝突して `ERESOLVE` になる。ロックファイル上でも両者が同版であることを確認する。
+- `--force` / `--legacy-peer-deps` で握りつぶさない。まずピン揃えで直す。
+
 ## UI修正前チェックリスト
 
 修正に着手する前に必ず確認:
@@ -88,3 +98,4 @@ Expo + React Native + TypeScript(expo-router)のMVP。このファイルはUI修
 6. [ ] 「守るべき既存機能」(レイド判定・保存・通知・広告・共有)のロジックに触れていないか
 7. [ ] Expo Go で動作が変わらないか(ネイティブ依存を増やしていないか)
 8. [ ] `npm run typecheck` が通るか
+9. [ ] 依存を触るなら `react`/`react-dom` が SDK 推奨版で揃い、`npx expo install` 経由か

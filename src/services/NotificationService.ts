@@ -22,6 +22,12 @@ function loadNotifications(): NotificationsModule | null {
     return notificationsModule;
   }
 
+  if (Platform.OS === 'web') {
+    // expo-notifications はロードできてしまうが、web ではスケジュール系メソッドが未実装で例外を投げる。
+    notificationsModule = null;
+    return notificationsModule;
+  }
+
   try {
     const notifications = require('expo-notifications') as NotificationsModule;
     notifications.setNotificationHandler({

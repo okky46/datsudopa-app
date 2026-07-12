@@ -1,7 +1,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { LayoutChangeEvent, PanResponder, StyleSheet, Text, View } from 'react-native';
-import { colors, gradientBar, radius, shadows, spacing, typography } from '../../constants/theme';
+import { colors, fontFamily, gradientBar, radius, shadows, spacing, typography } from '../../constants/theme';
 import {
   formatDurationMinutes,
   LONG_DURATION_MAX_MINUTES,
@@ -97,6 +97,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 32,
     fontWeight: '600',
+    fontFamily: fontFamily.bold,
     textAlign: 'center',
     letterSpacing: 0.4,
     lineHeight: 38,
@@ -123,7 +124,7 @@ const styles = StyleSheet.create({
   track: {
     height: 8,
     borderRadius: radius.pill,
-    backgroundColor: 'rgba(46, 52, 80, 0.07)',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
     overflow: 'hidden',
   },
   fill: {
@@ -134,7 +135,7 @@ const styles = StyleSheet.create({
     width: THUMB_SIZE,
     height: THUMB_SIZE,
     borderRadius: THUMB_SIZE / 2,
-    backgroundColor: colors.card,
+    backgroundColor: colors.cardOpaque,
     borderWidth: 2,
     borderColor: colors.accentBorder,
     shadowColor: colors.text,

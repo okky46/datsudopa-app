@@ -9,7 +9,7 @@ import { Chip } from '../../src/components/ui/Chip';
 import { DurationSlider } from '../../src/components/ui/DurationSlider';
 import { EnterCard } from '../../src/components/ui/Motion';
 import { screenCopy } from '../../src/constants/copy';
-import { colors, radius, spacing, typography } from '../../src/constants/theme';
+import { colors, fontFamily, radius, spacing, typography } from '../../src/constants/theme';
 import { LONG_DURATION_DEFAULT_SECONDS, LongVideoService } from '../../src/services/LongVideoService';
 import { VideoAsset } from '../../src/types/video';
 
@@ -127,6 +127,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 22,
     fontWeight: '800',
+    fontFamily: fontFamily.black,
     letterSpacing: -0.3,
   },
   lockRow: {
@@ -138,6 +139,7 @@ const styles = StyleSheet.create({
     color: colors.textSubtle,
     fontSize: 11,
     fontWeight: '600',
+    fontFamily: fontFamily.medium,
   },
   lock: {
     width: 12,

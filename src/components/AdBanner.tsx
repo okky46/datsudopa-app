@@ -1,6 +1,6 @@
 
 import Constants, { ExecutionEnvironment } from 'expo-constants';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { colors, radius, spacing } from '../constants/theme';
 import { AdsService } from '../services/AdsService';
 
@@ -27,7 +27,7 @@ export function AdBanner(_: Props) {
   if (!ads) {
     return (
       <View style={styles.wrapper}>
-        <Text style={styles.placeholder}>AD</Text>
+        <Text style={styles.placeholder}>AD BANNER</Text>
       </View>
     );
   }
@@ -54,11 +54,14 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     borderRadius: radius.md,
     backgroundColor: colors.surfaceSunken,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   placeholder: {
-    color: colors.textFaint,
+    color: colors.textSubtle,
     fontSize: 11,
     fontWeight: '700',
+    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'ui-monospace, Menlo, monospace' }),
     letterSpacing: 2,
   },
 });

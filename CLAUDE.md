@@ -18,20 +18,21 @@ Expo + React Native + TypeScript(expo-router)のMVP。このファイルはUI修
 
 ## 色・余白・角丸・影・タイポグラフィ
 
-すべて `src/constants/theme.ts` が唯一の情報源。方針:
+すべて `src/constants/theme.ts` が唯一の情報源。1b「上質・ダーク」の方針:
 
-- **色**: 暖かいオフホワイト背景(#F6F4EF)+濃いネイビー文字(#2E3450)+淡いパステル(ミント/ラベンダー/ピンク/ブルー/イエロー)のアクセント。primary はネイビー(#3B4263)、達成系はセージグリーン(#5F8A6E)。彩度の高い原色・純黒・純白背景は使わない。
+- **色**: 深いインク背景(#14161B)+クリーム文字(#ECE7DD)+シャンパンゴールド(#C9A96A)のアクセント。primary はゴールド、達成系はセージグリーン(#9FB79C)、警告寄りはダスティローズ(#CE9A8E)。カード/サーフェスは白の極薄半透明(`colors.card` = rgba(255,255,255,0.03) 等)で、インクの上にうっすら浮かせる。モーダルなど不透明が必要な箇所だけ `colors.cardOpaque` を使う。純黒・原色のネオンは使わない。
 - **余白**: `spacing`(6/10/16/22/32/44)。画面の左右パディングは `spacing.lg`、カード内は `spacing.lg`、要素間は gap で統一。
 - **角丸**: `radius`(12/18/24/30/pill)。カードは lg〜xl、ボタンは pill。中途半端な値を足さない。
-- **影**: `shadows.soft` と `shadows.hero` の2種のみ。opacity 0.06〜0.09 の柔らかい影。強い drop shadow は禁止。
-- **タイポグラフィ**: `typography` を使う。見出しは fontWeight 700–800 + 負の letterSpacing、スコアは超大型(74–76px)。英字ラベル(englishLabel)は使用箇所を絞る方針。
-- **グラデーション**: `rainbowSoft` / `gradientBar` / `gradientPlay` / `gradientWash` の定義済みセットだけを `SoftGradient` / `PastelWash` 経由で使う。
+- **影**: `shadows.soft` と `shadows.hero` の2種のみ。黒の柔らかい影のみ(インク背景では白影は使わない)。
+- **タイポグラフィ**: 丸ゴシック `Zen Maru Gothic`(`@expo-google-fonts/zen-maru-gothic`)。`typography` の各プリセットに `fontFamily` を含む。独自の Text スタイルを書くときは `zenMaru(weight)` または `fontFamily.{regular|medium|bold|black}` を fontWeight とセットで指定すること(fontWeight だけでは反映されない)。見出しは fontWeight 700–900 + 負の letterSpacing、スコアは超大型(74px)+ ゴールドの text-shadow で軽く光らせる。英字ラベル(englishLabel)は使用箇所を絞る方針。
+- **グラデーション**: `gradientBar`(スコアバー)/ `gradientPlay`(CTAボタン、ゴールド)/ `gradientWash`(主役カードの淡いウォッシュ)を `SoftGradient` 経由で使う。`rainbowSoft` はセレブレーション演出のみ。
+- **一点物のアルファ値**: ホーム画面など特定カードだけの微妙なボーダー/影の透明度(例: `rgba(201, 169, 106, 0.22)`)は、トークン化するより読みやすければ現場でリテラルのまま書いてよい。ただし色相そのもの(ゴールド/セージ/ローズ等の基準色)は必ずトークン由来にする。
 
 ## 画面別ルール
 
 ### ホーム `app/(tabs)/index.tsx`
-- 構成順: ブランド行(脱ドパ + AuroraDot + ベル) → HomeHeroCard → キャッチコピー1行 → HistoryList → AdBanner。
-- HomeHeroCard が主役: PastelWash 背景、「ドパガキ度」巨大スコア、gradientBar のスコアバー、レイド時刻表示、参加ボタン。ここ以外に目立つ要素を足さない。
+- 構成順: ブランド行(脱ドパ + プロフィール丸) → DopaHeroCard(スコアのみ) → RaidCard(今日のレイド) → SharePill(ドパるけど共有する) → WeeklyBalanceCard → RecordCard → AdBanner。
+- DopaHeroCard は「ドパガキ度」巨大スコア + gradientWash 背景 + gradientBar のスコアバー + 昨日/先週/先月の増減 + 称号カプセルのみ。レイド参加ボタンや共有ボタンはここに入れず、RaidCard / SharePill という別要素にする(1b デザインでの分離)。
 - レイド開始可否のロジック(canStart / __DEV__ 用ボタン / missed 記録)は表示文言含め壊さない。
 
 ### ロング `app/(tabs)/long.tsx`
@@ -51,7 +52,8 @@ Expo + React Native + TypeScript(expo-router)のMVP。このファイルはUI修
 
 ## 避けるべきAIっぽいUI
 
-- 紫→青のビビッドグラデーション、ネオン、グラスモーフィズム、ダークモード風の濃紺カード。
+- 紫→青のビビッドグラデーション、ネオン、あからさまなグラスモーフィズム(強いぼかし+虹色反射)。
+- ゴールド以外の彩度の高いアクセントカラーを増やすこと。基調は常にインク×ゴールド×クリームの3色構成に留める。
 - 絵文字アイコンの多用(✨はコピー内の限定使用のみ)、アイコンライブラリの安易な導入。
 - 「〜しましょう!」調の説明文、機能説明のためのサブテキスト増殖、ラベルの英語化。
 - カードの中にカードを重ねる過剰なネスト、境界線の濃いカード、影の強いカード。
@@ -71,7 +73,7 @@ Expo + React Native + TypeScript(expo-router)のMVP。このファイルはUI修
 
 - StyleSheet.create + theme トークンで書く。inline の色コード・マジックナンバー禁止。
 - 新規UI部品はまず `src/components/ui/`(Card, Chip, SoftGradient, PastelWash, Decorations...)の再利用を検討。無ければ同じ流儀で追加。
-- 新しい依存ライブラリを増やさない(特にアイコン・UIキット・アニメーション)。アニメーションは既存の react-native-reanimated の範囲で。
+- 新しい依存ライブラリを増やさない(特にアイコン・UIキット・アニメーション)。アニメーションは既存の react-native-reanimated の範囲で。フォントは例外的に `expo-font` + `@expo-google-fonts/zen-maru-gothic` を導入済み(1b デザインの丸ゴシック指定のため)。`app/_layout.tsx` の `useFonts` で読み込み、フォント読み込み完了までは何も描画しない。
 - Expo Go で動く範囲を壊さない(ネイティブ専用APIは AdsService のようにフォールバックを用意)。
 - コピー変更・追加は `src/constants/copy.ts` に置き、世界観のトーン(脱力 + 静けさ)を合わせる。
 - 変更後は `npm run typecheck` を通す。

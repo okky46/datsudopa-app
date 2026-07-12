@@ -1,7 +1,7 @@
 
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
-import { colors, gradientPlay, radius, shadows, spacing } from '../constants/theme';
+import { colors, fontFamily, gradientPlay, radius, shadows, spacing } from '../constants/theme';
 import { SoftGradient } from './ui/SoftGradient';
 
 type Props = {
@@ -16,7 +16,7 @@ type Props = {
 export function PrimaryButton({ label, onPress, variant = 'primary', disabled = false, style, icon }: Props) {
   const isGradient = variant === 'gradient';
   const labelColor =
-    variant === 'ghost' ? colors.text : isGradient ? colors.text : variant === 'danger' ? colors.danger : colors.onPrimary;
+    variant === 'ghost' ? colors.text : isGradient ? colors.onPrimary : variant === 'danger' ? colors.danger : colors.onPrimary;
 
   return (
     <Pressable
@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
     ...shadows.soft,
   },
   gradient: {
-    backgroundColor: colors.pastelLavender,
+    backgroundColor: colors.primarySoft,
     ...shadows.soft,
   },
   ghost: {
@@ -88,6 +88,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '700',
+    fontFamily: fontFamily.bold,
     letterSpacing: 0.3,
   },
 });

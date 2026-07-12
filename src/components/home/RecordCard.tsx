@@ -1,7 +1,7 @@
 
 import { StyleSheet, Text, View } from 'react-native';
 import { homeCopy } from '../../constants/copy';
-import { colors, radius, spacing, typography } from '../../constants/theme';
+import { colors, fontFamily, radius, spacing, typography } from '../../constants/theme';
 import { CalendarDay } from '../../services/StatsService';
 import { Card } from '../ui/Card';
 
@@ -81,6 +81,7 @@ const styles = StyleSheet.create({
     color: colors.textSubtle,
     fontSize: 11,
     fontWeight: '500',
+    fontFamily: fontFamily.medium,
     textAlign: 'center',
     marginTop: spacing.xs,
   },
@@ -88,23 +89,26 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderRadius: radius.md,
-    backgroundColor: colors.accentSoft,
+    backgroundColor: colors.primarySoft,
     alignItems: 'center',
   },
   streakText: {
-    color: colors.accent,
+    color: colors.primary,
     fontSize: 15,
     fontWeight: '700',
+    fontFamily: fontFamily.bold,
   },
   streakNumber: {
     fontSize: 22,
     fontWeight: '800',
+    fontFamily: fontFamily.black,
     fontVariant: ['tabular-nums'],
   },
   streakEmpty: {
     color: colors.textMuted,
     fontSize: 13,
     fontWeight: '600',
+    fontFamily: fontFamily.medium,
   },
   calendarHead: {
     alignItems: 'center',
@@ -114,6 +118,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 15,
     fontWeight: '700',
+    fontFamily: fontFamily.bold,
   },
   weekRow: {
     flexDirection: 'row',
@@ -125,6 +130,7 @@ const styles = StyleSheet.create({
     color: colors.textSubtle,
     fontSize: 11,
     fontWeight: '600',
+    fontFamily: fontFamily.medium,
     paddingVertical: 2,
   },
   dayCell: {
@@ -136,41 +142,42 @@ const styles = StyleSheet.create({
   },
   dayCellToday: {
     borderWidth: 1.5,
-    borderColor: colors.primaryBorder,
+    borderColor: 'rgba(201, 169, 106, 0.5)',
     borderRadius: radius.pill,
   },
   dayNumber: {
     color: colors.textMuted,
     fontSize: 13,
     fontWeight: '600',
+    fontFamily: fontFamily.medium,
     fontVariant: ['tabular-nums'],
   },
   stamp: {
-    width: 26,
-    height: 26,
+    width: 24,
+    height: 24,
     borderRadius: 999,
-    backgroundColor: colors.pastelMint,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   stampCheckShort: {
     position: 'absolute',
-    left: 6.5,
-    bottom: 10,
-    width: 6,
-    height: 2.4,
+    left: 6,
+    bottom: 9,
+    width: 5.5,
+    height: 2.2,
     borderRadius: 2,
-    backgroundColor: colors.accent,
+    backgroundColor: colors.onPrimary,
     transform: [{ rotate: '45deg' }],
   },
   stampCheckLong: {
     position: 'absolute',
-    right: 5,
-    bottom: 11,
-    width: 11,
-    height: 2.4,
+    right: 4.5,
+    bottom: 10,
+    width: 10,
+    height: 2.2,
     borderRadius: 2,
-    backgroundColor: colors.accent,
+    backgroundColor: colors.onPrimary,
     transform: [{ rotate: '-50deg' }],
   },
 });

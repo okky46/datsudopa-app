@@ -9,7 +9,7 @@ module.exports = ({ config }) => ({
   scheme: 'datsudopa',
   version: '1.0.0',
   orientation: 'portrait',
-  userInterfaceStyle: 'light',
+  userInterfaceStyle: 'dark',
   icon: './assets/icon.png',
   ios: {
     ...config.ios,

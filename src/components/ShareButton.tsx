@@ -2,7 +2,7 @@
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { DailyResult } from '../types/result';
 import { ShareService } from '../services/ShareService';
-import { colors, radius, spacing } from '../constants/theme';
+import { colors, fontFamily, radius, spacing } from '../constants/theme';
 import { PrimaryButton } from './PrimaryButton';
 
 type Props = {
@@ -105,6 +105,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 13,
     fontWeight: '700',
+    fontFamily: fontFamily.bold,
   },
   shareIcon: {
     position: 'relative',

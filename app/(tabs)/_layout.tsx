@@ -1,7 +1,7 @@
 
 import { Tabs } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
-import { colors } from '../../src/constants/theme';
+import { colors, fontFamily } from '../../src/constants/theme';
 
 function HomeIcon({ color }: { color: string }) {
   return (
@@ -32,7 +32,7 @@ function MenuIcon({ color }: { color: string }) {
 }
 
 function TabIcon({ type, focused }: { type: 'home' | 'clock' | 'menu'; focused: boolean }) {
-  const color = focused ? colors.text : colors.textSubtle;
+  const color = focused ? colors.primary : colors.textSubtle;
 
   return (
     <View style={[styles.iconWrap, focused && styles.iconWrapFocused]}>
@@ -49,18 +49,19 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: colors.card,
-          borderTopColor: colors.border,
+          backgroundColor: colors.cardOpaque,
+          borderTopColor: colors.primaryBorder,
           borderTopWidth: StyleSheet.hairlineWidth,
           height: 88,
           paddingTop: 10,
           paddingBottom: 12,
         },
-        tabBarActiveTintColor: colors.text,
+        tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textSubtle,
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '700',
+          fontFamily: fontFamily.bold,
           letterSpacing: 0.3,
           marginTop: 4,
         },
@@ -82,7 +83,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconWrapFocused: {
-    backgroundColor: 'rgba(214, 222, 243, 0.55)',
+    backgroundColor: 'rgba(201, 169, 106, 0.14)',
   },
   homeIcon: {
     width: 24,

@@ -1,5 +1,6 @@
 
 import { StyleSheet, View, type ViewStyle } from 'react-native';
+import { colors } from '../../constants/theme';
 
 type Props = {
   borderRadius?: number;
@@ -29,7 +30,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.background,
   },
   blob: {
     position: 'absolute',
@@ -41,32 +42,32 @@ const styles = StyleSheet.create({
   blobBlue: {
     top: -120,
     left: -70,
-    backgroundColor: '#DCEAF8',
+    backgroundColor: 'rgba(201, 169, 106, 0.16)',
   },
   blobBlueResult: {
     top: -110,
     left: -40,
-    backgroundColor: '#E2ECF8',
+    backgroundColor: 'rgba(201, 169, 106, 0.14)',
   },
   blobLavender: {
     top: -90,
     right: -90,
-    backgroundColor: '#E8E2F8',
+    backgroundColor: 'rgba(159, 183, 156, 0.12)',
   },
   blobPink: {
     bottom: -130,
     right: -60,
-    backgroundColor: '#FBE6EE',
+    backgroundColor: 'rgba(206, 154, 142, 0.12)',
   },
   blobPinkResult: {
     bottom: -120,
     right: -50,
-    backgroundColor: '#FBE7EF',
+    backgroundColor: 'rgba(206, 154, 142, 0.10)',
   },
   blobMint: {
     bottom: -120,
     left: -90,
-    backgroundColor: '#DCF0E4',
+    backgroundColor: 'rgba(201, 169, 106, 0.10)',
     opacity: 0.45,
   },
 });

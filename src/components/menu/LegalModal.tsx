@@ -1,6 +1,6 @@
 
 import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { colors, radius, spacing, typography } from '../../constants/theme';
+import { colors, fontFamily, radius, spacing, typography } from '../../constants/theme';
 import { PressableScale } from '../ui/Motion';
 
 type Props = {
@@ -32,7 +32,7 @@ export function LegalModal({ visible, title, body, onClose }: Props) {
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(46, 52, 80, 0.4)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.lg,
@@ -44,7 +44,9 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     padding: spacing.lg,
     borderRadius: radius.lg,
-    backgroundColor: colors.card,
+    backgroundColor: colors.cardOpaque,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   title: {
     color: colors.text,
@@ -70,5 +72,6 @@ const styles = StyleSheet.create({
     color: colors.onPrimary,
     fontSize: 15,
     fontWeight: '700',
+    fontFamily: fontFamily.bold,
   },
 });

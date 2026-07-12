@@ -12,7 +12,7 @@ import { Card } from '../../src/components/ui/Card';
 import { Chip } from '../../src/components/ui/Chip';
 import { EnterCard, PressableScale } from '../../src/components/ui/Motion';
 import { SOCIAL_TIME_OPTIONS } from '../../src/constants/raid';
-import { colors, radius, spacing, typography } from '../../src/constants/theme';
+import { colors, fontFamily, radius, spacing, typography } from '../../src/constants/theme';
 import { homeCopy, menuCopy, screenCopy } from '../../src/constants/copy';
 import { PRIVACY_POLICY, TERMS_OF_SERVICE } from '../../src/constants/legal';
 import { NotificationService } from '../../src/services/NotificationService';
@@ -229,7 +229,7 @@ export default function MenuScreen() {
                 value={settings.notificationEnabled}
                 onValueChange={(notificationEnabled) => void update({ ...settings, notificationEnabled })}
                 thumbColor={settings.notificationEnabled ? colors.accent : colors.textSubtle}
-                trackColor={{ false: colors.surfaceSunken, true: colors.blueDeep }}
+                trackColor={{ false: 'rgba(255, 255, 255, 0.12)', true: colors.blueDeep }}
               />
             </View>
 
@@ -412,6 +412,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 22,
     fontWeight: '800',
+    fontFamily: fontFamily.black,
   },
   avatarColors: {
     flexDirection: 'row',
@@ -440,12 +441,14 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 20,
     fontWeight: '700',
+    fontFamily: fontFamily.bold,
     paddingVertical: 2,
   },
   nameText: {
     color: colors.text,
     fontSize: 20,
     fontWeight: '700',
+    fontFamily: fontFamily.bold,
     paddingVertical: 2,
   },
   shareButton: {
@@ -463,6 +466,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 14,
     fontWeight: '700',
+    fontFamily: fontFamily.bold,
   },
   card: {
     gap: spacing.md,
@@ -483,6 +487,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 14,
     fontWeight: '600',
+    fontFamily: fontFamily.medium,
   },
   chips: {
     flexDirection: 'row',
@@ -493,6 +498,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 22,
     fontWeight: '800',
+    fontFamily: fontFamily.black,
     letterSpacing: -0.3,
   },
   timeHint: {
@@ -514,10 +520,12 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 12,
     fontWeight: '600',
+    fontFamily: fontFamily.medium,
     textDecorationLine: 'underline',
   },
   legalDivider: {
     color: colors.textSubtle,
     fontSize: 12,
+    fontFamily: fontFamily.regular,
   },
 });

@@ -1,186 +1,125 @@
-
 # 脱ドパ MVP
 
-Expo + React Native + TypeScript で作る「脱ドパ」MVPです。毎日1回の通知から脱ドパレイドを開始し、静かな脱ドパロングを全画面で見て、完走/失敗リザルトを共有できます。
+> ショート中毒者が、毎晩同じ時間に集まって、3分間何も起きない映像を見るアプリ。
 
-## 実装済み
+毎日22:00 JSTにローカル通知が届き、3分以内に参加すると「公式レイド」が始まる。知らない人たちと同じ時間に、全員共通の「何も起きない映像」を3分見る。ショートに消えていた時間を、累計脱ドパ時間として少しずつ取り戻す。
 
-- Expo Router の3タブ構成: ホーム / 脱ドパロング / メニュー
-- 初回オンボーディング、レイド時刻、通知文言の強さ
-- AsyncStorage 保存: onboardingCompleted, userSettings, dailyResults, currentRaidState, notificationPermission, premiumStatus placeholder, videoWatchHistory
-- expo-notifications による毎日ローカル通知のスケジュール
-- 通知後3分以内のレイド開始判定
-- expo-video 対応の全画面再生Shellと、実動画なしでも動く生成placeholder
-- AppState によるレイド中の background/inactive 失敗判定
-- リザルト生成、ホーム/リザルト画面からOS標準共有
-- AdMobバナー: ホーム下部、脱ドパロング通常視聴画面
-- PremiumService placeholder と「課金するとさらに多くの広告が登場」ネタカード
+- 仕様の一次情報源: [`MVP_REQUIREMENTS.md`](./MVP_REQUIREMENTS.md)
+- 実装構造: [`ARCHITECTURE.md`](./ARCHITECTURE.md)
+- 移行チェックリスト: [`MIGRATION_CHECKLIST.md`](./MIGRATION_CHECKLIST.md)
 
-## Expo Goで確認できる部分
+技術: Expo (SDK 56) / React Native / TypeScript / expo-router
 
-AdMob以外の多くのUIとロジックはExpo標準の範囲で作っています。
+## 実装済みの主要機能
 
-- 3タブ画面
-- オンボーディング
-- ホーム表示
-- 通常視聴/レイド再生のplaceholder UI
-- AsyncStorage保存
-- OS標準共有
-- ローカル通知の許可取得とスケジュールの一部
-
-ただし react-native-google-mobile-ads はExpo Goに含まれないネイティブモジュールです。AdMobバナーを含む画面を完全に確認するにはdevelopment buildが必要です。
-
-## development buildが必要な部分
-
-- react-native-google-mobile-ads のAdMobバナー表示
-- iOS/Androidネイティブ広告SDKの初期化
-- AdMob App ID を含むネイティブ設定の反映
+- 毎日22:00 JST固定の公式レイド（開始猶予180秒: 22:00:00〜22:02:59のみ開始可能）
+- 通知タップから公式レイドへ直接遷移。22:03以降は「追い脱ドパ」導線
+- 5画面オンボーディング（問題提起 → 利用時間 → 損失可視化 → レイド説明＋公開ネーム → 初回3分ロング）
+- 公開ユーザーネーム: 自動生成3候補・再生成・自由入力・NFKC正規化・NGワード検査（クライアント＋DB制約）
+- 累計脱ドパ時間（途中離脱分も加算・`session_id` による二重加算防止）
+- ドパガキ度（エンタメ指標。初期値は自己申告から。定数は `src/constants/dopagaki.ts`）
+- 連続脱ドパ日数（1日合計3分以上で継続）・今週の履歴
+- 通常ロング「今日の1本」（3/10/30/60分プリセット）
+- Supabase最小連携: 匿名認証・profiles・raid_participations・同行者名（実在ユーザー最大3人）・分析イベント
+- オフラインキュー: 通信失敗時は端末内に保存し、次回起動時に再送。**外部通信なしでも公式レイドは成立する**
+- 動画基盤: remote manifest → cached → bundled の3段フォールバック、事前ダウンロード、キャッシュ上限管理
+- SNS共有画像（縦長カードを生成して共有シートを開く）
+- FeatureGate による将来課金準備（実課金なし・「今後提供予定」表示のみ）
+- AdMobバナー: ホーム / ロング開始前 / 設定 の各最下部のみ
 
 ## セットアップ
 
-1. 依存関係を入れます。
-   npm install
-
-2. 開発サーバーを起動します。
-   npm run start
-
-3. development buildを使う場合は、先にネイティブプロジェクトを生成します。
-   npx expo prebuild
-
-4. Android development build例。
-   npx expo run:android
-
-5. iOS development build例。macOS環境で実行してください。
-   npx expo run:ios
-
-## ローカルでアプリを触る手順
-
-まず依存関係をインストールします。
-
 ```sh
 npm install
-```
-
-Windows環境で `UNABLE_TO_VERIFY_LEAF_SIGNATURE` が出る場合は、NodeにOSの証明書ストアを使わせてから再実行します。
-
-```powershell
-$env:NODE_OPTIONS="--use-system-ca"
-npm install --legacy-peer-deps
-```
-
-開発サーバーは次で起動します。
-
-```sh
 npm run start
 ```
 
-起動後に表示されるExpo DevTools/ターミナルの案内から、接続方法を選びます。
+- Expo Go: 実機でQRコードを読み取る（AdMob実バナー以外はほぼ確認可能。広告枠はプレースホルダー表示）
+- development build（AdMob含む確認）:
 
-- Expo Goで確認する場合: iPhone/Android実機にExpo Goを入れ、同じWi-Fiに接続してQRコードを読み取ります。
-- Androidエミュレーターで確認する場合: Android Studioでエミュレーターを起動してから、ターミナルで `a` を押すか `npm run android` を実行します。
-- iOSシミュレーターで確認する場合: macOS + Xcode環境で、ターミナルで `i` を押すか `npm run ios` を実行します。
-- 実機development buildで確認する場合: Expo Goではなく、下記のdevelopment buildを端末にインストールしてから `npm run start` で接続します。
+  ```sh
+  npx expo prebuild
+  npm run dev:android   # または dev:ios（macOS + Xcode）
+  ```
 
-Expo Goで確認できる範囲は、オンボーディング、3タブUI、ホーム、脱ドパロング、レイド/リザルト画面、AsyncStorage保存、OS標準共有、通知許可の一部です。AdMobの実バナー表示はExpo Goでは確認できません。Expo Goでは広告枠placeholderが表示されます。
-
-AdMobを含めて確認する場合はdevelopment buildが必要です。Androidは次を実行します。
+型チェック:
 
 ```sh
-npx expo prebuild
-npm run dev:android
+npm run typecheck
 ```
 
-iOSはmacOS + Xcode環境で次を実行します。
+## 環境変数
+
+すべて任意。未設定の場合、Supabase通信・リモート動画取得は行われず、完全ローカルで動作する。
 
 ```sh
-npx expo prebuild
-npm run dev:ios
-```
+# Supabase（匿名認証・参加記録・同行者・分析）
+EXPO_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJ...       # anonキーのみ。service roleキーは絶対に入れない
 
-現時点では `.env` は必須ではありません。`app.config.js` がGoogle公式テスト用AdMob IDへfallbackします。本番IDや独自bundle/package名で確認したい場合だけ、必要に応じて以下を環境変数として設定してください。
+# Cloudflare Workers Static Assets（追加映像の配信元）
+EXPO_PUBLIC_VIDEO_BASE_URL=https://datsudopa-videos.<account>.workers.dev
 
-```sh
-EXPO_PUBLIC_ADMOB_ANDROID_APP_ID=ca-app-pub-xxxxxxxxxxxxxxxx~yyyyyyyyyy
-EXPO_PUBLIC_ADMOB_IOS_APP_ID=ca-app-pub-xxxxxxxxxxxxxxxx~yyyyyyyyyy
-EXPO_PUBLIC_ADMOB_BANNER_ANDROID=ca-app-pub-xxxxxxxxxxxxxxxx/yyyyyyyyyy
-EXPO_PUBLIC_ADMOB_BANNER_IOS=ca-app-pub-xxxxxxxxxxxxxxxx/yyyyyyyyyy
+# SNS共有画像に載せる招待URL
+EXPO_PUBLIC_INVITE_URL=https://example.com/datsudopa
+
+# AdMob（未設定時はGoogle公式テストIDへフォールバック）
+EXPO_PUBLIC_ADMOB_ANDROID_APP_ID=ca-app-pub-xxxx~yyyy
+EXPO_PUBLIC_ADMOB_IOS_APP_ID=ca-app-pub-xxxx~yyyy
+EXPO_PUBLIC_ADMOB_BANNER_ANDROID=ca-app-pub-xxxx/yyyy
+EXPO_PUBLIC_ADMOB_BANNER_IOS=ca-app-pub-xxxx/yyyy
+
+# ストア用ID
 EXPO_PUBLIC_ANDROID_PACKAGE=com.example.datsudopa
 EXPO_PUBLIC_IOS_BUNDLE_ID=com.example.datsudopa
+EXPO_PUBLIC_EAS_PROJECT_ID=...
 ```
 
-起動時にエラーが出た場合は、次を確認してください。
+AdMob App IDはネイティブ設定に入るため、変更したら `npx expo prebuild` からやり直す。
 
-- Node/npmの証明書エラーが出る場合: `NODE_OPTIONS=--use-system-ca` を設定して再実行します。PowerShellでは `$env:NODE_OPTIONS="--use-system-ca"` です。
-- AdMob関連のNative moduleエラーが出る場合: Expo Goではなくdevelopment buildで起動しているか確認します。
-- 環境変数やAdMob App IDを変更した場合: `npx expo prebuild` とdevelopment buildを作り直します。
-- Metroのキャッシュが怪しい場合: `npx expo start -c` でキャッシュを消して起動します。
-- Androidエミュレーターが見つからない場合: Android Studioでエミュレーターを先に起動し、`adb devices` で認識を確認します。
-- iOSシミュレーターが使えない場合: macOSとXcodeが必要です。WindowsではiOSシミュレーターは起動できません。
-- 依存関係の解決が崩れた場合: `node_modules` と `package-lock.json` を作り直す前に、まず `npm install` と `npm run typecheck` の結果を確認します。
+## Supabase
 
-## AdMob設定
+手順は [`supabase/README.md`](./supabase/README.md) を参照。
 
-MVPでは開発中にGoogle公式テストIDを使います。本番IDに差し替える場合は、環境変数を設定してください。
+1. プロジェクト作成 → **Anonymous sign-ins を有効化**
+2. `supabase/migrations/0001_init.sql` を SQL Editor で実行（テーブル・RLS・同行者RPC・集計View）
+3. URLとanonキーを環境変数へ
 
-- EXPO_PUBLIC_ADMOB_ANDROID_APP_ID: Android AdMob App ID
-- EXPO_PUBLIC_ADMOB_IOS_APP_ID: iOS AdMob App ID
-- EXPO_PUBLIC_ADMOB_BANNER_ANDROID: Android バナー広告ユニットID
-- EXPO_PUBLIC_ADMOB_BANNER_IOS: iOS バナー広告ユニットID
-- EXPO_PUBLIC_ANDROID_PACKAGE: Android package name
-- EXPO_PUBLIC_IOS_BUNDLE_ID: iOS bundle identifier
+公式レイド1回あたりの通信は最大3回（開始保存・終了更新・同行者名3件取得）。分析イベントは端末内キューからまとめて送信し、Supabase Dashboard の SQL View（`raid_daily_stats` / `analytics_daily_events`）で確認する。
 
-app.config.js では未設定時にGoogle公式テストIDへfallbackします。AdMob App IDはネイティブ設定に入るため、値を変えたらdevelopment buildを作り直してください。
+## 動画の配置と差し替え
 
-## iOS/Android確認手順
+### アプリ同梱（必須・最終フォールバック）
 
-Android:
+1. `assets/videos/` に `void-001.mp4` 〜 `void-007.mp4` を配置
+   （30〜90秒ループ / MP4 / H.264 / 720p / 24または30fps / 1本4〜12MB、合計40〜80MB目安）
+2. `src/constants/bundledVideos.ts` の `BUNDLED_VIDEO_MODULES` の `null` を
+   `require('../../assets/videos/void-001.mp4')` に差し替える
+3. `npm run typecheck` → 実機確認
 
-1. EXPO_PUBLIC_ANDROID_PACKAGE とAdMob IDを必要に応じて設定
-2. npx expo prebuild
-3. npx expo run:android
-4. オンボーディングで通知許可を確認
-5. ホーム下部とロング画面のAdMobバナーを確認
-6. MVP確認用レイド開始ボタンから、完走/途中離脱/バックグラウンド失敗を確認
+実動画が未配置の間は、静かな生成プレースホルダー描画でレイドが成立する（開発用）。
 
-iOS:
+### 追加映像（Cloudflare Workers Static Assets）
 
-1. macOSで EXPO_PUBLIC_IOS_BUNDLE_ID とAdMob IDを必要に応じて設定
-2. npx expo prebuild
-3. npx expo run:ios
-4. 通知許可、AdMobバナー、共有シート、AppState失敗判定を確認
+手順は [`cloudflare/README.md`](./cloudflare/README.md) を参照。`cloudflare/public/videos/` にmp4（1ファイル25MiB未満・原則22MiB以下）を置き、`manifest.json` を更新して `npx wrangler deploy`。動画取得は静的アセットURLへの直接アクセスのみで、Workerコードは実行されない。R2 / Supabase Storage / Cloudflare Stream / HLS は使わない。
 
-## 文言の編集
+## 障害時の挙動
 
-画面上のコピーは `src/constants/copy.ts` に集約しています。文章を書き換えたいときはまずここを見てください。
+- Supabase未設定・通信失敗: レイド・累計時間・ドパガキ度・履歴はすべてローカルで継続。参加記録はキューに残り後で再送。同行者欄は代替の一文（架空名は出さない）
+- manifest・動画取得失敗: キャッシュ → 同梱 → プレースホルダー描画へフォールバック。**外部通信失敗だけでレイドを失敗扱いにしない**
+- アプリのbackground/inactive（公式レイド中）: 途中離脱として記録。そこまでの視聴時間は累計へ加算
 
-特に、脱ドパロング視聴中に画面上部へ1分ごとに切り替わる一言は、同ファイルの `longPlayerHints` です。
+## 文言・数値の編集
 
-- 配列の先頭が開始直後のデフォルト表示（現在は「画面から離れよう」）
-- 2件目以降が1分ごとに順番に切り替わるコメント
-- 文言の追加・差し替え・並び替えは、この配列を編集するだけで反映されます
+- 画面コピー: `src/constants/copy.ts`
+- ドパガキ度の初期値・増減ルール: `src/constants/dopagaki.ts`
+- レイド時刻・猶予・視聴時間: `src/constants/raid.ts`
+- 名前生成ワード・日本語NGワード: `src/constants/usernames.ts`
 
-## 動画管理方針
+## ストアビルドへ進むためのTODO
 
-MVPではDBを使いません。src/constants/videos.ts の VideoAsset 定義で、local / remote / generated_placeholder / user_uploaded を扱える構造にしています。
-
-実動画を同梱する場合は assets/videos に20〜60秒程度の短い動画を置き、VideoAssetの sourceType を local にします。1分〜30分の視聴時間は短い動画をループ再生する想定です。
-
-将来はCloudflare R2、Supabase Storage、S3、CDNなどに動画本体を置き、DBにはURLとメタデータだけを保存します。動画本体をDBに保存しない方針です。
-
-## EAS Buildに進むためのTODO
-
-- eas init を実行してEXPO_PUBLIC_EAS_PROJECT_IDまたはapp configのprojectIdを設定
-- iOS bundle identifier / Android package nameを本番用に確定
-- AdMob本番App IDと広告ユニットIDを設定
-- eas secret またはCI環境変数でAdMob IDを管理
-- iOS/Androidの通知権限文言とプライバシー文言を確定
-- ストア用アイコン、スプラッシュ、プライバシーポリシーURL、利用規約URLを追加
-- 実動画を assets/videos またはCDNに配置
-
-## 未実装placeholder
-
-- RevenueCat / アプリ内課金の本実装
-- Supabase連携
-- インタースティシャル広告、リワード広告、共有後広告、リザルト後広告
-- Screen Time API / UsageStatsManager
-- ユーザー投稿動画、審査、通報、ランキング、完走者限定チャット
+- `eas init` で projectId を設定
+- 本番の bundle identifier / package name / AdMob ID を設定
+- 実動画を `assets/videos/` と Cloudflare へ配置
+- プライバシーポリシー・利用規約の文面確定（`src/constants/legal.ts`）
+- Supabase本番プロジェクトへマイグレーション適用

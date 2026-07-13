@@ -1,11 +1,10 @@
 
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Platform } from 'react-native';
-import { RAID_NOTIFICATION_BODY } from '../constants/copy';
+import { RAID_NOTIFICATION_BODY, RAID_NOTIFICATION_TITLE } from '../constants/copy';
 import { RAID_NOTIFICATION_SCHEDULE_DAYS } from '../constants/raid';
 import { UserSettings } from '../types/settings';
-import { parseTimeToToday } from '../utils/date';
-import { RaidScheduleService } from './RaidScheduleService';
+import { jstDateKey, raidStartAt, shiftJstDateKey } from '../utils/jst';
 import { StorageService } from './StorageService';
 
 type NotificationsModule = typeof import('expo-notifications');
@@ -65,6 +64,7 @@ export class NotificationService {
     return granted;
   }
 
+  /** 毎日22:00 JSTの通知を、今日から7日ぶん先までスケジュールし直す */
   static async scheduleDailyRaid(settings: UserSettings): Promise<void> {
     const Notifications = loadNotifications();
     if (!Notifications) {
@@ -83,29 +83,28 @@ export class NotificationService {
 
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('daily-raid', {
-        name: '脱ドパレイド',
+        name: '毎日22時の公式レイド',
         importance: Notifications.AndroidImportance.DEFAULT,
         vibrationPattern: [0, 180, 120, 180],
-        lightColor: '#8FAF8A',
+        lightColor: '#C9A96A',
       });
     }
 
     const now = new Date();
+    const todayKey = jstDateKey(now);
     for (let offset = 0; offset < RAID_NOTIFICATION_SCHEDULE_DAYS; offset += 1) {
-      const targetDate = new Date(now);
-      targetDate.setDate(now.getDate() + offset);
-      const resolved = RaidScheduleService.resolveRaidTimeForDate(settings, targetDate);
-      const triggerDate = parseTimeToToday(resolved.raidTime, targetDate);
+      const dateKey = shiftJstDateKey(todayKey, offset);
+      const triggerDate = raidStartAt(dateKey);
       if (triggerDate.getTime() <= now.getTime()) {
         continue;
       }
 
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: '今日のレイド開始',
+          title: RAID_NOTIFICATION_TITLE,
           body: RAID_NOTIFICATION_BODY,
           sound: false,
-          data: { raidTime: resolved.raidTime, dateKey: resolved.dateKey },
+          data: { screen: 'raid', dateKey },
         },
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.DATE,
@@ -113,6 +112,41 @@ export class NotificationService {
           date: triggerDate,
         },
       });
+    }
+  }
+
+  /** 通知タップで公式レイド開始導線へ直行させるためのリスナー。解除関数を返す */
+  static addRaidNotificationListener(onRaidNotification: () => void): () => void {
+    const Notifications = loadNotifications();
+    if (!Notifications) {
+      return () => {};
+    }
+    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data as { screen?: string } | undefined;
+      if (data?.screen === 'raid') {
+        onRaidNotification();
+      }
+    });
+    return () => subscription.remove();
+  }
+
+  /** アプリが通知タップで起動された場合の初期通知を確認する */
+  static async consumeLaunchRaidNotification(): Promise<boolean> {
+    const Notifications = loadNotifications();
+    if (!Notifications) {
+      return false;
+    }
+    try {
+      const response = await Notifications.getLastNotificationResponseAsync();
+      const data = response?.notification.request.content.data as { screen?: string } | undefined;
+      if (data?.screen !== 'raid') {
+        return false;
+      }
+      // 同じ通知タップを次回起動時に再処理しないよう消費する
+      await Notifications.clearLastNotificationResponseAsync();
+      return true;
+    } catch {
+      return false;
     }
   }
 }

@@ -1,76 +1,67 @@
 
+// ホーム。表示優先順: 次回レイド → 累計脱ドパ時間 → ドパガキ度 → 連続日数・今週の履歴 → 広告。
+// フォーカスのたびにローカル集計を読み直し、未参加処理・通知再スケジュール・
+// 各種キューの再送（非同期・待たない）を行う。
+
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AdBanner } from '../../src/components/AdBanner';
-import { DopaHeroCard } from '../../src/components/home/DopaHeroCard';
+import { PrimaryButton } from '../../src/components/PrimaryButton';
+import { DopagakiCard } from '../../src/components/home/DopagakiCard';
 import { RaidCard } from '../../src/components/home/RaidCard';
-import { RecordCard } from '../../src/components/home/RecordCard';
-import { SharePill } from '../../src/components/home/SharePill';
-import { WeeklyBalanceCard } from '../../src/components/home/WeeklyBalanceCard';
+import { TotalTimeCard } from '../../src/components/home/TotalTimeCard';
+import { WeekCard } from '../../src/components/home/WeekCard';
 import { EnterCard } from '../../src/components/ui/Motion';
 import { SoftGradient } from '../../src/components/ui/SoftGradient';
-import { homeCopy } from '../../src/constants/copy';
+import { APP_NAME } from '../../src/constants/copy';
 import { colors, fontFamily, spacing } from '../../src/constants/theme';
-import { DailyResult } from '../../src/types/result';
-import { DopamineDeltas } from '../../src/types/dopamine';
-import { RaidStatusView } from '../../src/types/raid';
-import { UserSettings } from '../../src/types/settings';
-import { DopamineService } from '../../src/services/DopamineService';
-import { LongVideoService } from '../../src/services/LongVideoService';
+import { DayHistory, WatchSession } from '../../src/types/session';
+import { AnalyticsService } from '../../src/services/AnalyticsService';
+import { DopagakiService } from '../../src/services/DopagakiService';
 import { NotificationService } from '../../src/services/NotificationService';
-import { RaidService } from '../../src/services/RaidService';
-import { ShareService } from '../../src/services/ShareService';
-import { StatsService, WeeklyBalance } from '../../src/services/StatsService';
+import { ProfileService } from '../../src/services/ProfileService';
+import { RaidHomeState, RaidService } from '../../src/services/RaidService';
+import { RaidSyncService } from '../../src/services/RaidSyncService';
+import { SessionService } from '../../src/services/SessionService';
 import { StorageService } from '../../src/services/StorageService';
-import { TitleService } from '../../src/services/TitleService';
-
-function ProfileGlyph() {
-  return (
-    <View style={styles.profileRing}>
-      <View style={styles.profileDot} />
-      <View style={styles.profileArc} />
-    </View>
-  );
-}
+import { VideoDeliveryService } from '../../src/services/VideoDeliveryService';
 
 export default function HomeScreen() {
-  const [settings, setSettings] = useState<UserSettings>(StorageService.getDefaultSettings());
-  const [results, setResults] = useState<DailyResult[]>([]);
-  const [raidStatus, setRaidStatus] = useState<RaidStatusView | null>(null);
+  const [sessions, setSessions] = useState<WatchSession[]>([]);
+  const [raidState, setRaidState] = useState<RaidHomeState | null>(null);
+  const [totalSeconds, setTotalSeconds] = useState(0);
   const [level, setLevel] = useState<number | null>(null);
-  const [deltas, setDeltas] = useState<DopamineDeltas>({ vsYesterday: null, vsLastWeek: null, vsLastMonth: null });
-  const [titleName, setTitleName] = useState('ドパガキ見習い');
-  const [balance, setBalance] = useState<WeeklyBalance | null>(null);
+  const [streakDays, setStreakDays] = useState(0);
+  const [week, setWeek] = useState<DayHistory[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
-    const storedSettings = await StorageService.getSettings();
-    if (!storedSettings.onboardingCompleted) {
+    const settings = await StorageService.getSettings();
+    if (!settings.onboardingCompleted) {
       router.replace('/onboarding');
       return;
     }
-    let storedResults = await StorageService.getDailyResults();
-    storedResults = await RaidService.ensureMissedResultRecorded(storedSettings, storedResults);
-    await NotificationService.scheduleDailyRaid(storedSettings);
 
-    const storedLevel = await DopamineService.getLevel();
-    const storedDeltas = await DopamineService.getDeltas();
-    const unlockStats = await TitleService.getUnlockStats(storedResults);
+    await SessionService.cleanupStaleActiveSessions();
+    const storedSessions = await StorageService.getSessions();
+    await DopagakiService.processMissedDays(storedSessions);
 
-    setSettings(storedSettings);
-    setResults(storedResults);
-    setRaidStatus(RaidService.getRaidStatus(storedSettings, storedResults));
-    setLevel(storedLevel);
-    setDeltas(storedDeltas);
-    setTitleName(TitleService.displayTitle(unlockStats, storedSettings).name);
-    setBalance(StatsService.getWeeklyBalance(storedResults));
+    setSessions(storedSessions);
+    setRaidState(RaidService.getHomeState(storedSessions));
+    setTotalSeconds(await StorageService.getTotalDetoxSeconds());
+    setLevel(await DopagakiService.getLevel());
+    setStreakDays(SessionService.getStreakDays(storedSessions));
+    setWeek(SessionService.getWeekHistory(storedSessions));
+
+    // 以下はすべて非同期のバックグラウンド処理。ホーム表示を止めない
+    void NotificationService.scheduleDailyRaid(settings);
+    void VideoDeliveryService.prefetchDaily();
+    void RaidSyncService.flush();
+    void ProfileService.flushPendingSync();
+    void AnalyticsService.flush();
   }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
 
   useFocusEffect(
     useCallback(() => {
@@ -78,35 +69,21 @@ export default function HomeScreen() {
     }, [load]),
   );
 
+  // カウントダウンと開始猶予の残り時間を1秒ごとに更新
   useEffect(() => {
-    if (raidStatus?.status !== 'available') {
-      return;
-    }
     const timer = setInterval(() => {
-      const nextStatus = RaidService.getRaidStatus(settings, results);
-      setRaidStatus(nextStatus);
-      if (nextStatus.status === 'missed' && !RaidService.getTodayRaidResult(results)) {
-        void RaidService.ensureMissedResultRecorded(settings, results).then(setResults);
-      }
+      setRaidState(RaidService.getHomeState(sessions));
     }, 1000);
     return () => clearInterval(timer);
-  }, [raidStatus?.status, settings, results]);
+  }, [sessions]);
 
-  const startRaid = async () => {
-    const video = LongVideoService.getRecommendedVideo();
-    const state = RaidService.createRaidState(settings, video);
-    await StorageService.saveCurrentRaidState(state);
-    router.push({ pathname: '/raid/active', params: { mode: 'raid', videoId: video.id, duration: String(state.targetSeconds) } });
+  const startRaid = () => {
+    router.push({ pathname: '/raid/active', params: { mode: 'raid' } });
   };
 
-  const shareStatus = async () => {
-    await ShareService.shareStatus();
-    // 共有でドパガキ度が微増するので表示を更新
-    await load();
+  const startCatchup = () => {
+    router.push({ pathname: '/raid/active', params: { mode: 'catchup' } });
   };
-
-  const streakDays = StatsService.getStreakDays(results);
-  const calendar = StatsService.getMonthCalendar(results);
 
   return (
     <View style={styles.root}>
@@ -132,39 +109,34 @@ export default function HomeScreen() {
           }
         >
           <View style={styles.header}>
-            <Text style={styles.brand}>脱ドパ</Text>
-            <Pressable accessibilityRole="button" accessibilityLabel="プロフィール" style={styles.profileWrap} onPress={() => {}}>
-              <ProfileGlyph />
-            </Pressable>
+            <Text style={styles.brand}>{APP_NAME}</Text>
           </View>
 
-          {raidStatus && level !== null && (
+          {raidState && (
             <EnterCard index={0}>
-              <DopaHeroCard level={level} deltas={deltas} titleName={titleName} />
+              <RaidCard state={raidState} onStart={startRaid} onCatchup={startCatchup} />
             </EnterCard>
           )}
 
-          {raidStatus && (
-            <EnterCard index={1}>
-              <RaidCard raidStatus={raidStatus} onStart={() => void startRaid()} />
-            </EnterCard>
-          )}
-
-          <EnterCard index={2}>
-            <SharePill label={homeCopy.shareLabel} onPress={() => void shareStatus()} />
+          <EnterCard index={1}>
+            <TotalTimeCard totalSeconds={totalSeconds} />
           </EnterCard>
 
-          {balance && (
-            <EnterCard index={3}>
-              <WeeklyBalanceCard balance={balance} />
+          {level !== null && (
+            <EnterCard index={2}>
+              <DopagakiCard level={level} />
             </EnterCard>
           )}
 
-          <EnterCard index={4}>
-            <RecordCard streakDays={streakDays} calendarLabel={calendar.label} weeks={calendar.weeks} />
+          <EnterCard index={3}>
+            <WeekCard streakDays={streakDays} week={week} />
           </EnterCard>
 
-          <AdBanner />
+          <AdBanner placement="home" />
+
+          {__DEV__ && (
+            <PrimaryButton label="3分視聴の確認用（DEV）" variant="ghost" onPress={startCatchup} />
+          )}
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -199,36 +171,5 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     fontFamily: fontFamily.black,
     letterSpacing: 1,
-  },
-  profileWrap: {
-    width: 34,
-    height: 34,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  profileRing: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    borderWidth: 1,
-    borderColor: 'rgba(201, 169, 106, 0.4)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  profileDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.primary,
-  },
-  profileArc: {
-    position: 'absolute',
-    width: 16,
-    height: 8,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    borderTopWidth: 1.5,
-    borderColor: colors.primary,
-    bottom: 7,
   },
 });

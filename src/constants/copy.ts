@@ -1,219 +1,160 @@
 
-export const APP_CATCHPHRASE = 'ショートの真逆を、みんなでやる。';
+// 画面上の文言はすべてここに集約する。トーンは「静かなウェルネス × 脱力系ユーモア」。
+// 説教・医学的断言・説明過多を避ける。
 
-export const HOME_CATCHPHRASE = 'ショートで過熱した脳を、3分だけ冷ます。';
+export const APP_NAME = '脱ドパ';
 
-export const RAID_NOTIFICATION_BODY =
-  '⚠️ 脱ドパの時間です。3分以内にロングを視聴開始しないとあなたはドパガキのままです。';
+export const APP_CATCHPHRASE = 'ショートの真逆を、みんなで3分だけやる。';
 
-// 画面ごとの短いコピー（説明ではなく世界観として置く）
-export const screenCopy = {
-  longTitle: '脱ドパロング',
-  longTagline: 'ショートで過熱した脳を冷ます、余白のあるロング映像。',
-  longDescription:
-    '何かが起きそうで、何も起きない。\n洗練された空間にただ浸り、スクロール脳をクールダウンする。',
-  longSectionOthers: 'ほかの静かな没入映像',
-  longVideoSectionLabel: '今日の映像',
-  longDurationSectionLabel: '視聴時間',
-  longDurationSectionHint: '1分〜120分。スライダーか下のボタンで指定できます。',
-  menuTitle: '設定',
-  menuProfileTitle: 'ユーザープロフィール',
-  menuNicknameLabel: 'ニックネーム',
-  menuNotificationTitle: '通知設定',
-  menuNotificationLabel: '通知',
-  menuTimeSlotLabel: '一番よくショートなどを見てしまう時間帯',
-  menuTimeSlotHint: 'この時間帯のどこかで、通知が届くかもしれません。',
-  menuPremiumTitle: '脱ドパ　プレミアム',
-  menuPremiumBody:
-    'プレミアムプランに加入すると、さらに多くの広告が登場！　自主的により多くの広告を表示できるハードモードでより一層スマホから離れられます',
-  menuRedoOnboarding: 'オンボーディングをやり直す',
-  menuHowTo: '使い方を見る',
-  menuDeleteData: 'データを削除',
-  menuLegal: 'プライバシーポリシー ・ 利用規約',
-  howToTitle: '使い方',
-  howToTagline: 'ショートの真逆を、静かにやる。',
-  howToSteps: [
-    '通知が来たら、3分以内に脱ドパをはじめる。',
-    'スキップせず、ロング映像を最後まで見る。',
-    'それ以外の時間も、ショートの代わりにロングへ。',
-  ],
-  raidResultTitle: '本日の脱ドパ記録',
-  raidResultLine: '虚無に耐えた時間だけ、少し戻ってくる。',
-  longResultTitle: '本日の脱ドパ記録',
-  longResultLine: '虚無に耐えた時間だけ、少し戻ってくる。',
-} as const;
+export const APP_INTRO = 'ショート中毒者が、毎晩同じ時間に集まって、3分間何も起きない映像を見るアプリ。';
 
-export const englishLabels = {
-  stimulationMeter: 'Stimulation Meter',
-  dailyRaid: 'Daily Raid',
-  latestResult: 'Latest Result',
-  lastSevenDays: 'Last 7 Days',
-  longWatch: 'Long Watch',
-  settings: 'Settings',
-  gettingStarted: 'Getting Started',
-  premiumPreview: 'Premium Preview',
-  sessionResult: 'Session Result',
-  longSessionResult: 'Long Session Result',
-} as const;
+export const RAID_NOTIFICATION_TITLE = '22時になった';
+export const RAID_NOTIFICATION_BODY = '3分虚無チャレンジ、開始。3分以内に入れば間に合う。';
 
-// オンボーディング（初回起動時のみ）。説明ではなく、自分ごと化の導線。
+// オンボーディング（5画面）
 export const onboardingCopy = {
-  start: {
-    title: 'さっそく、ドパ中毒から離れよう',
-    subtitle: 'ショートの逆をやるアプリです。',
-    cta: 'はじめる',
-  },
   problem: {
     title: '気づいたら、またショートを開いている。',
-    subtitle: '短い刺激は、思っているより静かに時間を奪います。',
+    body: 'いわゆる、ドパガキへ。\n脱ドパは、ショートに消えていた時間を少しずつあなたに返すアプリです。',
     cta: '次へ',
   },
   usage: {
     title: '1日にどれくらいショート動画を見ていますか？',
   },
   loss: {
-    monthlyPrefix: '今、月に約',
-    monthlyBody: 'ショートに消えています。',
-    lifetimeBefore: 'このままでは、人生で',
-    lifetimeAfter: 'の自発的な時間を失うかもしれません。',
-    recover: '脱ドパを使えば、その時間を少しずつ取り返せます。',
+    monthlyPrefix: '月に約',
+    yearlyPrefix: '1年で約',
+    hoursUnit: '時間',
+    body: '今、その時間がショートに消えています。',
+    recover: '脱ドパで、その時間を少しずつ取り戻そう。',
+    disclaimer: '自己申告した利用時間をもとにした概算です',
     cta: '次へ',
   },
-  motto: {
-    title: '脱ドパは、ショートの逆をやるアプリ。',
-    subtitle: 'スマホの刺激から離れるアプリです。',
-    principles: ['長い映像を見る', 'スキップしない', 'スマホから離れる', '同じ時間にみんなで見る'],
+  raid: {
+    title: '毎日22時、みんなでやる3分虚無チャレンジ。',
+    body: '知らない人たちと同じ時間に集まり、3分間、何も起きない映像を見る。\n通知が来たら、3分以内に脱ドパを始めよう。',
+    nameLabel: 'あなたの公開ネーム',
+    nameHint: 'レイド後の「今日一緒だった人」に表示される名前。あとで変更できます。',
+    regenerate: '別の候補を出す',
     cta: '次へ',
   },
   firstLong: {
-    title: 'まずは、脱ドパロングを視聴しよう。',
-    subtitle: '短い刺激から離れて、静かな映像に切り替えます。',
-    cta: '脱ドパロングをはじめる',
-  },
-  raid: {
-    title: '毎日、ドーパミンが出ない映像をみんなで見て、スマホから離れよう。',
-    subtitle: '同じ時間に、同じ映像を見るだけ。',
-    cta: '次へ',
-  },
-  done: {
-    title: '準備完了。',
-    subtitle: 'まずは1本、ショートの逆を見てみよう。',
-    cta: '最初の脱ドパロングを視聴する',
+    title: 'さっそく、ショートの真逆をやってみよう。',
+    body: '3分間、何も起きない映像を見る。それだけ。',
+    cta: '3分ロングをはじめる',
   },
   back: '戻る',
 } as const;
 
-export const LONG_VIDEO_META_LABEL = '余白のあるロング映像';
-
-export const LONG_VIDEO_DEFAULT_NOTE = '低刺激ロング。静かな空間に浸り、脳に余白を戻す。';
-
-export const RAID_PLAYER_NOTE = 'スキップ不可。何かが起きそうで、何も起きない3分。みんなでクールダウン。';
-
-export const LONG_EXIT_CONFIRM = {
-  title: '視聴をやめる？',
-  message: '視聴をやめるとドパガキのままですがよろしいですか？',
-  continue: '続ける',
-  quit: 'はい、やめる',
-} as const;
-
-// ホームのカード群
+// ホーム
 export const homeCopy = {
-  scoreLabel: 'あなたのドパガキ度',
-  titleLabel: 'あなたのドパガキ称号',
-  shareLabel: 'ドパるけど共有する',
-  deltaYesterday: '昨日から',
-  deltaLastWeek: '先週から',
-  deltaLastMonth: '先月から',
-  weeklyTitle: '今週のドパ収支',
-  weeklyFailedLabel: '脱ドパに失敗した時間',
-  weeklyReclaimedLabel: 'あなたらしい人生を取り戻した時間',
-  weeklyProjectionPrefix: 'このままのペースでいくと',
-  weeklyProjectionSuffix: 'の豊かな時間が生まれそう',
-  recordTitle: '脱ドパ記録',
-  streakSuffix: '日連続で脱ドパ中！',
-  streakNone: '今日から連続記録をはじめよう。',
-  calendarHint: 'ロングを完走した日にスタンプがつく。',
+  raidLabel: '今日の公式レイド',
+  raidTime: '22:00',
+  raidCountdownPrefix: 'あと',
+  raidOpenLabel: '集合中',
+  raidOpenSub: '参加猶予',
+  raidJoin: '参加する',
+  raidClosed: '今日の公式レイドは終了',
+  raidDoneCompleted: '今日の3分、完走',
+  raidDoneExited: '今日は途中まで。それも記録',
+  catchupLabel: '追い脱ドパ',
+  catchupSub: '同じ映像を、いまから3分',
+  totalLabel: '累計脱ドパ時間',
+  totalSub: 'ショートの外で過ごした時間',
+  dopagakiLabel: 'ドパガキ度',
+  dopagakiNote: 'アプリ内のエンタメ指標です',
+  streakLabel: '連続脱ドパ日数',
+  streakUnit: '日',
+  streakNone: '今日から連続記録をはじめよう',
+  weekLabel: '今週の履歴',
+  weekLegendRaid: 'レイド完走',
+  weekLegendExited: '途中離脱',
+  weekLegendLong: 'ロングのみ',
 } as const;
 
-// ドパガキ度が上がる操作をしたときの警告演出
-export const dopaSpikeCopy = {
-  scroll: 'スクロール脳が疼いた',
-  skip: 'スキップは幻',
-  speed: '倍速などない',
-  share: 'ドパった',
+// ロング（今日の1本）
+export const longCopy = {
+  title: '今日の1本',
+  tagline: '何も起きない映像で、スクロール脳をクールダウン。',
+  durationLabel: '視聴時間',
+  play: '再生する',
+  lockNote: 'スキップ不可・倍速なし・次の動画もなし',
+  selectionComingSoon: '動画を選べるのは、今後のプレミアムで。',
 } as const;
 
-// ロング視聴中、画面上部に1分ごとに切り替わる一言
-export const longPlayerHints = [
-  '画面から離れよう',
-  'スワイプするとドパガキ度は上がります',
-  '倍速？そんなもんねえよ。',
-  '次の動画に行けると思うなよ',
-  'tiktiktik...',
-  'そろそろスマホがどうでもよくなる頃かな',
-  '映像に意味あるか？特にない',
-] as const;
-
-// 完走時のパチンコ風セレブレーション
-export const celebrationCopy = {
-  headline: '脱ドパ成功',
-  sub: '完走おめでとう',
+// レイド・視聴中
+export const playerCopy = {
+  raidLabel: '3分虚無チャレンジ',
+  longLabel: '脱ドパロング',
+  exit: '中断する',
+  exitConfirmTitle: '中断する？',
+  exitConfirmMessage: 'ここまでの時間は、ちゃんと記録に残ります。',
+  exitConfirmContinue: '続ける',
+  exitConfirmQuit: '中断する',
 } as const;
 
-// リザルトの「管理人からのひとこと」
-export const adminComments = {
-  success: [
-    '1時間も耐えてる間何してたん？',
-    'その虚無、悪くなかったやろ。',
-    'スクロールしなかった指、ちょっとかっこよかった。',
-    '脳のシワに余白が戻ったのを確認しました。',
-    '今日のきみ、ドパガキ卒業の見込みあり。',
-    '何も起きない映像に勝った。実質優勝。',
-  ],
-  failure: [
-    '指が先に動いたか。まだドパが濃いな。',
-    'スキップして得た3秒で、何を得たん？',
-    '途中でやめても、虚無は逃げないから安心して。',
-    'また明日、虚無で待ってる。',
-    '惜しい。ドパガキ度はしっかり上がっといたで。',
-  ],
-} as const;
-
+// リザルト
 export const resultCopy = {
-  reclaimedLabel: '脱ドパできた時間',
-  scoreLabel: 'ドパガキ度',
-  adminLabel: '管理人からのひとこと',
-  screenshotLabel: 'スクショ',
-  homeLabel: 'ホームへ戻る',
-  screenshotAlertTitle: 'スクショタイム',
-  screenshotAlertBody: 'この画面はスクショOK。端末のスクリーンショットでどうぞ。ちなみにスクショではドパガキ度は上がりません。',
+  titleCompleted: '今日も、ショートの外に出た。',
+  titleExited: '途中まで。それでも外に出た。',
+  raidKindLabel: '公式レイド',
+  longKindLabel: '脱ドパロング',
+  catchupKindLabel: '追い脱ドパ',
+  watchedLabel: '今回の視聴時間',
+  gainedLabel: '増えた脱ドパ時間',
+  totalLabel: '累計脱ドパ時間',
+  dopagakiLabel: 'ドパガキ度',
+  streakLabel: '連続脱ドパ日数',
+  companionsLabel: '今日一緒だった人',
+  companionSuffix: 'さん',
+  companionsEmpty: '今日も3分、ショートの外に出ました。',
+  share: '共有画像を作る',
+  nextRaid: '次の集合は、明日の22:00。',
+  home: 'ホームへ戻る',
 } as const;
 
+// SNS共有画像（差し込み項目のみ。長文コピーは足さない）
+export const shareCopy = {
+  hashtag: '#脱ドパ',
+  kindRaid: '公式レイド',
+  kindLong: 'ロング',
+  completed: '完走',
+  exited: '途中離脱',
+  totalLabel: '累計脱ドパ時間',
+  dopagakiLabel: 'ドパガキ度',
+  streakSuffix: '日連続',
+  fallbackShareTitle: '脱ドパ',
+} as const;
+
+// 設定
 export const menuCopy = {
-  titlesSectionTitle: '称号コレクション',
-  titlesHint: '共有時に見せる称号をひとつ選べる。ドパガキ度やロング視聴で増えていく。',
-  titlesLockedLabel: '???',
-  shareSectionLabel: '現状を共有する',
+  title: '設定',
+  profileSection: '公開ユーザーネーム',
+  nameHint: 'レイド後の「今日一緒だった人」に表示されます。',
+  regenerate: '候補を出す',
+  notificationSection: '通知',
+  notificationLabel: '毎日22:00の通知',
+  raidExplain: '毎日22:00に公式レイド。通知から3分以内だけ参加できます。時刻は変更できません。',
+  cacheSection: '動画キャッシュ',
+  cacheClear: 'キャッシュを削除',
+  cacheCleared: '動画キャッシュを削除しました。',
+  plansSection: '今後の予定',
+  premiumTitle: '脱ドパ プレミアム（準備中）',
+  premiumBody: '広告非表示、動画選択、過去動画アーカイブ、お気に入り、長時間動画、限定動画。',
+  heavyTitle: 'ヘビーモード（準備中）',
+  heavyBody: 'プレミアム特典に加えて、自主的な広告増量、限定称号とバッジ、限定共有デザイン。より一層スマホから離れたい人へ。',
+  comingSoon: '今後提供予定',
+  redoOnboarding: 'オンボーディングをやり直す',
+  deleteData: 'データを削除',
+  deleteConfirmTitle: 'データ削除',
+  deleteConfirmBody: '記録と設定をすべて消します。',
+  legalPrivacy: 'プライバシーポリシー',
+  legalTerms: '利用規約',
 } as const;
 
-export const titles = [
-  '虚無レイド参加者',
-  '通知だけ見た人',
-  '42秒で離脱した者',
-  '準・虚無耐久者',
-  'スクロールに魂を売った者',
-  '本日のレイド完走者',
-  '静寂に3分耐えた者',
-  '虚無を見つめし者',
-  '途中離脱の達人',
-];
-
-export const comments = [
-  'ショートの逆を、今日はどこまで続けたか。',
-  'スクロールする代わりに、止まる。',
-  '通知を見た時点で、レイドは始まっている。',
-  '完走しても、中断しても、今日の記録。',
-  '今日はまだ、取り返せる。',
-  '虚無に耐えた時間だけ、少し戻ってくる。',
-  '低刺激に、どれだけ浸れるか。',
-];
+// ユーザーネームのバリデーションメッセージ
+export const nameErrorCopy = {
+  tooShort: '2文字以上にしてください',
+  tooLong: '16文字以内にしてください',
+  invalid: 'この名前は使えません',
+} as const;

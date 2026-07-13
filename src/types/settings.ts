@@ -1,25 +1,9 @@
 
-export type SocialTimeSlot = 'early_morning' | 'morning' | 'noon' | 'evening' | 'night' | 'late_night';
-
-export type AvatarColorId = 'mint' | 'lavender' | 'pink' | 'blue' | 'yellow';
-
 export type UserSettings = {
   onboardingCompleted: boolean;
-  nickname: string;
-  avatarColorId: AvatarColorId;
-  socialTimeSlot: SocialTimeSlot;
-  customSocialTimeLabel?: string;
-  raidTime: string;
-  customTimeStart?: string;
-  customTimeEnd?: string;
+  /** 公開ユーザーネーム（同行者表示・SNS共有画像に使用） */
+  publicName: string;
   notificationEnabled: boolean;
-  raidDurationSeconds: number;
-  // 共有時に見せるドパガキ称号（メニューで選択）
-  selectedTitleId?: string;
-};
-
-export type PremiumStatus = {
-  isPremium: boolean;
-  planName: string;
-  jokeAdsMultiplier: number;
+  /** オンボーディングで自己申告したショート利用時間のID */
+  shortsUsageId: string;
 };

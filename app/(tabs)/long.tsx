@@ -1,17 +1,19 @@
 
-import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
+// 通常ロング。無料ユーザーには「今日の1本」だけを提示する（動画選択なし）。
+// 視聴時間は 3/10/30/60分 のプリセットから選択。広告はこの画面の最下部のみ。
+
+import { useCallback, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AdBanner } from '../../src/components/AdBanner';
-import { VideoFeedCard } from '../../src/components/VideoFeedCard';
+import { PrimaryButton } from '../../src/components/PrimaryButton';
 import { Chip } from '../../src/components/ui/Chip';
-import { DurationSlider } from '../../src/components/ui/DurationSlider';
-import { EnterCard } from '../../src/components/ui/Motion';
-import { screenCopy } from '../../src/constants/copy';
+import { longCopy } from '../../src/constants/copy';
 import { colors, fontFamily, radius, spacing, typography } from '../../src/constants/theme';
-import { LONG_DURATION_DEFAULT_SECONDS, LongVideoService } from '../../src/services/LongVideoService';
-import { VideoAsset } from '../../src/types/video';
+import { ResolvedVideo } from '../../src/types/video';
+import { FeatureGateService } from '../../src/services/FeatureGateService';
+import { VideoDeliveryService } from '../../src/services/VideoDeliveryService';
 
 const DURATION_PRESETS = [
   { label: '3分', seconds: 180 },
@@ -19,15 +21,6 @@ const DURATION_PRESETS = [
   { label: '30分', seconds: 1800 },
   { label: '60分', seconds: 3600 },
 ] as const;
-
-function ShuffleGlyph() {
-  return (
-    <View style={styles.shuffle}>
-      <View style={styles.shuffleLine} />
-      <View style={[styles.shuffleLine, styles.shuffleLine2]} />
-    </View>
-  );
-}
 
 function LockGlyph() {
   return (
@@ -38,74 +31,79 @@ function LockGlyph() {
   );
 }
 
+function PlayTriangle() {
+  return <View style={styles.playTriangle} />;
+}
+
 export default function LongScreen() {
-  const videos = useMemo(() => LongVideoService.listVideos(), []);
-  const recommended = useMemo(() => LongVideoService.getRecommendedVideo(), []);
-  const [durationSeconds, setDurationSeconds] = useState(LONG_DURATION_DEFAULT_SECONDS);
+  const [video, setVideo] = useState<ResolvedVideo | null>(null);
+  const [durationSeconds, setDurationSeconds] = useState<number>(DURATION_PRESETS[0].seconds);
+  const canSelectVideo = FeatureGateService.hasFeature('video_selection');
 
-  const durationMinutes = LongVideoService.minutesFromSeconds(durationSeconds);
-  const durationLabel = `${durationMinutes}分`;
-
-  const ordered = useMemo(
-    () => [recommended, ...videos.filter((video) => video.id !== recommended.id)],
-    [recommended, videos],
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      const load = async () => {
+        const manifest = await VideoDeliveryService.getLocalManifest();
+        const videoId = VideoDeliveryService.getLongVideoId(manifest);
+        const resolved = await VideoDeliveryService.resolveVideo(videoId, manifest);
+        if (!cancelled) {
+          setVideo(resolved);
+        }
+      };
+      void load();
+      return () => {
+        cancelled = true;
+      };
+    }, []),
   );
 
-  const play = (video: VideoAsset) => {
-    router.push({
-      pathname: '/raid/active',
-      params: { mode: 'normal', videoId: video.id, duration: String(durationSeconds) },
-    });
+  const play = () => {
+    router.push({ pathname: '/raid/active', params: { mode: 'long', duration: String(durationSeconds) } });
   };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{screenCopy.longTitle}</Text>
-        <View style={styles.lockRow}>
-          <LockGlyph />
-          <Text style={styles.lockText}>スキップ不可・倍速なし・次の動画もなし</Text>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <Text style={styles.title}>{longCopy.title}</Text>
+          <Text style={styles.tagline}>{longCopy.tagline}</Text>
         </View>
-      </View>
 
-      <View style={styles.durationPanel}>
-        <View style={styles.durationHead}>
-          <Text style={styles.durationLabel}>{screenCopy.longDurationSectionLabel}</Text>
+        <Pressable onPress={play} style={({ pressed }) => [styles.videoCard, pressed && styles.videoCardPressed]}>
+          <View style={styles.videoArt}>
+            <View style={styles.videoHorizon} />
+            <View style={styles.playBadge}>
+              <PlayTriangle />
+            </View>
+          </View>
+          <Text style={styles.videoTitle}>{video?.title ?? ''}</Text>
+        </Pressable>
+
+        <View style={styles.durationBlock}>
+          <Text style={styles.durationLabel}>{longCopy.durationLabel}</Text>
           <View style={styles.presetRow}>
-            <Chip
-              label="ランダム"
-              compact
-              icon={<ShuffleGlyph />}
-              onPress={() => setDurationSeconds(LongVideoService.randomDurationSeconds())}
-            />
             {DURATION_PRESETS.map((preset) => (
               <Chip
                 key={preset.label}
                 label={preset.label}
-                compact
                 selected={durationSeconds === preset.seconds}
                 onPress={() => setDurationSeconds(preset.seconds)}
               />
             ))}
           </View>
         </View>
-        <DurationSlider valueMinutes={durationMinutes} onChange={(minutes) => setDurationSeconds(minutes * 60)} compact />
-      </View>
 
-      <ScrollView style={styles.feed} contentContainerStyle={styles.feedContent} showsVerticalScrollIndicator={false}>
-        {ordered.map((video, index) => (
-          <EnterCard key={video.id} index={index}>
-            <VideoFeedCard
-              video={video}
-              durationLabel={durationLabel}
-              recommended={video.id === recommended.id}
-              onPress={() => play(video)}
-            />
-          </EnterCard>
-        ))}
+        <PrimaryButton label={longCopy.play} variant="gradient" icon={<PlayTriangle />} onPress={play} />
 
-        <Text style={styles.description}>{screenCopy.longDescription}</Text>
-        <AdBanner />
+        <View style={styles.lockRow}>
+          <LockGlyph />
+          <Text style={styles.lockText}>{longCopy.lockNote}</Text>
+        </View>
+
+        {!canSelectVideo && <Text style={styles.comingSoon}>{longCopy.selectionComingSoon}</Text>}
+
+        <AdBanner placement="long_setup" />
       </ScrollView>
     </SafeAreaView>
   );
@@ -116,12 +114,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  content: {
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: 120,
+  },
   header: {
     gap: 4,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xs,
-    paddingBottom: spacing.sm,
     alignItems: 'center',
+    paddingTop: spacing.xs,
   },
   title: {
     color: colors.text,
@@ -130,9 +132,80 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.black,
     letterSpacing: -0.3,
   },
+  tagline: {
+    color: colors.textMuted,
+    ...typography.caption,
+  },
+  videoCard: {
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    overflow: 'hidden',
+  },
+  videoCardPressed: {
+    opacity: 0.85,
+  },
+  videoArt: {
+    height: 180,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.black,
+  },
+  videoHorizon: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: '58%',
+    height: 1,
+    backgroundColor: 'rgba(244, 247, 251, 0.16)',
+  },
+  playBadge: {
+    width: 52,
+    height: 52,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: 'rgba(244, 247, 251, 0.25)',
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  playTriangle: {
+    width: 0,
+    height: 0,
+    borderTopWidth: 7,
+    borderBottomWidth: 7,
+    borderLeftWidth: 12,
+    borderTopColor: 'transparent',
+    borderBottomColor: 'transparent',
+    borderLeftColor: colors.text,
+    marginLeft: 2,
+  },
+  videoTitle: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '700',
+    fontFamily: fontFamily.bold,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  durationBlock: {
+    gap: spacing.sm,
+  },
+  durationLabel: {
+    color: colors.textMuted,
+    ...typography.label,
+    paddingHorizontal: spacing.xs,
+  },
+  presetRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
   lockRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: spacing.xs,
   },
   lockText: {
@@ -161,56 +234,9 @@ const styles = StyleSheet.create({
     marginTop: -1,
     backgroundColor: colors.textSubtle,
   },
-  durationPanel: {
-    gap: spacing.sm,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.sm,
-  },
-  durationHead: {
-    gap: spacing.xs,
-  },
-  durationLabel: {
-    color: colors.textMuted,
-    ...typography.label,
-    paddingHorizontal: spacing.xs,
-  },
-  presetRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-  },
-  feed: {
-    flex: 1,
-  },
-  feedContent: {
-    gap: spacing.md,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xs,
-    paddingBottom: 120,
-  },
-  description: {
+  comingSoon: {
     color: colors.textSubtle,
     ...typography.caption,
     textAlign: 'center',
-    lineHeight: 20,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.md,
-    backgroundColor: colors.surface,
-  },
-  shuffle: {
-    width: 13,
-    height: 10,
-    justifyContent: 'space-between',
-  },
-  shuffleLine: {
-    width: 13,
-    height: 1.6,
-    borderRadius: 2,
-    backgroundColor: colors.textMuted,
-    transform: [{ rotate: '-8deg' }],
-  },
-  shuffleLine2: {
-    transform: [{ rotate: '8deg' }],
   },
 });

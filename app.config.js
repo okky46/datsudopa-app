@@ -34,7 +34,6 @@ module.exports = ({ config }) => ({
     'expo-router',
     'expo-video',
     'expo-notifications',
-    'expo-screen-orientation',
     [
       'react-native-google-mobile-ads',
       {

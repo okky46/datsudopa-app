@@ -143,10 +143,21 @@ export const dopaSpikeCopy = {
   share: 'ドパった',
 } as const;
 
+// ロング視聴中、画面上部に1分ごとに切り替わる一言
+export const longPlayerHints = [
+  '画面から離れよう',
+  'スワイプするとドパガキ度は上がります',
+  '倍速？そんなもんねえよ。',
+  '次の動画に行けると思うなよ',
+  'tiktiktik...',
+  'そろそろスマホがどうでもよくなる頃かな',
+  '映像に意味あるか？特にない',
+] as const;
+
 // 完走時のパチンコ風セレブレーション
 export const celebrationCopy = {
-  headline: '脱ドパ大当たり',
-  sub: '完走おめでとう。脳に余白が戻った。',
+  headline: '脱ドパ成功',
+  sub: '完走おめでとう',
 } as const;
 
 // リザルトの「管理人からのひとこと」

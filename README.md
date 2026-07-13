@@ -149,6 +149,16 @@ iOS:
 3. npx expo run:ios
 4. 通知許可、AdMobバナー、共有シート、AppState失敗判定を確認
 
+## 文言の編集
+
+画面上のコピーは `src/constants/copy.ts` に集約しています。文章を書き換えたいときはまずここを見てください。
+
+特に、脱ドパロング視聴中に画面上部へ1分ごとに切り替わる一言は、同ファイルの `longPlayerHints` です。
+
+- 配列の先頭が開始直後のデフォルト表示（現在は「画面から離れよう」）
+- 2件目以降が1分ごとに順番に切り替わるコメント
+- 文言の追加・差し替え・並び替えは、この配列を編集するだけで反映されます
+
 ## 動画管理方針
 
 MVPではDBを使いません。src/constants/videos.ts の VideoAsset 定義で、local / remote / generated_placeholder / user_uploaded を扱える構造にしています。

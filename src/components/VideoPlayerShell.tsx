@@ -3,17 +3,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Animated, AppState, AppStateStatus, PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LONG_EXIT_CONFIRM, RAID_PLAYER_NOTE, dopaSpikeCopy } from '../constants/copy';
-import { colors, gradientBar, spacing } from '../constants/theme';
+import { LONG_EXIT_CONFIRM, RAID_PLAYER_NOTE, dopaSpikeCopy, longPlayerHints } from '../constants/copy';
+import { colors, gradientBar, spacing, zenMaru } from '../constants/theme';
 import { DopamineService } from '../services/DopamineService';
 import { DopaSpikeKind } from '../types/dopamine';
 import { FailureReason } from '../types/result';
 import { VideoAsset, WatchMode } from '../types/video';
-import { formatSeconds, toDateKey } from '../utils/date';
+import { formatSeconds } from '../utils/date';
 import { CelebrationOverlay } from './player/CelebrationOverlay';
 import { DopaSpikeOverlay, DopaSpikeOverlayHandle } from './player/DopaSpikeOverlay';
 import { PressableScale } from './ui/Motion';
-import { PresenceField } from './ui/PresenceField';
 import { SoftGradient } from './ui/SoftGradient';
 
 const videoText = '#F4F7FB';
@@ -190,18 +189,23 @@ export function VideoPlayerShell({ video, mode, targetSeconds, onComplete, onFai
 
   if (mode === 'normal') {
     const progress = targetSeconds > 0 ? Math.min(1, watchedSeconds / targetSeconds) : 0;
+    const hint = longPlayerHints[Math.floor(watchedSeconds / 60) % longPlayerHints.length];
 
     return (
       <View style={styles.container}>
         <VideoLayer video={video} />
-        <PresenceField active seedKey={`long-${video.id}-${toDateKey()}`} />
 
         {/* スクロールしたくなった指を検知するレイヤー */}
         <View style={StyleSheet.absoluteFill} {...panResponder.panHandlers} />
 
         <View style={[styles.longTop, { top: Math.max(insets.top, spacing.md) }]} pointerEvents="none">
-          <Text style={styles.longMode}>脱ドパロング</Text>
-          <Text style={styles.longRemaining}>{formatSeconds(remainingSeconds)}</Text>
+          <View style={styles.longTopRow}>
+            <Text style={styles.longMode}>脱ドパロング</Text>
+            <Text style={styles.longRemaining}>{formatSeconds(remainingSeconds)}</Text>
+          </View>
+          <Text style={styles.longHint} numberOfLines={1}>
+            {hint}
+          </Text>
         </View>
 
         <View style={[styles.actionRail, { bottom: 120 + insets.bottom }]}>
@@ -243,7 +247,6 @@ export function VideoPlayerShell({ video, mode, targetSeconds, onComplete, onFai
     <View style={styles.container}>
       <VideoLayer video={video} />
       <View style={styles.scrim} />
-      <PresenceField active seedKey={`raid-${video.id}-${toDateKey()}`} />
       <View style={styles.top}>
         <Text style={styles.mode}>本日の脱ドパレイド</Text>
         <Text style={styles.remaining}>{formatSeconds(remainingSeconds)}</Text>
@@ -315,6 +318,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: spacing.lg,
     right: spacing.lg,
+    gap: spacing.xs,
+  },
+  longTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -322,6 +328,7 @@ const styles = StyleSheet.create({
   longMode: {
     color: 'rgba(244, 247, 251, 0.4)',
     fontSize: 12,
+    fontFamily: zenMaru('600'),
     fontWeight: '600',
     letterSpacing: 1.6,
   },
@@ -329,9 +336,18 @@ const styles = StyleSheet.create({
   longRemaining: {
     color: 'rgba(244, 247, 251, 0.45)',
     fontSize: 16,
+    fontFamily: zenMaru('700'),
     fontWeight: '700',
     letterSpacing: 1,
     fontVariant: ['tabular-nums'],
+  },
+  // 視聴中の一言。騒がず、映像の上にそっと置く
+  longHint: {
+    color: 'rgba(244, 247, 251, 0.55)',
+    fontSize: 13,
+    fontFamily: zenMaru('500'),
+    fontWeight: '500',
+    letterSpacing: 0.4,
   },
   actionRail: {
     position: 'absolute',

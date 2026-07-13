@@ -1,13 +1,17 @@
 
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { colors, radius, spacing } from '../constants/theme';
+import { FeatureGateService } from '../services/FeatureGateService';
 
 type Props = {
-  label?: string;
+  placement: string;
 };
 
 // react-native-google-mobile-ads はネイティブ専用のため、web ではプレースホルダーのみ表示する。
 export function AdBanner(_: Props) {
+  if (FeatureGateService.getAdMode() === 'hidden') {
+    return null;
+  }
   return (
     <View style={styles.wrapper}>
       <Text style={styles.placeholder}>AD BANNER</Text>

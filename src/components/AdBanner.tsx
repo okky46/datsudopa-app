@@ -1,11 +1,15 @@
 
+import { useEffect } from 'react';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { colors, radius, spacing } from '../constants/theme';
 import { AdsService } from '../services/AdsService';
+import { AnalyticsService } from '../services/AnalyticsService';
+import { FeatureGateService } from '../services/FeatureGateService';
 
 type Props = {
-  label?: string;
+  /** 分析用の設置場所（home / long_setup / menu） */
+  placement: string;
 };
 
 type GoogleMobileAdsModule = typeof import('react-native-google-mobile-ads');
@@ -22,7 +26,20 @@ function loadGoogleMobileAds(): GoogleMobileAdsModule | null {
   }
 }
 
-export function AdBanner(_: Props) {
+export function AdBanner({ placement }: Props) {
+  const adMode = FeatureGateService.getAdMode();
+  const hidden = adMode === 'hidden';
+
+  useEffect(() => {
+    if (!hidden) {
+      void AnalyticsService.track('ad_impression', { placement });
+    }
+  }, [hidden, placement]);
+
+  if (hidden) {
+    return null;
+  }
+
   const ads = loadGoogleMobileAds();
   if (!ads) {
     return (

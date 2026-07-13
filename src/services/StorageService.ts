@@ -1,47 +1,34 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { DailyResult } from '../types/result';
-import { DopamineSnapshot } from '../types/dopamine';
-import { CurrentRaidState } from '../types/raid';
-import { AvatarColorId, PremiumStatus, SocialTimeSlot, UserSettings } from '../types/settings';
-import { VideoWatchRecord } from '../types/video';
+import { WatchSession } from '../types/session';
+import { UserSettings } from '../types/settings';
+import { VideoManifest } from '../types/video';
 
 const keys = {
   onboardingCompleted: 'onboardingCompleted',
   userSettings: 'userSettings',
-  dailyResults: 'dailyResults',
-  currentRaidState: 'currentRaidState',
+  sessions: 'watchSessions',
+  totalDetoxSeconds: 'totalDetoxSeconds',
+  dopagakiLevel: 'dopagakiLevel',
+  dopagakiLongReduction: 'dopagakiLongReduction',
+  dopagakiMissedProcessed: 'dopagakiMissedProcessed',
+  firstUseDateKey: 'firstUseDateKey',
   notificationPermission: 'notificationPermission',
-  premiumStatus: 'premiumStatus',
-  videoWatchHistory: 'videoWatchHistory',
-  dopamineLevel: 'dopamineLevel',
-  dopamineHistory: 'dopamineHistory',
-  temptationTotal: 'temptationTotal',
+  raidSyncQueue: 'raidSyncQueue',
+  profilePendingSync: 'profilePendingSync',
+  analyticsQueue: 'analyticsQueue',
+  manifestCache: 'videoManifestCache',
+  videoCacheIndex: 'videoCacheIndex',
 };
+
+const MAX_SESSIONS = 200;
+const MAX_ANALYTICS_QUEUE = 300;
 
 const defaultSettings: UserSettings = {
   onboardingCompleted: false,
-  nickname: '名無しのドパガキ',
-  avatarColorId: 'mint',
-  socialTimeSlot: 'night',
-  raidTime: '23:00',
+  publicName: '',
   notificationEnabled: true,
-  raidDurationSeconds: 180,
-};
-
-const VALID_AVATAR_COLOR_IDS: AvatarColorId[] = ['mint', 'lavender', 'pink', 'blue', 'yellow'];
-
-function migrateAvatarColorId(id?: string): AvatarColorId {
-  if (id && VALID_AVATAR_COLOR_IDS.includes(id as AvatarColorId)) {
-    return id as AvatarColorId;
-  }
-  return 'mint';
-}
-
-const defaultPremiumStatus: PremiumStatus = {
-  isPremium: false,
-  planName: 'プレミアム・広告増量プラン placeholder',
-  jokeAdsMultiplier: 1,
+  shortsUsageId: '',
 };
 
 async function readJson<T>(key: string, fallback: T): Promise<T> {
@@ -57,23 +44,30 @@ async function writeJson<T>(key: string, value: T): Promise<void> {
   await AsyncStorage.setItem(key, JSON.stringify(value));
 }
 
-const VALID_SOCIAL_TIME_SLOTS: SocialTimeSlot[] = ['early_morning', 'morning', 'noon', 'evening', 'night', 'late_night'];
-
-const LEGACY_SOCIAL_TIME_SLOT_MAP: Record<string, SocialTimeSlot> = {
-  lunch: 'noon',
-  before_bed: 'night',
-  custom: 'night',
+export type RaidSyncItem = {
+  type: 'start' | 'finish';
+  sessionId: string;
+  raidId: string;
+  status: 'started' | 'completed' | 'exited';
+  startedAt: string;
+  finishedAt?: string;
+  watchedSeconds: number;
+  publicNameSnapshot: string;
+  queuedAt: string;
 };
 
-function migrateSocialTimeSlot(slot?: string): SocialTimeSlot {
-  if (slot && VALID_SOCIAL_TIME_SLOTS.includes(slot as SocialTimeSlot)) {
-    return slot as SocialTimeSlot;
-  }
-  if (slot && LEGACY_SOCIAL_TIME_SLOT_MAP[slot]) {
-    return LEGACY_SOCIAL_TIME_SLOT_MAP[slot];
-  }
-  return 'night';
-}
+export type AnalyticsQueueItem = {
+  event: string;
+  properties?: Record<string, string | number | boolean>;
+  occurredAt: string;
+};
+
+export type VideoCacheEntry = {
+  videoId: string;
+  fileUri: string;
+  sizeBytes: number;
+  downloadedAt: string;
+};
 
 export class StorageService {
   static getDefaultSettings(): UserSettings {
@@ -81,13 +75,14 @@ export class StorageService {
   }
 
   static async getSettings(): Promise<UserSettings> {
-    const settings = await readJson<Partial<UserSettings> & { frameColorId?: string }>(keys.userSettings, defaultSettings);
-    const { frameColorId: _removed, ...rest } = settings;
-    const merged = { ...defaultSettings, ...rest };
+    const stored = await readJson<Partial<UserSettings> & { nickname?: string }>(keys.userSettings, defaultSettings);
+    // 旧仕様（nickname）からの引き継ぎ
+    const publicName = stored.publicName ?? stored.nickname ?? defaultSettings.publicName;
     return {
-      ...merged,
-      avatarColorId: migrateAvatarColorId(merged.avatarColorId as string | undefined),
-      socialTimeSlot: migrateSocialTimeSlot(merged.socialTimeSlot as string | undefined),
+      onboardingCompleted: stored.onboardingCompleted ?? defaultSettings.onboardingCompleted,
+      publicName,
+      notificationEnabled: stored.notificationEnabled ?? defaultSettings.notificationEnabled,
+      shortsUsageId: stored.shortsUsageId ?? defaultSettings.shortsUsageId,
     };
   }
 
@@ -96,82 +91,114 @@ export class StorageService {
     await AsyncStorage.setItem(keys.onboardingCompleted, String(settings.onboardingCompleted));
   }
 
-  static async getDailyResults(): Promise<DailyResult[]> {
-    return readJson<DailyResult[]>(keys.dailyResults, []);
+  // --- 視聴セッション ---
+
+  static async getSessions(): Promise<WatchSession[]> {
+    return readJson<WatchSession[]>(keys.sessions, []);
   }
 
-  static async saveDailyResult(result: DailyResult): Promise<void> {
-    const results = await StorageService.getDailyResults();
-    const next = [
-      result,
-      ...results.filter((item) => !(item.date === result.date && item.mode === result.mode)),
-    ].sort((a, b) => b.date.localeCompare(a.date));
-    await writeJson(keys.dailyResults, next.slice(0, 60));
+  static async saveSessions(sessions: WatchSession[]): Promise<void> {
+    await writeJson(keys.sessions, sessions.slice(0, MAX_SESSIONS));
   }
 
-  static async markResultShared(date: string, mode: DailyResult['mode']): Promise<void> {
-    const results = await StorageService.getDailyResults();
-    await writeJson(
-      keys.dailyResults,
-      results.map((result) => (result.date === date && result.mode === mode ? { ...result, shared: true } : result)),
-    );
+  // --- 累計脱ドパ時間 ---
+
+  static async getTotalDetoxSeconds(): Promise<number> {
+    return readJson<number>(keys.totalDetoxSeconds, 0);
   }
 
-  static async getCurrentRaidState(): Promise<CurrentRaidState | null> {
-    return readJson<CurrentRaidState | null>(keys.currentRaidState, null);
+  static async saveTotalDetoxSeconds(seconds: number): Promise<void> {
+    await writeJson(keys.totalDetoxSeconds, Math.max(0, Math.round(seconds)));
   }
 
-  static async saveCurrentRaidState(state: CurrentRaidState | null): Promise<void> {
-    if (!state) {
-      await AsyncStorage.removeItem(keys.currentRaidState);
-      return;
-    }
-    await writeJson(keys.currentRaidState, state);
+  // --- ドパガキ度 ---
+
+  static async getDopagakiLevel(): Promise<number | null> {
+    return readJson<number | null>(keys.dopagakiLevel, null);
   }
+
+  static async saveDopagakiLevel(level: number): Promise<void> {
+    await writeJson(keys.dopagakiLevel, level);
+  }
+
+  /** 日付キー → その日ロング視聴で適用済みの減少量（0〜cap） */
+  static async getDopagakiLongReduction(): Promise<Record<string, number>> {
+    return readJson<Record<string, number>>(keys.dopagakiLongReduction, {});
+  }
+
+  static async saveDopagakiLongReduction(map: Record<string, number>): Promise<void> {
+    // 直近分だけ保持
+    const entries = Object.entries(map).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 14);
+    await writeJson(keys.dopagakiLongReduction, Object.fromEntries(entries));
+  }
+
+  /** 未参加ペナルティを処理済みの日付キー */
+  static async getDopagakiMissedProcessed(): Promise<string[]> {
+    return readJson<string[]>(keys.dopagakiMissedProcessed, []);
+  }
+
+  static async saveDopagakiMissedProcessed(dateKeys: string[]): Promise<void> {
+    await writeJson(keys.dopagakiMissedProcessed, dateKeys.slice(-30));
+  }
+
+  static async getFirstUseDateKey(): Promise<string | null> {
+    return readJson<string | null>(keys.firstUseDateKey, null);
+  }
+
+  static async saveFirstUseDateKey(dateKey: string): Promise<void> {
+    await writeJson(keys.firstUseDateKey, dateKey);
+  }
+
+  // --- 通知 ---
 
   static async saveNotificationPermission(granted: boolean): Promise<void> {
     await AsyncStorage.setItem(keys.notificationPermission, String(granted));
   }
 
-  static async getPremiumStatus(): Promise<PremiumStatus> {
-    return readJson<PremiumStatus>(keys.premiumStatus, defaultPremiumStatus);
+  // --- Supabase同期キュー ---
+
+  static async getRaidSyncQueue(): Promise<RaidSyncItem[]> {
+    return readJson<RaidSyncItem[]>(keys.raidSyncQueue, []);
   }
 
-  static async savePremiumStatus(status: PremiumStatus): Promise<void> {
-    await writeJson(keys.premiumStatus, status);
+  static async saveRaidSyncQueue(queue: RaidSyncItem[]): Promise<void> {
+    await writeJson(keys.raidSyncQueue, queue.slice(-60));
   }
 
-  static async getVideoWatchHistory(): Promise<VideoWatchRecord[]> {
-    return readJson<VideoWatchRecord[]>(keys.videoWatchHistory, []);
+  static async getProfilePendingSync(): Promise<boolean> {
+    return readJson<boolean>(keys.profilePendingSync, false);
   }
 
-  static async appendVideoWatchHistory(record: VideoWatchRecord): Promise<void> {
-    const history = await StorageService.getVideoWatchHistory();
-    await writeJson(keys.videoWatchHistory, [record, ...history].slice(0, 100));
+  static async saveProfilePendingSync(pending: boolean): Promise<void> {
+    await writeJson(keys.profilePendingSync, pending);
   }
 
-  static async getDopamineLevel(fallback: number): Promise<number> {
-    return readJson<number>(keys.dopamineLevel, fallback);
+  // --- 分析キュー ---
+
+  static async getAnalyticsQueue(): Promise<AnalyticsQueueItem[]> {
+    return readJson<AnalyticsQueueItem[]>(keys.analyticsQueue, []);
   }
 
-  static async saveDopamineLevel(level: number): Promise<void> {
-    await writeJson(keys.dopamineLevel, level);
+  static async saveAnalyticsQueue(queue: AnalyticsQueueItem[]): Promise<void> {
+    await writeJson(keys.analyticsQueue, queue.slice(-MAX_ANALYTICS_QUEUE));
   }
 
-  static async getDopamineHistory(): Promise<DopamineSnapshot[]> {
-    return readJson<DopamineSnapshot[]>(keys.dopamineHistory, []);
+  // --- 動画manifest・キャッシュ ---
+
+  static async getCachedManifest(): Promise<VideoManifest | null> {
+    return readJson<VideoManifest | null>(keys.manifestCache, null);
   }
 
-  static async saveDopamineHistory(history: DopamineSnapshot[]): Promise<void> {
-    await writeJson(keys.dopamineHistory, history.slice(-400));
+  static async saveCachedManifest(manifest: VideoManifest): Promise<void> {
+    await writeJson(keys.manifestCache, manifest);
   }
 
-  static async getTemptationTotal(): Promise<number> {
-    return readJson<number>(keys.temptationTotal, 0);
+  static async getVideoCacheIndex(): Promise<VideoCacheEntry[]> {
+    return readJson<VideoCacheEntry[]>(keys.videoCacheIndex, []);
   }
 
-  static async saveTemptationTotal(total: number): Promise<void> {
-    await writeJson(keys.temptationTotal, total);
+  static async saveVideoCacheIndex(entries: VideoCacheEntry[]): Promise<void> {
+    await writeJson(keys.videoCacheIndex, entries);
   }
 
   static async clearAll(): Promise<void> {

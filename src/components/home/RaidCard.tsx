@@ -1,34 +1,64 @@
 
+// ホーム最上部のレイドカード。次回22:00までのカウントダウン / 開始ボタン /
+// 終了表示 / 追い脱ドパ導線を出す。参加予定・人数は表示しない。
+
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { homeCopy } from '../../constants/copy';
 import { colors, fontFamily, gradientPlay, radius, spacing } from '../../constants/theme';
-import { RaidStatusView } from '../../types/raid';
+import { RaidHomeState } from '../../services/RaidService';
+import { formatRemainingTo, formatSeconds } from '../../utils/date';
 import { SoftGradient } from '../ui/SoftGradient';
 
 type Props = {
-  raidStatus: RaidStatusView;
+  state: RaidHomeState;
   onStart: () => void;
+  onCatchup: () => void;
 };
 
-export function RaidCard({ raidStatus, onStart }: Props) {
-  const devCanStart = __DEV__ && raidStatus.status !== 'completed' && raidStatus.status !== 'failed';
-  const active = raidStatus.canStart || devCanStart;
-  const buttonLabel = raidStatus.canStart ? '参加' : devCanStart ? '確認用' : '参加';
-
+function GoldButton({ label, onPress }: { label: string; onPress: () => void }) {
   return (
-    <View style={styles.card}>
+    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.button, pressed && styles.pressed]}>
+      <SoftGradient colors={gradientPlay} direction="horizontal" borderRadius={radius.pill} style={StyleSheet.absoluteFill} />
+      <Text style={styles.buttonLabel}>{label}</Text>
+    </Pressable>
+  );
+}
+
+export function RaidCard({ state, onStart, onCatchup }: Props) {
+  return (
+    <View style={[styles.card, state.phase === 'open' && styles.cardOpen]}>
       <View style={styles.textWrap}>
-        <Text style={styles.label}>今日のレイド</Text>
-        <Text style={styles.line}>
-          {raidStatus.raidTime} <Text style={styles.sub}>{raidStatus.remainingText}</Text>
-        </Text>
+        <Text style={styles.label}>{homeCopy.raidLabel}</Text>
+        {state.phase === 'countdown' && (
+          <Text style={styles.line}>
+            {homeCopy.raidTime} <Text style={styles.sub}>{formatRemainingTo(state.startAt)}</Text>
+          </Text>
+        )}
+        {state.phase === 'open' && (
+          <Text style={styles.line}>
+            {homeCopy.raidOpenLabel}{' '}
+            <Text style={styles.subOpen}>
+              {homeCopy.raidOpenSub} {formatSeconds(state.secondsLeft)}
+            </Text>
+          </Text>
+        )}
+        {state.phase === 'done' && (
+          <Text style={styles.line}>
+            <Text style={state.raidStatus === 'completed' ? styles.done : styles.sub}>
+              {state.raidStatus === 'completed' ? homeCopy.raidDoneCompleted : homeCopy.raidDoneExited}
+            </Text>
+          </Text>
+        )}
+        {state.phase === 'catchup' && (
+          <>
+            <Text style={styles.line}>{homeCopy.raidClosed}</Text>
+            <Text style={styles.sub}>{homeCopy.catchupSub}</Text>
+          </>
+        )}
       </View>
 
-      {active && (
-        <Pressable accessibilityRole="button" onPress={onStart} style={({ pressed }) => [styles.joinButton, pressed && styles.pressed]}>
-          <SoftGradient colors={gradientPlay} direction="horizontal" borderRadius={radius.pill} style={StyleSheet.absoluteFill} />
-          <Text style={styles.joinLabel}>{buttonLabel}</Text>
-        </Pressable>
-      )}
+      {state.phase === 'open' && <GoldButton label={homeCopy.raidJoin} onPress={onStart} />}
+      {state.phase === 'catchup' && <GoldButton label={homeCopy.catchupLabel} onPress={onCatchup} />}
     </View>
   );
 }
@@ -45,6 +75,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  cardOpen: {
+    borderColor: 'rgba(201, 169, 106, 0.35)',
   },
   textWrap: {
     flex: 1,
@@ -65,11 +98,24 @@ const styles = StyleSheet.create({
   },
   sub: {
     color: colors.textMuted,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '500',
     fontFamily: fontFamily.medium,
   },
-  joinButton: {
+  subOpen: {
+    color: colors.primary,
+    fontSize: 13,
+    fontWeight: '700',
+    fontFamily: fontFamily.bold,
+    fontVariant: ['tabular-nums'],
+  },
+  done: {
+    color: colors.accent,
+    fontSize: 16,
+    fontWeight: '700',
+    fontFamily: fontFamily.bold,
+  },
+  button: {
     minHeight: 40,
     paddingHorizontal: spacing.lg,
     borderRadius: radius.pill,
@@ -80,7 +126,7 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.85,
   },
-  joinLabel: {
+  buttonLabel: {
     color: colors.onPrimary,
     fontSize: 13,
     fontWeight: '800',

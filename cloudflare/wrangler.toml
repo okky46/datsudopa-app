@@ -1,0 +1,13 @@
+# Cloudflare Workers Static Assets で追加映像を配信するための設定。
+# 動画取得時にWorkerスクリプトは実行されない（静的アセット直接配信のみ）。
+#
+# デプロイ: cd cloudflare && npx wrangler deploy
+# その後、割り当てられたURLを EXPO_PUBLIC_VIDEO_BASE_URL に設定する。
+
+name = "datsudopa-videos"
+compatibility_date = "2026-07-01"
+
+# Workerスクリプトを持たないassetsのみの構成。
+# リクエストは常に public/ 配下の静的ファイルへ直接ルーティングされる。
+[assets]
+directory = "./public"

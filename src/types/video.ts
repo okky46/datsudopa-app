@@ -1,34 +1,37 @@
 
-export type VideoMood =
-  | 'chill'
-  | 'liminal'
-  | 'walk'
-  | 'night'
-  | 'rain'
-  | 'station'
-  | 'empty_city'
-  | 'corridor'
-  | 'parking';
+// 動画は静的な manifest.json（remote → cached → bundled の3段フォールバック）で管理する。
 
-export type VideoAsset = {
+export type VideoAccess = 'free' | 'premium';
+
+export type ManifestVideo = {
   id: string;
   title: string;
-  description?: string;
-  sourceType: 'local' | 'remote' | 'generated_placeholder' | 'user_uploaded';
-  uri: string;
-  durationSeconds?: number;
-  mood: VideoMood;
-  isPremium?: boolean;
-  creatorName?: string;
+  /** Static Assets ルートからの相対パス（例: videos/void-001.mp4） */
+  file: string;
+  durationSeconds: number;
+  access: VideoAccess;
 };
 
-export type WatchMode = 'raid' | 'normal';
+export type VideoManifest = {
+  version: number;
+  updatedAt: string;
+  videos: ManifestVideo[];
+  /** 日別の指定（JST日付キー → 動画ID）。なければ rotation から決める */
+  daily?: Record<string, { raidVideoId?: string; longVideoId?: string }>;
+  /** 日替わりのデフォルトローテーション（動画IDの配列） */
+  rotation: string[];
+};
 
-export type VideoWatchRecord = {
+/** 再生画面へ渡す解決済みの動画ソース */
+export type ResolvedVideo = {
   id: string;
-  videoId: string;
-  mode: WatchMode;
-  watchedAt: string;
-  targetSeconds: number;
-  completed: boolean;
+  title: string;
+  durationSeconds: number;
+  /**
+   * 再生ソース。
+   * - number: アプリ同梱アセット（require の戻り値）
+   * - string: ローカルキャッシュまたはリモートのURI
+   * - null: 実動画が未配置（プレースホルダー描画で再生成立させる）
+   */
+  source: number | string | null;
 };

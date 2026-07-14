@@ -105,10 +105,15 @@ export class AnalyticsService {
         }));
         try {
           // event_id 一意で重複無視。タイムアウト後の再送でも二重保存されない。
-          await withTimeout(
+          // supabase-js は throw せず { error } で応答するため、error を検査する。
+          // RLS拒否・0003未適用・5xx 等でエラーなら除去せず次回再送（イベントの欠落を防ぐ）。
+          const { error } = await withTimeout(
             Promise.resolve(supabase.from('analytics_events').upsert(rows, { onConflict: 'event_id', ignoreDuplicates: true })),
             SEND_TIMEOUT_MS,
           );
+          if (error) {
+            break;
+          }
         } catch {
           // ネットワーク/タイムアウト。以降のバッチは次回に回す（送信済み分だけ除去）
           break;

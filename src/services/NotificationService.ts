@@ -156,7 +156,10 @@ export class NotificationService {
 
   /**
    * コールドスタート時に、通知タップで起動されたかを確認して identifier を返す。
-   * clear はしない（同一 identifier の二重処理は呼び出し側が dedup する）。
+   * identifier を読み取った後に clear する。clear しないと getLastNotificationResponseAsync が
+   * 以降の通常起動でも同じ応答を返し続け、processedRef（実行時のみ有効）を越えて
+   * 古い通知のレイド遷移・分析が再実行されてしまうため。
+   * 同一起動内での listener との二重処理は、呼び出し側が identifier で dedup する。
    */
   static async consumeLaunchRaidNotification(): Promise<string | null> {
     const Notifications = loadNotifications();
@@ -169,7 +172,9 @@ export class NotificationService {
       if (data?.screen !== 'raid') {
         return null;
       }
-      return response?.notification.request.identifier ?? 'launch';
+      const identifier = response?.notification.request.identifier ?? 'launch';
+      await Notifications.clearLastNotificationResponseAsync();
+      return identifier;
     } catch {
       return null;
     }

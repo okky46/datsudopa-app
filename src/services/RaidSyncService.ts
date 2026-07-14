@@ -104,13 +104,27 @@ export class RaidSyncService {
               p_status: item.status === 'completed' ? 'completed' : 'exited',
               p_watched_seconds: item.watchedSeconds,
             });
-      // error===null は成功。errorオブジェクトはサーバーが応答した確定的エラー
-      // （公式時間外・重複・不正status等で再送不能）。どちらもキューから除去する。
-      await withTimeout(Promise.resolve(call), SYNC_TIMEOUT_MS);
-      return true;
+      // supabase-js の rpc/upsert は throw せず { error } で応答するため、error を必ず検査する。
+      const { error } = await withTimeout(Promise.resolve(call), SYNC_TIMEOUT_MS);
+      if (!error) {
+        return true; // 成功 → 除去
+      }
+      // 再送しても直らない確定的エラーだけ除去する。それ以外（RPC未デプロイ・5xx・RLS等の
+      // 一時的/環境要因）はキューに残して次回再送し、参加記録・集計の欠落を防ぐ。
+      return isNonRetryableError(error);
     } catch {
       // ネットワーク/タイムアウト（応答なし）。キューに残して再送する
       return false;
     }
   }
+}
+
+/**
+ * 再送で解消しない確定的エラーか。
+ * - 23505: (raid_id, user_id) 一意制約違反（別セッションで参加済み）
+ * - P0001: RPCの raise exception（公式時間外・不正status）。時刻は前進のみなので再送不能
+ */
+function isNonRetryableError(error: { code?: string } | null): boolean {
+  const code = error?.code;
+  return code === '23505' || code === 'P0001';
 }

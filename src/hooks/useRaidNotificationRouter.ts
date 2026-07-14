@@ -33,6 +33,10 @@ export function useRaidNotificationRouter(ready: boolean): void {
   const navigatingRef = useRef(false);
   const pathnameRef = useRef(pathname);
   pathnameRef.current = pathname;
+  // navReady を常に最新でrefに持つ。enqueue が古いクロージャの navReady を掴んで
+  // 「準備完了なのに pending へ退避したまま処理されない」競合を防ぐ。
+  const navReadyRef = useRef(navReady);
+  navReadyRef.current = navReady;
 
   const process = useCallback(async (identifier: string) => {
     if (processedRef.current.has(identifier) || navigatingRef.current) {
@@ -66,19 +70,20 @@ export function useRaidNotificationRouter(ready: boolean): void {
     }
   }, []);
 
+  // navReady は ref 経由で常に最新を参照するため、enqueue は process のみに依存する安定関数。
   const enqueue = useCallback(
     (identifier: string) => {
       if (processedRef.current.has(identifier)) {
         return;
       }
-      if (!navReady) {
+      if (!navReadyRef.current) {
         // ナビ未準備。準備できてから処理する
         pendingRef.current = identifier;
         return;
       }
       void process(identifier);
     },
-    [navReady, process],
+    [process],
   );
 
   // フォアグラウンドのレスポンスリスナー

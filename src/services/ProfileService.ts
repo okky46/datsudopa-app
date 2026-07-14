@@ -17,7 +17,7 @@ type ActiveProfileSync = {
 
 let activeSync: ActiveProfileSync | null = null;
 let pendingPublicName: string | null = null;
-let lastSyncedPublicName: string | null = null;
+let syncGeneration = 0;
 
 function isDeterministicProfileError(error: { message?: string } | null): boolean {
   const message = (error?.message ?? '').toLowerCase();
@@ -29,28 +29,48 @@ async function currentLocalPublicName(): Promise<string | null> {
   return settings.publicName || null;
 }
 
+function isCurrentGeneration(generation: number): boolean {
+  return generation === syncGeneration;
+}
+
+async function savePendingIfCurrent(generation: number, pending: boolean): Promise<boolean> {
+  if (!isCurrentGeneration(generation)) {
+    return false;
+  }
+  await StorageService.saveProfilePendingSync(pending);
+  return true;
+}
+
 export class ProfileService {
+  /** データ削除・サインアウト・テスト初期化時にモジュール内同期状態を破棄する。 */
+  static resetSyncState(): void {
+    syncGeneration += 1;
+    activeSync = null;
+    pendingPublicName = null;
+  }
+
   /** ローカル保存済みの公開ネームをSupabaseへ反映する。失敗時はpendingフラグを立てる */
   static async syncPublicName(publicName: string): Promise<ProfileSyncResult> {
+    const generation = syncGeneration;
     if (!validatePublicName(publicName).ok) {
       if (!activeSync) {
         pendingPublicName = null;
-        await StorageService.saveProfilePendingSync(false);
+        await savePendingIfCurrent(generation, false);
       }
       return 'rejected';
     }
 
     pendingPublicName = publicName;
-    await StorageService.saveProfilePendingSync(true);
-    return ProfileService.ensureSyncChain();
+    await savePendingIfCurrent(generation, true);
+    return ProfileService.ensureSyncChain(generation);
   }
 
-  private static ensureSyncChain(): Promise<ProfileSyncResult> {
+  private static ensureSyncChain(generation: number = syncGeneration): Promise<ProfileSyncResult> {
     if (activeSync) {
       return activeSync.promise;
     }
 
-    const promise = ProfileService.drainLatestPublicNameSyncs().finally(() => {
+    const promise = ProfileService.drainLatestPublicNameSyncs(generation).finally(() => {
       if (activeSync?.promise === promise) {
         activeSync = null;
       }
@@ -59,45 +79,42 @@ export class ProfileService {
     return promise;
   }
 
-  private static async drainLatestPublicNameSyncs(): Promise<ProfileSyncResult> {
-    while (true) {
+  private static async drainLatestPublicNameSyncs(generation: number): Promise<ProfileSyncResult> {
+    while (isCurrentGeneration(generation)) {
       const localName = await currentLocalPublicName();
+      if (!isCurrentGeneration(generation)) {
+        return 'retry';
+      }
       const targetName = pendingPublicName ?? localName;
 
       if (!targetName) {
         pendingPublicName = null;
-        await StorageService.saveProfilePendingSync(false);
+        await savePendingIfCurrent(generation, false);
         return 'rejected';
       }
 
       if (!validatePublicName(targetName).ok) {
         pendingPublicName = null;
-        await StorageService.saveProfilePendingSync(false);
+        await savePendingIfCurrent(generation, false);
         return 'rejected';
       }
 
-      if (lastSyncedPublicName === targetName) {
-        const latestLocalName = await currentLocalPublicName();
-        if (!latestLocalName || latestLocalName === targetName) {
-          pendingPublicName = null;
-          await StorageService.saveProfilePendingSync(false);
-          return 'synced';
-        }
-        pendingPublicName = latestLocalName;
-        await StorageService.saveProfilePendingSync(true);
-        continue;
-      }
-
-      await StorageService.saveProfilePendingSync(true);
+      await savePendingIfCurrent(generation, true);
       const result = await ProfileService.performSingleSync(targetName);
+      if (!isCurrentGeneration(generation)) {
+        return 'retry';
+      }
 
       if (result === 'retry') {
         pendingPublicName = targetName;
-        await StorageService.saveProfilePendingSync(true);
+        await savePendingIfCurrent(generation, true);
         return 'retry';
       }
 
       const latestLocalName = await currentLocalPublicName();
+      if (!isCurrentGeneration(generation)) {
+        return 'retry';
+      }
       const latestRequestedName = pendingPublicName;
       const nextName = latestRequestedName && latestRequestedName !== targetName
         ? latestRequestedName
@@ -105,20 +122,17 @@ export class ProfileService {
           ? latestLocalName
           : null;
 
-      if (result === 'synced') {
-        lastSyncedPublicName = targetName;
-      }
-
       if (nextName) {
         pendingPublicName = nextName;
-        await StorageService.saveProfilePendingSync(true);
+        await savePendingIfCurrent(generation, true);
         continue;
       }
 
       pendingPublicName = null;
-      await StorageService.saveProfilePendingSync(false);
+      await savePendingIfCurrent(generation, false);
       return result;
     }
+    return 'retry';
   }
 
   private static async performSingleSync(publicName: string): Promise<ProfileSyncResult> {
@@ -158,21 +172,23 @@ export class ProfileService {
         continue;
       }
 
+      const generation = syncGeneration;
       const pending = await StorageService.getProfilePendingSync();
-      const settings = await StorageService.getSettings();
-      const currentName = settings.publicName || null;
-      const needsLatestSync = Boolean(currentName && lastSyncedPublicName !== currentName);
+      const currentName = await currentLocalPublicName();
+      if (!isCurrentGeneration(generation)) {
+        continue;
+      }
 
-      if (!pending && !pendingPublicName && !needsLatestSync) {
+      if (!pending && !pendingPublicName) {
         return 'synced';
       }
       if (!currentName) {
         pendingPublicName = null;
-        await StorageService.saveProfilePendingSync(false);
+        await savePendingIfCurrent(generation, false);
         return 'rejected';
       }
       pendingPublicName = pendingPublicName ?? currentName;
-      const result = await ProfileService.ensureSyncChain();
+      const result = await ProfileService.ensureSyncChain(generation);
       if (result !== 'synced') {
         return result;
       }

@@ -1,15 +1,35 @@
 import { __resetStore } from './mocks/asyncStorage';
 import { RaidSyncService } from '../src/services/RaidSyncService';
+import { ProfileService } from '../src/services/ProfileService';
 import { StorageService } from '../src/services/StorageService';
 import { WatchSession } from '../src/types/session';
 
 beforeEach(() => {
   __resetStore();
+  ProfileService.resetSyncState();
 });
 
 afterEach(() => {
   jest.restoreAllMocks();
 });
+
+
+async function waitUntil(assertion: () => void, timeoutMs = 1000): Promise<void> {
+  const startedAt = Date.now();
+  let lastError: unknown;
+  while (Date.now() - startedAt < timeoutMs) {
+    try {
+      assertion();
+      return;
+    } catch (error) {
+      lastError = error;
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+  }
+  if (lastError) {
+    throw lastError;
+  }
+}
 
 const raidSession: WatchSession = {
   sessionId: '00000000-0000-4000-8000-000000000001',
@@ -151,7 +171,6 @@ test('temporary profile sync failure keeps queue for retry without start RPC', a
 
 test('in-flight profile sync is awaited before raid start and then sends start before finish', async () => {
   const { SupabaseService } = await import('../src/services/SupabaseService');
-  const { ProfileService } = await import('../src/services/ProfileService');
   jest.spyOn(SupabaseService, 'isConfigured').mockReturnValue(true);
   jest.spyOn(SupabaseService, 'ensureSignedIn').mockResolvedValue('user-1');
   let resolveProfile!: (value: { error: null }) => void;
@@ -170,14 +189,13 @@ test('in-flight profile sync is awaited before raid start and then sends start b
 
   await StorageService.saveSettings({ onboardingCompleted: true, publicName: '夜更かしペンギン', notificationEnabled: true, shortsUsageId: '' });
   const profileSync = ProfileService.syncPublicName('夜更かしペンギン');
-  await Promise.resolve();
+  await waitUntil(() => expect(calls).toEqual(['set_public_name']));
   await StorageService.saveRaidSyncQueue([
     { type: 'start', sessionId: 'with-profile', raidId: raidSession.raidId!, status: 'started', watchedSeconds: 0, startedAt: raidSession.startedAt, queuedAt: 'a' } as never,
     { type: 'finish', sessionId: 'with-profile', raidId: raidSession.raidId!, status: 'completed', watchedSeconds: 180, queuedAt: 'b' } as never,
   ]);
 
   const flush = RaidSyncService.flush();
-  await Promise.resolve();
   expect(calls).toEqual(['set_public_name']);
   resolveProfile({ error: null });
   await profileSync;
@@ -189,7 +207,6 @@ test('in-flight profile sync is awaited before raid start and then sends start b
 
 test('same public name in-flight sync reuses one set_public_name RPC', async () => {
   const { SupabaseService } = await import('../src/services/SupabaseService');
-  const { ProfileService } = await import('../src/services/ProfileService');
   jest.spyOn(SupabaseService, 'isConfigured').mockReturnValue(true);
   jest.spyOn(SupabaseService, 'ensureSignedIn').mockResolvedValue('user-1');
   const rpc = jest.fn().mockResolvedValue({ error: null });
@@ -229,7 +246,6 @@ test('deterministic profile rejection discards queued start and finish without s
 
 test('chained profile-name syncs complete latest name before raid start', async () => {
   const { SupabaseService } = await import('../src/services/SupabaseService');
-  const { ProfileService } = await import('../src/services/ProfileService');
   jest.spyOn(SupabaseService, 'isConfigured').mockReturnValue(true);
   jest.spyOn(SupabaseService, 'ensureSignedIn').mockResolvedValue('user-1');
 
@@ -249,7 +265,7 @@ test('chained profile-name syncs complete latest name before raid start', async 
 
   await StorageService.saveSettings({ onboardingCompleted: true, publicName: '公開名A', notificationEnabled: true, shortsUsageId: '' });
   const firstSync = ProfileService.syncPublicName('公開名A');
-  await Promise.resolve();
+  await waitUntil(() => expect(calls).toEqual(['set:公開名A']));
   await StorageService.saveSettings({ onboardingCompleted: true, publicName: '公開名B', notificationEnabled: true, shortsUsageId: '' });
   const secondSync = ProfileService.syncPublicName('公開名B');
   await StorageService.saveRaidSyncQueue([
@@ -258,8 +274,7 @@ test('chained profile-name syncs complete latest name before raid start', async 
   ]);
 
   const flush = RaidSyncService.flush();
-  await Promise.resolve();
-  expect(calls).toEqual(['set:公開名A']);
+  await waitUntil(() => expect(calls).toEqual(['set:公開名A']));
   resolveFirstProfile({ error: null });
   await flush;
   await expect(firstSync).resolves.toBe('synced');
@@ -272,7 +287,6 @@ test('chained profile-name syncs complete latest name before raid start', async 
 
 test('profilePendingSync stays true after old profile sync succeeds while latest name is still pending', async () => {
   const { SupabaseService } = await import('../src/services/SupabaseService');
-  const { ProfileService } = await import('../src/services/ProfileService');
   jest.spyOn(SupabaseService, 'isConfigured').mockReturnValue(true);
   jest.spyOn(SupabaseService, 'ensureSignedIn').mockResolvedValue('user-1');
 
@@ -297,18 +311,73 @@ test('profilePendingSync stays true after old profile sync succeeds while latest
 
   await StorageService.saveSettings({ onboardingCompleted: true, publicName: '公開名A', notificationEnabled: true, shortsUsageId: '' });
   const firstSync = ProfileService.syncPublicName('公開名A');
-  await Promise.resolve();
+  await waitUntil(() => expect(rpc).toHaveBeenCalledTimes(1));
   await StorageService.saveSettings({ onboardingCompleted: true, publicName: '公開名B', notificationEnabled: true, shortsUsageId: '' });
   const secondSync = ProfileService.syncPublicName('公開名B');
 
   resolveFirstProfile({ error: null });
-  await Promise.resolve();
-  await Promise.resolve();
+  await waitUntil(() => expect(rpc).toHaveBeenCalledTimes(2));
   expect(await StorageService.getProfilePendingSync()).toBe(true);
-  expect(rpc).toHaveBeenCalledTimes(2);
 
   resolveSecondProfile({ error: null });
   await expect(firstSync).resolves.toBe('synced');
   await expect(secondSync).resolves.toBe('synced');
   expect(await StorageService.getProfilePendingSync()).toBe(false);
+});
+
+
+test('resetSyncState prevents previous user same-name cache from skipping a new RPC', async () => {
+  const { SupabaseService } = await import('../src/services/SupabaseService');
+  jest.spyOn(SupabaseService, 'isConfigured').mockReturnValue(true);
+  jest.spyOn(SupabaseService, 'ensureSignedIn')
+    .mockResolvedValueOnce('old-user')
+    .mockResolvedValueOnce('new-user');
+  const rpc = jest.fn().mockResolvedValue({ error: null });
+  jest.spyOn(SupabaseService, 'getClient').mockReturnValue({ rpc } as never);
+
+  await StorageService.saveSettings({ onboardingCompleted: true, publicName: '同じ名前', notificationEnabled: true, shortsUsageId: '' });
+  await expect(ProfileService.syncPublicName('同じ名前')).resolves.toBe('synced');
+  expect(rpc).toHaveBeenCalledTimes(1);
+
+  __resetStore();
+  ProfileService.resetSyncState();
+  await StorageService.saveSettings({ onboardingCompleted: true, publicName: '同じ名前', notificationEnabled: true, shortsUsageId: '' });
+  await expect(ProfileService.syncPublicName('同じ名前')).resolves.toBe('synced');
+
+  expect(rpc).toHaveBeenCalledTimes(2);
+  expect(rpc).toHaveBeenNthCalledWith(1, 'set_public_name', { p_public_name: '同じ名前' });
+  expect(rpc).toHaveBeenNthCalledWith(2, 'set_public_name', { p_public_name: '同じ名前' });
+});
+
+test('resetSyncState prevents an old in-flight profile RPC from clearing new pending state', async () => {
+  const { SupabaseService } = await import('../src/services/SupabaseService');
+  jest.spyOn(SupabaseService, 'isConfigured').mockReturnValue(true);
+  jest.spyOn(SupabaseService, 'ensureSignedIn').mockResolvedValue('user-1');
+  let resolveOldProfile!: (value: { error: null }) => void;
+  const oldProfilePromise = new Promise<{ error: null }>((resolve) => {
+    resolveOldProfile = resolve;
+  });
+  const rpc = jest.fn((name: string, args: { p_public_name?: string }) => {
+    if (args.p_public_name === '古い名前') {
+      return oldProfilePromise;
+    }
+    return Promise.resolve({ error: null });
+  });
+  jest.spyOn(SupabaseService, 'getClient').mockReturnValue({ rpc } as never);
+
+  await StorageService.saveSettings({ onboardingCompleted: true, publicName: '古い名前', notificationEnabled: true, shortsUsageId: '' });
+  const oldSync = ProfileService.syncPublicName('古い名前');
+  await waitUntil(() => expect(rpc).toHaveBeenCalledTimes(1));
+
+  __resetStore();
+  ProfileService.resetSyncState();
+  await StorageService.saveSettings({ onboardingCompleted: true, publicName: '新しい名前', notificationEnabled: true, shortsUsageId: '' });
+  await StorageService.saveProfilePendingSync(true);
+  resolveOldProfile({ error: null });
+  await expect(oldSync).resolves.toBe('retry');
+
+  expect(await StorageService.getProfilePendingSync()).toBe(true);
+  await expect(ProfileService.flushPendingSync()).resolves.toBe('synced');
+  expect(rpc).toHaveBeenCalledTimes(2);
+  expect(rpc).toHaveBeenNthCalledWith(2, 'set_public_name', { p_public_name: '新しい名前' });
 });

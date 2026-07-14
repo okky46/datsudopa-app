@@ -11,15 +11,18 @@
 //   - 動画キャッシュの削除
 
 import { NotificationService } from './NotificationService';
+import { ProfileService } from './ProfileService';
 import { StorageService } from './StorageService';
 import { SupabaseService } from './SupabaseService';
 import { VideoDeliveryService } from './VideoDeliveryService';
 
 export class DataResetService {
   static async clearLocalData(): Promise<void> {
+    ProfileService.resetSyncState();
     await NotificationService.cancelAll();
     await SupabaseService.signOut();
     await VideoDeliveryService.clearCache();
     await StorageService.clearAll();
+    ProfileService.resetSyncState();
   }
 }

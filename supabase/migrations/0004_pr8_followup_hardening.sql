@@ -66,11 +66,12 @@ begin
   if not private.is_valid_public_name(v_name) then
     raise exception 'invalid_public_name';
   end if;
-  insert into public.profiles(user_id, public_name, name_status)
-  values (v_uid, v_name, 'active')
+  insert into public.profiles(user_id, public_name, public_name_normalized, name_status, name_updated_at)
+  values (v_uid, v_name, v_name, 'active', now())
   on conflict (user_id) do update
     set public_name = excluded.public_name,
-        updated_at = now()
+        public_name_normalized = excluded.public_name_normalized,
+        name_updated_at = now()
     where public.profiles.name_status <> 'blocked';
 end;
 $$;
@@ -136,5 +137,7 @@ end;
 $$;
 
 revoke all on function public.start_raid_participation(uuid, text) from public;
+revoke all on function public.start_raid_participation(uuid, text) from anon;
+revoke all on function public.start_raid_participation(uuid, text) from authenticated;
 revoke all on function public.start_raid_participation(uuid, text, timestamptz) from public;
 grant execute on function public.start_raid_participation(uuid, text, timestamptz) to authenticated;

@@ -75,16 +75,14 @@ export class ProgressService {
     };
     // 既存の確定済みロングから日次累計秒を復元し、確定済みセッションを反映済みとして登録
     for (const session of sessions) {
-      if (session.status === 'active') {
+      if (session.status === 'active' || session.sessionId === excludeAppliedSessionId) {
         continue;
       }
       if (session.kind === 'long') {
         migrated.longSecondsByDate[session.dateKey] =
           (migrated.longSecondsByDate[session.dateKey] ?? 0) + session.watchedSeconds;
       }
-      if (session.sessionId !== excludeAppliedSessionId) {
-        migrated.appliedSessionIds.push(session.sessionId);
-      }
+      migrated.appliedSessionIds.push(session.sessionId);
     }
     await StorageService.saveProgressState(migrated);
     return migrated;

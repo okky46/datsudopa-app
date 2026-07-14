@@ -1,4 +1,4 @@
-import { __resetStore } from './mocks/asyncStorage';
+import AsyncStorage, { __resetStore } from './mocks/asyncStorage';
 import { SessionService } from '../src/services/SessionService';
 import { ProgressService } from '../src/services/ProgressService';
 import { StorageService } from '../src/services/StorageService';
@@ -127,6 +127,57 @@ describe('通常ロングの日次累計ドパガキ度step', () => {
     const a = await SessionService.startSession({ kind: 'long', videoId: 'v', targetSeconds: 1200 }, day);
     await SessionService.finalizeSession(a!.sessionId, { completed: true, watchedSeconds: 1200 }, day);
     expect(await ProgressService.getLevel()).toBe(before - 3);
+  });
+
+
+  test('first post-upgrade 90 second long is not migrated and applied twice', async () => {
+    __resetStore();
+    await AsyncStorage.setItem('dopagakiLevel', JSON.stringify(75));
+    const session = {
+      sessionId: 'long-90-upgrade',
+      kind: 'long' as const,
+      longSource: 'daily' as const,
+      dateKey: '2026-07-13',
+      videoId: 'v',
+      startedAt: day.toISOString(),
+      endedAt: day.toISOString(),
+      targetSeconds: 180,
+      watchedSeconds: 90,
+      status: 'completed' as const,
+    };
+    await StorageService.saveSessions([session]);
+
+    const result = await ProgressService.applySessionEffects(session);
+
+    expect(result.totalDetoxSeconds).toBe(90);
+    expect(result.applied).toBe(0);
+    expect(await ProgressService.getLevel()).toBe(75);
+    expect((await StorageService.getProgressState())!.longSecondsByDate['2026-07-13']).toBe(90);
+  });
+
+  test('first post-upgrade 180 second long is counted once and reduces once', async () => {
+    __resetStore();
+    await AsyncStorage.setItem('dopagakiLevel', JSON.stringify(75));
+    const session = {
+      sessionId: 'long-180-upgrade',
+      kind: 'long' as const,
+      longSource: 'daily' as const,
+      dateKey: '2026-07-13',
+      videoId: 'v',
+      startedAt: day.toISOString(),
+      endedAt: day.toISOString(),
+      targetSeconds: 180,
+      watchedSeconds: 180,
+      status: 'completed' as const,
+    };
+    await StorageService.saveSessions([session]);
+
+    const result = await ProgressService.applySessionEffects(session);
+
+    expect(result.totalDetoxSeconds).toBe(180);
+    expect(result.applied).toBe(-1);
+    expect(await ProgressService.getLevel()).toBe(74);
+    expect((await StorageService.getProgressState())!.longSecondsByDate['2026-07-13']).toBe(180);
   });
 });
 

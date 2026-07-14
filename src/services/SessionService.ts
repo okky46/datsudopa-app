@@ -16,7 +16,7 @@ import {
 } from '../types/session';
 import { jstDateKey, jstWeekStartKey, raidWindowPhase, shiftJstDateKey, todayRaidId } from '../utils/jst';
 import { Mutex } from '../utils/mutex';
-import { DopagakiService } from './DopagakiService';
+import { ProgressService } from './ProgressService';
 import { StorageService } from './StorageService';
 
 type StartInput = {
@@ -85,41 +85,48 @@ export class SessionService {
   /**
    * セッションを確定し、累計・ドパガキ度へ反映して集計を返す。
    * すでに確定済み（activeでない）の場合は null を返し、何も加算しない。
+   *
+   * 2段階だが二重加算しない設計:
+   *   1) セッション状態を finalized に更新（sessions への単一書き込み）
+   *   2) ProgressService.applySessionEffects で累計・ドパガキ度を原子的に反映
+   * 1) と 2) の間で中断しても、効果は appliedSessionIds で未反映と分かるため
+   * 起動時の recoverPendingEffects が1回だけ反映して復旧する。
    */
   static async finalizeSession(sessionId: string, outcome: FinalizeInput, now = new Date()): Promise<SessionSummary | null> {
-    const sessions = await StorageService.getSessions();
-    const index = sessions.findIndex((item) => item.sessionId === sessionId);
-    if (index < 0 || sessions[index].status !== 'active') {
+    const updated = await sessionMutex.runExclusive(async () => {
+      const sessions = await StorageService.getSessions();
+      const index = sessions.findIndex((item) => item.sessionId === sessionId);
+      if (index < 0 || sessions[index].status !== 'active') {
+        return null;
+      }
+      const target = sessions[index].targetSeconds;
+      const watchedSeconds = Math.max(0, Math.min(Math.round(outcome.watchedSeconds), target));
+      const next: WatchSession = {
+        ...sessions[index],
+        status: outcome.completed ? 'completed' : 'exited',
+        watchedSeconds,
+        endedAt: now.toISOString(),
+        exitReason: outcome.completed ? undefined : outcome.exitReason ?? 'user_exit',
+      };
+      const nextSessions = [...sessions];
+      nextSessions[index] = next;
+      await StorageService.saveSessions(nextSessions);
+      return next;
+    });
+
+    if (!updated) {
       return null;
     }
 
-    const target = sessions[index].targetSeconds;
-    const watchedSeconds = Math.max(0, Math.min(Math.round(outcome.watchedSeconds), target));
-    const updated: WatchSession = {
-      ...sessions[index],
-      status: outcome.completed ? 'completed' : 'exited',
-      watchedSeconds,
-      endedAt: now.toISOString(),
-      exitReason: outcome.completed ? undefined : outcome.exitReason ?? 'user_exit',
-    };
-    const nextSessions = [...sessions];
-    nextSessions[index] = updated;
-    await StorageService.saveSessions(nextSessions);
-
-    const total = (await StorageService.getTotalDetoxSeconds()) + watchedSeconds;
-    await StorageService.saveTotalDetoxSeconds(total);
-
-    const dopagaki =
-      updated.kind === 'raid'
-        ? await DopagakiService.applyRaidOutcome(outcome.completed)
-        : await DopagakiService.applyLongWatched(updated.dateKey, watchedSeconds);
+    const effects = await ProgressService.applySessionEffects(updated);
+    const sessions = await StorageService.getSessions();
 
     return {
       session: updated,
-      totalDetoxSeconds: total,
-      dopagakiLevel: dopagaki.level,
-      dopagakiDelta: dopagaki.applied,
-      streakDays: SessionService.getStreakDays(nextSessions, now),
+      totalDetoxSeconds: effects.totalDetoxSeconds,
+      dopagakiLevel: effects.dopagakiLevel,
+      dopagakiDelta: effects.applied,
+      streakDays: SessionService.getStreakDays(sessions, now),
     };
   }
 
@@ -129,10 +136,11 @@ export class SessionService {
   }
 
   /**
-   * アプリ強制終了などで active のまま残ったセッションを離脱として確定する。
-   * 実際の視聴秒数は分からないため加算は0秒（過大加算を避ける）。
+   * 起動時の整合性回復:
+   *   - active のまま放置されたセッションを離脱として確定（視聴秒数不明なので0秒）
+   *   - 確定済みだが効果未反映のセッションを反映（finalize途中失敗からの復旧）
    */
-  static async cleanupStaleActiveSessions(now = new Date()): Promise<void> {
+  static async recoverOnStartup(now = new Date()): Promise<void> {
     const sessions = await StorageService.getSessions();
     for (const session of sessions) {
       if (session.status !== 'active') {
@@ -147,6 +155,8 @@ export class SessionService {
         }, now);
       }
     }
+    // 確定済みだが効果未反映のセッションを復旧
+    await ProgressService.recoverPendingEffects(await StorageService.getSessions());
   }
 
   // --- 集計 ---

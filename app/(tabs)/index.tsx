@@ -19,9 +19,9 @@ import { APP_NAME } from '../../src/constants/copy';
 import { colors, fontFamily, spacing } from '../../src/constants/theme';
 import { DayHistory, WatchSession } from '../../src/types/session';
 import { AnalyticsService } from '../../src/services/AnalyticsService';
-import { DopagakiService } from '../../src/services/DopagakiService';
 import { NotificationService } from '../../src/services/NotificationService';
 import { ProfileService } from '../../src/services/ProfileService';
+import { ProgressService } from '../../src/services/ProgressService';
 import { RaidHomeState, RaidService } from '../../src/services/RaidService';
 import { RaidSyncService } from '../../src/services/RaidSyncService';
 import { SessionService } from '../../src/services/SessionService';
@@ -44,14 +44,15 @@ export default function HomeScreen() {
       return;
     }
 
-    await SessionService.cleanupStaleActiveSessions();
+    // active放置の確定＋確定済み未反映セッションの復旧（原子的・冪等）
+    await SessionService.recoverOnStartup();
     const storedSessions = await StorageService.getSessions();
-    await DopagakiService.processMissedDays(storedSessions);
+    await ProgressService.processMissedDays(storedSessions);
 
     setSessions(storedSessions);
     setRaidState(RaidService.getHomeState(storedSessions));
-    setTotalSeconds(await StorageService.getTotalDetoxSeconds());
-    setLevel(await DopagakiService.getLevel());
+    setTotalSeconds(await ProgressService.getTotalDetoxSeconds());
+    setLevel(await ProgressService.getLevel());
     setStreakDays(SessionService.getStreakDays(storedSessions));
     setWeek(SessionService.getWeekHistory(storedSessions));
 

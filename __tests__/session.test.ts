@@ -129,3 +129,14 @@ describe('通常ロングの日次累計ドパガキ度step', () => {
     expect(await ProgressService.getLevel()).toBe(before - 3);
   });
 });
+
+describe('progress migration edge cases', () => {
+  test('first finalized session after upgrade is not marked applied by migration', async () => {
+    __resetStore();
+    const s = await SessionService.startSession({ kind: 'raid', videoId: 'v', targetSeconds: 180 }, RAID_OPEN);
+    const summary = await SessionService.finalizeSession(s!.sessionId, { completed: true, watchedSeconds: 180 }, RAID_OPEN);
+    expect(summary).not.toBeNull();
+    expect(summary!.totalDetoxSeconds).toBe(180);
+    expect(summary!.dopagakiDelta).toBe(-3);
+  });
+});

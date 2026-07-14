@@ -21,6 +21,7 @@ import { ResolvedVideo } from '../../src/types/video';
 import { AnalyticsService } from '../../src/services/AnalyticsService';
 import { RaidSyncService } from '../../src/services/RaidSyncService';
 import { SessionService } from '../../src/services/SessionService';
+import { WatchFinalizeService } from '../../src/services/WatchFinalizeService';
 import { StorageService } from '../../src/services/StorageService';
 import { VideoDeliveryService } from '../../src/services/VideoDeliveryService';
 
@@ -108,10 +109,13 @@ export default function ActiveWatchScreen() {
     () => () => {
       const session = sessionRef.current;
       if (session) {
-        void SessionService.finalizeSession(session.sessionId, {
+        void WatchFinalizeService.finalize({
+          session,
           completed: false,
           watchedSeconds: watchedRef.current,
           exitReason: 'user_exit',
+          navigateToResult: false,
+          mode,
         });
       }
     },
@@ -125,39 +129,18 @@ export default function ActiveWatchScreen() {
         router.replace('/(tabs)');
         return;
       }
-      const summary = await SessionService.finalizeSession(session.sessionId, {
+      const finalized = await WatchFinalizeService.finalize({
+        session,
         completed,
         watchedSeconds,
         exitReason,
+        navigateToResult: true,
+        mode,
       });
-      if (!summary) {
+      if (!finalized) {
         // すでに確定済み（二重呼び出し）。何も加算しない
         return;
       }
-
-      if (isRaid) {
-        void RaidSyncService.enqueueFinish(summary.session);
-        void AnalyticsService.track(completed ? 'raid_completed' : 'raid_exited', {
-          watchedSeconds: summary.session.watchedSeconds,
-        });
-      } else {
-        if (completed) {
-          void AnalyticsService.track(mode === 'first' ? 'first_long_completed' : 'long_completed', {
-            watchedSeconds: summary.session.watchedSeconds,
-          });
-        }
-      }
-
-      router.replace({
-        pathname: '/raid/result',
-        params: {
-          sessionId: summary.session.sessionId,
-          total: String(summary.totalDetoxSeconds),
-          level: String(summary.dopagakiLevel),
-          delta: String(summary.dopagakiDelta),
-          streak: String(summary.streakDays),
-        },
-      });
     },
     [isRaid, mode],
   );

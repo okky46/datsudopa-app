@@ -55,7 +55,7 @@ export class ProgressService {
    * 進捗状態を読み込む。旧仕様（個別キー）からの移行を1度だけ行う。
    * 既存の確定済みセッションは「反映済み」として登録し、復旧で二重加算しない。
    */
-  private static async load(sessionsForMigration?: WatchSession[]): Promise<ProgressState> {
+  private static async load(sessionsForMigration?: WatchSession[], excludeAppliedSessionId?: string): Promise<ProgressState> {
     const stored = await StorageService.getProgressState();
     if (stored) {
       return { ...emptyState(), ...stored };
@@ -82,15 +82,17 @@ export class ProgressService {
         migrated.longSecondsByDate[session.dateKey] =
           (migrated.longSecondsByDate[session.dateKey] ?? 0) + session.watchedSeconds;
       }
-      migrated.appliedSessionIds.push(session.sessionId);
+      if (session.sessionId !== excludeAppliedSessionId) {
+        migrated.appliedSessionIds.push(session.sessionId);
+      }
     }
     await StorageService.saveProgressState(migrated);
     return migrated;
   }
 
-  private static async mutate<T>(fn: (draft: ProgressState) => T, sessionsForMigration?: WatchSession[]): Promise<T> {
+  private static async mutate<T>(fn: (draft: ProgressState) => T, sessionsForMigration?: WatchSession[], excludeAppliedSessionId?: string): Promise<T> {
     return progressMutex.runExclusive(async () => {
-      const state = await ProgressService.load(sessionsForMigration);
+      const state = await ProgressService.load(sessionsForMigration, excludeAppliedSessionId);
       const result = fn(state);
       state.longSecondsByDate = pruneByDate(state.longSecondsByDate);
       state.longReductionByDate = pruneByDate(state.longReductionByDate);
@@ -175,7 +177,7 @@ export class ProgressService {
         dopagakiLevel: clampLevel(draft.dopagakiLevel ?? DOPAGAKI_DEFAULT_INITIAL),
         applied,
       };
-    });
+    }, undefined, session.sessionId);
   }
 
   /**
@@ -205,7 +207,7 @@ export class ProgressService {
       }
       const processed = new Set(draft.missedProcessedDates);
       const raidDates = new Set(
-        sessions.filter((s) => s.kind === 'raid' && s.status !== 'active').map((s) => s.dateKey),
+        sessions.filter((s) => s.kind === 'raid').map((s) => s.dateKey),
       );
 
       const todayKey = jstDateKey(now);

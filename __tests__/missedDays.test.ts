@@ -55,3 +55,41 @@ describe('進捗状態の移行', () => {
     expect(state!.firstEligibleRaidDateKey).toBe('2026-07-14'); // 22:30登録なので翌日
   });
 });
+
+describe('activeレイドの未参加判定', () => {
+  test('activeレイドがある日は未参加扱いにならない', async () => {
+    const initial = await ProgressService.initializeOnComplete('h1to2', new Date('2026-07-13T13:01:00Z'));
+    await StorageService.saveSessions([{
+      sessionId: 'active-raid',
+      kind: 'raid',
+      raidId: '2026-07-13_22JST',
+      dateKey: '2026-07-13',
+      videoId: 'v',
+      startedAt: '2026-07-13T13:01:00.000Z',
+      targetSeconds: 180,
+      watchedSeconds: 0,
+      status: 'active',
+    }]);
+    await ProgressService.processMissedDays(await StorageService.getSessions(), new Date('2026-07-13T13:04:00Z'));
+    expect(await ProgressService.getLevel()).toBe(initial);
+  });
+
+  test('activeを途中離脱確定しても合計+1だけ', async () => {
+    const initial = await ProgressService.initializeOnComplete('h1to2', new Date('2026-07-13T13:01:00Z'));
+    await StorageService.saveSessions([{
+      sessionId: 'active-raid',
+      kind: 'raid',
+      raidId: '2026-07-13_22JST',
+      dateKey: '2026-07-13',
+      videoId: 'v',
+      startedAt: '2026-07-13T13:01:00.000Z',
+      targetSeconds: 180,
+      watchedSeconds: 0,
+      status: 'active',
+    }]);
+    await ProgressService.processMissedDays(await StorageService.getSessions(), new Date('2026-07-13T13:04:00Z'));
+    const { SessionService } = await import('../src/services/SessionService');
+    await SessionService.finalizeSession('active-raid', { completed: false, watchedSeconds: 60, exitReason: 'backgrounded' }, new Date('2026-07-13T13:04:00Z'));
+    expect(await ProgressService.getLevel()).toBe(initial + 1);
+  });
+});

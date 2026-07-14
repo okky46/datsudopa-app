@@ -13,6 +13,41 @@ const SYNC_TIMEOUT_MS = 8000;
 const queueMutex = new Mutex();
 let flushPromise: Promise<void> | null = null;
 
+
+async function loadQueueWithIds(): Promise<RaidSyncItem[]> {
+  const queue = await StorageService.getRaidSyncQueue();
+  let changed = false;
+  const withIds = queue.map((item, index) => {
+    if (item.syncItemId) {
+      return item;
+    }
+    changed = true;
+    return {
+      ...item,
+      syncItemId: Crypto.randomUUID() || `${item.sessionId}-${item.type}-${item.queuedAt ?? index}-${Date.now()}-${index}`,
+    };
+  });
+  if (changed) {
+    await StorageService.saveRaidSyncQueue(withIds);
+  }
+  return withIds;
+}
+
+async function markSessionUnsynced(sessionId: string): Promise<void> {
+  const sessions = await StorageService.getSessions();
+  let changed = false;
+  const next = sessions.map((session) => {
+    if (session.sessionId !== sessionId || session.serverSyncStatus === 'unsynced') {
+      return session;
+    }
+    changed = true;
+    return { ...session, serverSyncStatus: 'unsynced' as const };
+  });
+  if (changed) {
+    await StorageService.saveSessions(next);
+  }
+}
+
 export class RaidSyncService {
   static async enqueueStart(session: WatchSession): Promise<void> {
     if (session.kind !== 'raid' || !session.raidId) {
@@ -20,7 +55,7 @@ export class RaidSyncService {
     }
     const raidId = session.raidId;
     await queueMutex.runExclusive(async () => {
-      const queue = await StorageService.getRaidSyncQueue();
+      const queue = await loadQueueWithIds();
       queue.push({
         syncItemId: Crypto.randomUUID() || `${session.sessionId}-start-${Date.now()}`,
         type: 'start',
@@ -42,7 +77,7 @@ export class RaidSyncService {
     }
     const raidId = session.raidId;
     await queueMutex.runExclusive(async () => {
-      const queue = await StorageService.getRaidSyncQueue();
+      const queue = await loadQueueWithIds();
       if (queue.some((item) => item.type === 'finish' && item.sessionId === session.sessionId)) {
         return;
       }
@@ -86,7 +121,7 @@ export class RaidSyncService {
 
     while (true) {
       const item = await queueMutex.runExclusive(async () => {
-        const queue = await StorageService.getRaidSyncQueue();
+        const queue = await loadQueueWithIds();
         return RaidSyncService.nextSendableItem(queue, sentIds, failedStartSessionIds);
       });
       if (!item) {
@@ -100,10 +135,13 @@ export class RaidSyncService {
       if (result === 'discard_with_finish') {
         failedStartSessionIds.add(item.sessionId);
       }
-      sentIds.add(item.syncItemId);
+      sentIds.add(item.syncItemId!);
+      if (result === 'discard_with_finish') {
+        await markSessionUnsynced(item.sessionId);
+      }
 
       await queueMutex.runExclusive(async () => {
-        const current = await StorageService.getRaidSyncQueue();
+        const current = await loadQueueWithIds();
         const next = current.filter((queued) => {
           if (queued.syncItemId === item.syncItemId) {
             return false;
@@ -121,7 +159,7 @@ export class RaidSyncService {
     failedStartSessionIds: Set<string>,
   ): RaidSyncItem | null {
     for (const item of queue) {
-      if (sentIds.has(item.syncItemId)) {
+      if (item.syncItemId && sentIds.has(item.syncItemId)) {
         continue;
       }
       if (item.type === 'finish') {
@@ -131,7 +169,7 @@ export class RaidSyncService {
         const pendingStart = queue.find(
           (candidate) => candidate.type === 'start'
             && candidate.sessionId === item.sessionId
-            && !sentIds.has(candidate.syncItemId),
+            && !(candidate.syncItemId && sentIds.has(candidate.syncItemId)),
         );
         if (pendingStart) {
           continue;

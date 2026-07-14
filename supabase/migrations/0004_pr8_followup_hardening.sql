@@ -89,20 +89,15 @@ declare
   v_uid uuid := auth.uid();
   v_name text;
   v_status text;
-  v_started_at timestamptz := coalesce(p_started_at, now());
+  v_started_at timestamptz := now();
 begin
   if v_uid is null then
     raise exception 'not_authenticated';
   end if;
 
-  if p_started_at is null then
-    v_started_at := now();
-  end if;
-
-  if v_started_at > now() + interval '30 seconds' or v_started_at < now() - interval '2 days' then
-    raise exception 'invalid_started_at';
-  end if;
-
+  -- Official participation authorization is based only on database server time.
+  -- p_started_at is kept for client compatibility, but must never allow a
+  -- replay after the official 22:00:00-22:02:59 JST window.
   if not public.is_within_official_window(p_raid_id, v_started_at) then
     raise exception 'raid_window_closed';
   end if;

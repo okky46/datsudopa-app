@@ -47,6 +47,26 @@ export type AnalyticsEvent =
   | 'video_fallback_used'
   | 'ad_impression';
 
+
+async function loadQueueWithEventIds(): Promise<AnalyticsQueueItem[]> {
+  const queue = await StorageService.getAnalyticsQueue();
+  let changed = false;
+  const withIds = queue.map((item, index) => {
+    if (item.eventId) {
+      return item;
+    }
+    changed = true;
+    return {
+      ...item,
+      eventId: Crypto.randomUUID() || `${item.event}-${item.occurredAt}-${Date.now()}-${index}`,
+    };
+  });
+  if (changed) {
+    await StorageService.saveAnalyticsQueue(withIds);
+  }
+  return withIds;
+}
+
 export class AnalyticsService {
   static async track(event: AnalyticsEvent, properties?: Record<string, string | number | boolean>): Promise<void> {
     try {
@@ -57,7 +77,7 @@ export class AnalyticsService {
         occurredAt: new Date().toISOString(),
       };
       await queueMutex.runExclusive(async () => {
-        const queue = await StorageService.getAnalyticsQueue();
+        const queue = await loadQueueWithEventIds();
         queue.push(item);
         await StorageService.saveAnalyticsQueue(queue);
       });
@@ -69,8 +89,8 @@ export class AnalyticsService {
   /** 送信成功した event_id をキューから除去する（track と競合しないよう mutex 内で filter） */
   private static async removeSent(sentIds: Set<string>): Promise<void> {
     await queueMutex.runExclusive(async () => {
-      const queue = await StorageService.getAnalyticsQueue();
-      await StorageService.saveAnalyticsQueue(queue.filter((item) => !sentIds.has(item.eventId)));
+      const queue = await loadQueueWithEventIds();
+      await StorageService.saveAnalyticsQueue(queue.filter((item) => !item.eventId || !sentIds.has(item.eventId)));
     });
   }
 
@@ -84,7 +104,7 @@ export class AnalyticsService {
     }
     flushing = true;
     try {
-      const snapshot = await StorageService.getAnalyticsQueue();
+      const snapshot = await queueMutex.runExclusive(loadQueueWithEventIds);
       if (snapshot.length === 0 || (!force && snapshot.length < MIN_FLUSH_COUNT)) {
         return;
       }
@@ -97,7 +117,7 @@ export class AnalyticsService {
       for (let offset = 0; offset < snapshot.length; offset += BATCH_SIZE) {
         const batch = snapshot.slice(offset, offset + BATCH_SIZE);
         const rows = batch.map((item) => ({
-          event_id: item.eventId,
+          event_id: item.eventId!,
           user_id: userId,
           event: item.event,
           properties: item.properties ?? {},
@@ -119,7 +139,7 @@ export class AnalyticsService {
           break;
         }
         // 送信できたバッチの event_id だけを除去（flush中に追加されたイベントは残す）
-        await AnalyticsService.removeSent(new Set(batch.map((item) => item.eventId)));
+        await AnalyticsService.removeSent(new Set(batch.map((item) => item.eventId!).filter(Boolean)));
       }
     } catch {
       // 送信失敗分はキューに残り、次回のflushで再送される

@@ -7,6 +7,10 @@ beforeEach(() => {
   __resetStore();
 });
 
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
 const raidSession: WatchSession = {
   sessionId: '00000000-0000-4000-8000-000000000001',
   kind: 'raid',
@@ -42,4 +46,44 @@ describe('RaidSyncService queue', () => {
     await Promise.all([RaidSyncService.flush(), RaidSyncService.flush()]);
     expect(await StorageService.getRaidSyncQueue()).toHaveLength(2);
   });
+});
+
+test('legacy items without syncItemId are backfilled before flush and only sent item is removed', async () => {
+  const { SupabaseService } = await import('../src/services/SupabaseService');
+  jest.spyOn(SupabaseService, 'isConfigured').mockReturnValue(true);
+  jest.spyOn(SupabaseService, 'ensureSignedIn').mockResolvedValue('user-1');
+  const rpc = jest.fn()
+    .mockResolvedValueOnce({ error: null })
+    .mockResolvedValueOnce({ error: { message: 'temporary failure' } });
+  jest.spyOn(SupabaseService, 'getClient').mockReturnValue({ rpc } as never);
+
+  await StorageService.saveRaidSyncQueue([
+    { type: 'start', sessionId: 'legacy-1', raidId: '2026-07-13_22JST', status: 'started', watchedSeconds: 0, startedAt: '2026-07-13T13:00:30.000Z', queuedAt: 'a' } as never,
+    { type: 'start', sessionId: 'legacy-2', raidId: '2026-07-13_22JST', status: 'started', watchedSeconds: 0, startedAt: '2026-07-13T13:01:30.000Z', queuedAt: 'b' } as never,
+  ]);
+
+  await RaidSyncService.flush();
+  const queue = await StorageService.getRaidSyncQueue();
+  expect(queue).toHaveLength(1);
+  expect(queue[0].sessionId).toBe('legacy-2');
+  expect(queue[0].syncItemId).toBeTruthy();
+});
+
+test('outside-window start discard removes matching finish and marks local session unsynced', async () => {
+  const { SupabaseService } = await import('../src/services/SupabaseService');
+  jest.spyOn(SupabaseService, 'isConfigured').mockReturnValue(true);
+  jest.spyOn(SupabaseService, 'ensureSignedIn').mockResolvedValue('user-1');
+  jest.spyOn(SupabaseService, 'getClient').mockReturnValue({
+    rpc: jest.fn().mockResolvedValue({ error: { message: 'raid_window_closed' } }),
+  } as never);
+
+  await StorageService.saveSessions([{ ...raidSession, status: 'completed', watchedSeconds: 180 }]);
+  await StorageService.saveRaidSyncQueue([
+    { type: 'start', sessionId: raidSession.sessionId, raidId: raidSession.raidId!, status: 'started', watchedSeconds: 0, startedAt: raidSession.startedAt, queuedAt: 'a' } as never,
+    { type: 'finish', sessionId: raidSession.sessionId, raidId: raidSession.raidId!, status: 'completed', watchedSeconds: 180, queuedAt: 'b' } as never,
+  ]);
+
+  await RaidSyncService.flush();
+  expect(await StorageService.getRaidSyncQueue()).toEqual([]);
+  expect((await StorageService.getSessions())[0].serverSyncStatus).toBe('unsynced');
 });

@@ -50,7 +50,7 @@ async function writeJson<T>(key: string, value: T): Promise<void> {
 // 参加記録の同期キュー。user_id / public_name_snapshot / started_at / finished_at は
 // サーバー側RPCが決定するため、キューには保持しない（改造クライアントの注入経路を残さない）。
 export type RaidSyncItem = {
-  syncItemId: string;
+  syncItemId?: string;
   type: 'start' | 'finish';
   sessionId: string;
   raidId: string;
@@ -62,7 +62,7 @@ export type RaidSyncItem = {
 
 export type AnalyticsQueueItem = {
   /** 冪等な再送のための一意ID（DB側の event_id と対応） */
-  eventId: string;
+  eventId?: string;
   event: string;
   properties?: Record<string, string | number | boolean>;
   occurredAt: string;

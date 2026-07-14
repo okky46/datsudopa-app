@@ -28,6 +28,8 @@ export type WatchSession = {
   watchedSeconds: number;
   status: SessionStatus;
   exitReason?: ExitReason;
+  /** サーバー公式参加へ同期できなかったローカル限定セッションの識別 */
+  serverSyncStatus?: 'synced' | 'unsynced';
 };
 
 /** セッション確定時にリザルト画面へ渡す集計 */

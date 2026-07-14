@@ -113,6 +113,10 @@ export class RaidSyncService {
     if (profileSyncResult === 'retry') {
       return;
     }
+    if (profileSyncResult === 'rejected') {
+      await RaidSyncService.discardAllQueuedStartsAsUnsynced();
+      return;
+    }
     const userId = await SupabaseService.ensureSignedIn();
     const supabase = SupabaseService.getClient();
     if (!userId || !supabase) {
@@ -154,6 +158,26 @@ export class RaidSyncService {
         await StorageService.saveRaidSyncQueue(next);
       });
     }
+  }
+
+  private static async discardAllQueuedStartsAsUnsynced(): Promise<void> {
+    const discardedSessionIds = new Set<string>();
+    await queueMutex.runExclusive(async () => {
+      const current = await loadQueueWithIds();
+      for (const item of current) {
+        if (item.type === 'start') {
+          discardedSessionIds.add(item.sessionId);
+        }
+      }
+      const next = current.filter((item) => {
+        if (item.type === 'start') {
+          return false;
+        }
+        return !(discardedSessionIds.has(item.sessionId) && item.type === 'finish');
+      });
+      await StorageService.saveRaidSyncQueue(next);
+    });
+    await Promise.all(Array.from(discardedSessionIds).map((sessionId) => markSessionUnsynced(sessionId)));
   }
 
   private static nextSendableItem(
@@ -225,7 +249,6 @@ function isStartDiscardError(error: { code?: string; message?: string } | null):
     || message.includes('invalid_started_at')
     || message.includes('duplicate_participation')
     || message.includes('profile_blocked')
-    || message.includes('profile_not_ready')
     || message.includes('invalid_raid_id');
 }
 

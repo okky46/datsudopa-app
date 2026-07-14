@@ -11,6 +11,13 @@ const SYNC_TIMEOUT_MS = 8000;
 
 type ProfileSyncResult = 'synced' | 'retry' | 'rejected';
 
+type InFlightProfileSync = {
+  publicName: string;
+  promise: Promise<ProfileSyncResult>;
+};
+
+let inFlightSync: InFlightProfileSync | null = null;
+
 function isDeterministicProfileError(error: { message?: string } | null): boolean {
   const message = (error?.message ?? '').toLowerCase();
   return message.includes('invalid_public_name') || message.includes('profile_blocked');
@@ -19,12 +26,31 @@ function isDeterministicProfileError(error: { message?: string } | null): boolea
 export class ProfileService {
   /** ローカル保存済みの公開ネームをSupabaseへ反映する。失敗時はpendingフラグを立てる */
   static async syncPublicName(publicName: string): Promise<ProfileSyncResult> {
-    if (!SupabaseService.isConfigured()) {
-      return 'retry';
-    }
     if (!validatePublicName(publicName).ok) {
       await StorageService.saveProfilePendingSync(false);
       return 'rejected';
+    }
+
+    while (inFlightSync) {
+      if (inFlightSync.publicName === publicName) {
+        return inFlightSync.promise;
+      }
+      await inFlightSync.promise;
+    }
+
+    const promise = ProfileService.performSyncPublicName(publicName).finally(() => {
+      if (inFlightSync?.promise === promise) {
+        inFlightSync = null;
+      }
+    });
+    inFlightSync = { publicName, promise };
+    return promise;
+  }
+
+  private static async performSyncPublicName(publicName: string): Promise<ProfileSyncResult> {
+    await StorageService.saveProfilePendingSync(true);
+    if (!SupabaseService.isConfigured()) {
+      return 'retry';
     }
     try {
       const userId = await SupabaseService.ensureSignedIn();
@@ -53,8 +79,11 @@ export class ProfileService {
     }
   }
 
-  /** 前回同期に失敗していた場合の再送 */
+  /** 前回同期に失敗していた場合の再送。進行中の同期がある場合はpendingフラグより優先して待つ。 */
   static async flushPendingSync(): Promise<ProfileSyncResult> {
+    if (inFlightSync) {
+      return inFlightSync.promise;
+    }
     const pending = await StorageService.getProfilePendingSync();
     if (!pending) {
       return 'synced';

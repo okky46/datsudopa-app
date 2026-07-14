@@ -16,12 +16,15 @@ export type RaidHomeState =
   | { phase: 'catchup'; nextStartAt: Date };
 
 export class RaidService {
-  /** 22:00:00〜22:02:59 かつ今日まだ参加していない場合のみ公式レイドを開始できる */
+  /**
+   * 22:00:00〜22:02:59 かつ、当日のレイドセッションが状態を問わず存在しない場合のみ開始可能。
+   * active セッションも含めて判定し、二重起動を防ぐ（最終防衛は SessionService.startSession）。
+   */
   static canStartOfficialRaid(sessions: WatchSession[], now = new Date()): boolean {
     if (raidWindowPhase(now) !== 'open') {
       return false;
     }
-    return !SessionService.getTodayRaidSession(sessions, now);
+    return !SessionService.hasAnyRaidSessionToday(sessions, now);
   }
 
   static getHomeState(sessions: WatchSession[], now = new Date()): RaidHomeState {

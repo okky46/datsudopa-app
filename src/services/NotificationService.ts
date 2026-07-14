@@ -5,6 +5,7 @@ import { RAID_NOTIFICATION_BODY, RAID_NOTIFICATION_TITLE } from '../constants/co
 import { RAID_NOTIFICATION_SCHEDULE_DAYS } from '../constants/raid';
 import { UserSettings } from '../types/settings';
 import { jstDateKey, raidStartAt, shiftJstDateKey } from '../utils/jst';
+import { AnalyticsService } from './AnalyticsService';
 import { StorageService } from './StorageService';
 
 type NotificationsModule = typeof import('expo-notifications');
@@ -58,9 +59,16 @@ export class NotificationService {
     }
 
     const current = await Notifications.getPermissionsAsync();
-    const finalStatus = current.granted ? current : await Notifications.requestPermissionsAsync();
+    if (current.granted) {
+      await StorageService.saveNotificationPermission(true);
+      return true;
+    }
+    // 実際にOSダイアログを出すのはここだけ。requested/granted/denied を1回ずつ記録する。
+    void AnalyticsService.track('notification_permission_requested');
+    const finalStatus = await Notifications.requestPermissionsAsync();
     const granted = finalStatus.granted || finalStatus.status === 'granted';
     await StorageService.saveNotificationPermission(granted);
+    void AnalyticsService.track(granted ? 'notification_permission_granted' : 'notification_permission_denied');
     return granted;
   }
 
@@ -115,8 +123,11 @@ export class NotificationService {
     }
   }
 
-  /** 通知タップで公式レイド開始導線へ直行させるためのリスナー。解除関数を返す */
-  static addRaidNotificationListener(onRaidNotification: () => void): () => void {
+  /**
+   * 通知タップのリスナー。レイド通知なら request identifier を渡す。
+   * 実際の遷移可否・二重処理防止は呼び出し側（useRaidNotificationRouter）で一元管理する。
+   */
+  static addRaidNotificationListener(onRaidNotification: (identifier: string) => void): () => void {
     const Notifications = loadNotifications();
     if (!Notifications) {
       return () => {};
@@ -124,29 +135,30 @@ export class NotificationService {
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data as { screen?: string } | undefined;
       if (data?.screen === 'raid') {
-        onRaidNotification();
+        onRaidNotification(response.notification.request.identifier);
       }
     });
     return () => subscription.remove();
   }
 
-  /** アプリが通知タップで起動された場合の初期通知を確認する */
-  static async consumeLaunchRaidNotification(): Promise<boolean> {
+  /**
+   * コールドスタート時に、通知タップで起動されたかを確認して identifier を返す。
+   * clear はしない（同一 identifier の二重処理は呼び出し側が dedup する）。
+   */
+  static async consumeLaunchRaidNotification(): Promise<string | null> {
     const Notifications = loadNotifications();
     if (!Notifications) {
-      return false;
+      return null;
     }
     try {
       const response = await Notifications.getLastNotificationResponseAsync();
       const data = response?.notification.request.content.data as { screen?: string } | undefined;
       if (data?.screen !== 'raid') {
-        return false;
+        return null;
       }
-      // 同じ通知タップを次回起動時に再処理しないよう消費する
-      await Notifications.clearLastNotificationResponseAsync();
-      return true;
+      return response?.notification.request.identifier ?? 'launch';
     } catch {
-      return false;
+      return null;
     }
   }
 }

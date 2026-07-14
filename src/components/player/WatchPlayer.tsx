@@ -3,7 +3,7 @@
 // 点・名前・人数・広告・煽り文言は表示しない（MVP_REQUIREMENTS.md 9章）。
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Animated, AppState, AppStateStatus, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Animated, AppState, AppStateStatus, BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { playerCopy } from '../../constants/copy';
@@ -24,6 +24,8 @@ type Props = {
   onExit: (reason: ExitReason, watchedSeconds: number) => void;
   /** 30秒・60秒到達などの分析用フック */
   onMilestone?: (seconds: number) => void;
+  /** 毎秒の視聴経過。画面アンマウント時に確実に視聴時間を保存するため親が保持する */
+  onProgress?: (watchedSeconds: number) => void;
 };
 
 function VideoSourceLayer({ video, onPlaybackError }: { video: ResolvedVideo; onPlaybackError: () => void }) {
@@ -80,7 +82,7 @@ function GeneratedPlaceholder() {
   );
 }
 
-export function WatchPlayer({ video, kindLabel, targetSeconds, failOnBackground, onComplete, onExit, onMilestone }: Props) {
+export function WatchPlayer({ video, kindLabel, targetSeconds, failOnBackground, onComplete, onExit, onMilestone, onProgress }: Props) {
   const [remainingSeconds, setRemainingSeconds] = useState(targetSeconds);
   const handledRef = useRef(false);
   const startedAtRef = useRef(Date.now());
@@ -109,6 +111,7 @@ export function WatchPlayer({ video, kindLabel, targetSeconds, failOnBackground,
       setRemainingSeconds((current) => {
         const next = current - 1;
         const watched = targetSeconds - Math.max(0, next);
+        onProgress?.(watched);
         if (watched === 30 || watched === 60) {
           onMilestone?.(watched);
         }
@@ -120,7 +123,7 @@ export function WatchPlayer({ video, kindLabel, targetSeconds, failOnBackground,
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [finishOnce, onComplete, onMilestone, targetSeconds]);
+  }, [finishOnce, onComplete, onMilestone, onProgress, targetSeconds]);
 
   useEffect(() => {
     if (!failOnBackground) {
@@ -140,16 +143,28 @@ export function WatchPlayer({ video, kindLabel, targetSeconds, failOnBackground,
     finishOnce(() => onExit('playback_error', elapsedNow()));
   }, [elapsedNow, finishOnce, onExit]);
 
-  const confirmExit = () => {
+  const confirmExit = useCallback(() => {
     Alert.alert(playerCopy.exitConfirmTitle, playerCopy.exitConfirmMessage, [
       { text: playerCopy.exitConfirmContinue, style: 'cancel' },
       {
         text: playerCopy.exitConfirmQuit,
         style: 'destructive',
-        onPress: () => finishOnce(() => onExit('user_exit', watchedSeconds)),
+        onPress: () => finishOnce(() => onExit('user_exit', elapsedNow())),
       },
     ]);
-  };
+  }, [elapsedNow, finishOnce, onExit]);
+
+  // Androidハードウェア戻る・ジェスチャー戻るを中断確認へ集約する。
+  // 確認なしに画面を離脱させない（return true でデフォルトの戻るを止める）。
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (!handledRef.current) {
+        confirmExit();
+      }
+      return true;
+    });
+    return () => subscription.remove();
+  }, [confirmExit]);
 
   return (
     <View style={styles.container}>

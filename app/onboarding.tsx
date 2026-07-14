@@ -164,10 +164,8 @@ export default function OnboardingScreen() {
       const publicName = validation.ok ? validation.normalized : generateNameCandidates(1)[0];
       const usageOption = findUsageOption(usage?.id);
 
+      // requested/granted/denied の記録は NotificationService.requestPermission 内で行う
       const granted = await NotificationService.requestPermission();
-      if (granted) {
-        void AnalyticsService.track('notification_permission_granted');
-      }
 
       const settings = {
         onboardingCompleted: true,

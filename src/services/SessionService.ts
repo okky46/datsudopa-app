@@ -14,7 +14,8 @@ import {
   SessionSummary,
   WatchSession,
 } from '../types/session';
-import { jstDateKey, jstWeekStartKey, shiftJstDateKey, todayRaidId } from '../utils/jst';
+import { jstDateKey, jstWeekStartKey, raidWindowPhase, shiftJstDateKey, todayRaidId } from '../utils/jst';
+import { Mutex } from '../utils/mutex';
 import { DopagakiService } from './DopagakiService';
 import { StorageService } from './StorageService';
 
@@ -34,23 +35,51 @@ type FinalizeInput = {
 /** active のまま放置されたセッションを離脱扱いにするまでの猶予（ms） */
 const STALE_ACTIVE_GRACE_MS = 10 * 60 * 1000;
 
+// セッション開始・確定・復旧を直列化する。ボタン連打・通知二重処理・画面二重遷移で
+// 同時に呼ばれても、read-modify-write が重ならず1セッションだけ作られ、1回だけ反映される。
+const sessionMutex = new Mutex();
+
 export class SessionService {
-  static async startSession(input: StartInput, now = new Date()): Promise<WatchSession> {
-    const session: WatchSession = {
-      sessionId: Crypto.randomUUID(),
-      kind: input.kind,
-      longSource: input.kind === 'long' ? input.longSource ?? 'daily' : undefined,
-      raidId: input.kind === 'raid' ? todayRaidId(now) : undefined,
-      dateKey: jstDateKey(now),
-      videoId: input.videoId,
-      startedAt: now.toISOString(),
-      targetSeconds: input.targetSeconds,
-      watchedSeconds: 0,
-      status: 'active',
-    };
-    const sessions = await StorageService.getSessions();
-    await StorageService.saveSessions([session, ...sessions]);
-    return session;
+  /**
+   * 視聴セッションを開始する。公式レイドは1日1セッションに制限し、mutexで排他する。
+   * 開始できない場合（当日レイド済み・公式時間外）は null を返す。
+   */
+  static async startSession(input: StartInput, now = new Date()): Promise<WatchSession | null> {
+    return sessionMutex.runExclusive(async () => {
+      const sessions = await StorageService.getSessions();
+
+      if (input.kind === 'raid') {
+        // 二重起動の最終防衛: 当日のraidが active/completed/exited のいずれでも存在すれば拒否
+        if (SessionService.hasAnyRaidSessionToday(sessions, now)) {
+          return null;
+        }
+        // 公式時間外での開始も拒否（UI判定に依存しない最終防衛）
+        if (raidWindowPhase(now) !== 'open') {
+          return null;
+        }
+      }
+
+      const session: WatchSession = {
+        sessionId: Crypto.randomUUID(),
+        kind: input.kind,
+        longSource: input.kind === 'long' ? input.longSource ?? 'daily' : undefined,
+        raidId: input.kind === 'raid' ? todayRaidId(now) : undefined,
+        dateKey: jstDateKey(now),
+        videoId: input.videoId,
+        startedAt: now.toISOString(),
+        targetSeconds: input.targetSeconds,
+        watchedSeconds: 0,
+        status: 'active',
+      };
+      await StorageService.saveSessions([session, ...sessions]);
+      return session;
+    });
+  }
+
+  /** 当日の公式レイドセッションが状態を問わず存在するか（開始可否の最終判定に使う） */
+  static hasAnyRaidSessionToday(sessions: WatchSession[], now = new Date()): boolean {
+    const today = jstDateKey(now);
+    return sessions.some((session) => session.kind === 'raid' && session.dateKey === today);
   }
 
   /**

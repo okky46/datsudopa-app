@@ -13,11 +13,15 @@ const MIN_FLUSH_COUNT = 10;
 export type AnalyticsEvent =
   | 'onboarding_started'
   | 'onboarding_completed'
+  | 'notification_permission_requested'
   | 'notification_permission_granted'
+  | 'notification_permission_denied'
   | 'first_long_started'
+  | 'first_long_30s_reached'
   | 'first_long_completed'
   | 'raid_notification_opened'
   | 'raid_started'
+  | 'raid_start_rejected'
   | 'raid_30s_reached'
   | 'raid_60s_reached'
   | 'raid_completed'
@@ -26,6 +30,7 @@ export type AnalyticsEvent =
   | 'long_started'
   | 'long_completed'
   | 'share_sheet_opened'
+  | 'video_fallback_used'
   | 'ad_impression';
 
 export class AnalyticsService {

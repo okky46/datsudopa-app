@@ -51,6 +51,19 @@ export class NotificationService {
     return loadNotifications() !== null;
   }
 
+  /** スケジュール済み通知をすべてキャンセルする（データ削除時に通知が届き続けないように） */
+  static async cancelAll(): Promise<void> {
+    const Notifications = loadNotifications();
+    if (!Notifications) {
+      return;
+    }
+    try {
+      await Notifications.cancelAllScheduledNotificationsAsync();
+    } catch {
+      // 失敗しても削除処理は続行する
+    }
+  }
+
   static async requestPermission(): Promise<boolean> {
     const Notifications = loadNotifications();
     if (!Notifications) {

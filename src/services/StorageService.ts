@@ -59,6 +59,8 @@ export type RaidSyncItem = {
 };
 
 export type AnalyticsQueueItem = {
+  /** 冪等な再送のための一意ID（DB側の event_id と対応） */
+  eventId: string;
   event: string;
   properties?: Record<string, string | number | boolean>;
   occurredAt: string;

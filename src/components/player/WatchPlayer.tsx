@@ -11,6 +11,7 @@ import { colors, spacing, zenMaru } from '../../constants/theme';
 import { ExitReason } from '../../types/session';
 import { ResolvedVideo } from '../../types/video';
 import { formatSeconds } from '../../utils/date';
+import { clampWatchedSeconds, nextWatchedSecondsFromRemaining } from './watchProgress';
 
 const videoText = '#F4F7FB';
 
@@ -85,13 +86,13 @@ function GeneratedPlaceholder() {
 export function WatchPlayer({ video, kindLabel, targetSeconds, failOnBackground, onComplete, onExit, onMilestone, onProgress }: Props) {
   const [remainingSeconds, setRemainingSeconds] = useState(targetSeconds);
   const handledRef = useRef(false);
-  const startedAtRef = useRef(Date.now());
+  const watchedSecondsRef = useRef(0);
   const insets = useSafeAreaInsets();
 
-  const watchedSeconds = useMemo(() => Math.max(0, targetSeconds - remainingSeconds), [remainingSeconds, targetSeconds]);
+  const watchedSeconds = useMemo(() => clampWatchedSeconds(targetSeconds - remainingSeconds, targetSeconds), [remainingSeconds, targetSeconds]);
 
-  const elapsedNow = useCallback(
-    () => Math.min(targetSeconds, Math.round((Date.now() - startedAtRef.current) / 1000)),
+  const trackedWatchedSeconds = useCallback(
+    () => clampWatchedSeconds(watchedSecondsRef.current, targetSeconds),
     [targetSeconds],
   );
 
@@ -110,7 +111,8 @@ export function WatchPlayer({ video, kindLabel, targetSeconds, failOnBackground,
     const interval = setInterval(() => {
       setRemainingSeconds((current) => {
         const next = current - 1;
-        const watched = targetSeconds - Math.max(0, next);
+        const watched = nextWatchedSecondsFromRemaining(current, targetSeconds);
+        watchedSecondsRef.current = watched;
         onProgress?.(watched);
         if (watched === 30 || watched === 60) {
           onMilestone?.(watched);
@@ -131,17 +133,17 @@ export function WatchPlayer({ video, kindLabel, targetSeconds, failOnBackground,
     }
     const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
       if (nextState === 'background' || nextState === 'inactive') {
-        finishOnce(() => onExit('backgrounded', elapsedNow()));
+        finishOnce(() => onExit('backgrounded', trackedWatchedSeconds()));
       }
     });
     return () => subscription.remove();
-  }, [elapsedNow, failOnBackground, finishOnce, onExit]);
+  }, [failOnBackground, finishOnce, onExit, trackedWatchedSeconds]);
 
   const handlePlaybackError = useCallback(() => {
     // 継続不能な再生エラーは離脱扱い（外部通信障害のみでは失敗にしない:
     // その場合はプレースホルダー描画側へフォールバック済みでここには来ない）
-    finishOnce(() => onExit('playback_error', elapsedNow()));
-  }, [elapsedNow, finishOnce, onExit]);
+    finishOnce(() => onExit('playback_error', trackedWatchedSeconds()));
+  }, [finishOnce, onExit, trackedWatchedSeconds]);
 
   const confirmExit = useCallback(() => {
     Alert.alert(playerCopy.exitConfirmTitle, playerCopy.exitConfirmMessage, [
@@ -149,10 +151,10 @@ export function WatchPlayer({ video, kindLabel, targetSeconds, failOnBackground,
       {
         text: playerCopy.exitConfirmQuit,
         style: 'destructive',
-        onPress: () => finishOnce(() => onExit('user_exit', elapsedNow())),
+        onPress: () => finishOnce(() => onExit('user_exit', trackedWatchedSeconds())),
       },
     ]);
-  }, [elapsedNow, finishOnce, onExit]);
+  }, [finishOnce, onExit, trackedWatchedSeconds]);
 
   // Androidハードウェア戻る・ジェスチャー戻るを中断確認へ集約する。
   // 確認なしに画面を離脱させない（return true でデフォルトの戻るを止める）。

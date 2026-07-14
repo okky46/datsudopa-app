@@ -9,6 +9,7 @@ import { RaidSyncItem, StorageService } from './StorageService';
 import { SupabaseService, withTimeout } from './SupabaseService';
 
 const SYNC_TIMEOUT_MS = 8000;
+const MAX_PROFILE_REPAIR_ATTEMPTS = 2;
 
 const queueMutex = new Mutex();
 let flushPromise: Promise<void> | null = null;
@@ -125,6 +126,7 @@ export class RaidSyncService {
 
     const sentIds = new Set<string>();
     const failedStartSessionIds = new Set<string>();
+    const repairedProfileSessionIds = new Set<string>();
 
     while (true) {
       const item = await queueMutex.runExclusive(async () => {
@@ -137,6 +139,24 @@ export class RaidSyncService {
 
       const result = await RaidSyncService.sendItem(item);
       if (result === 'retry') {
+        break;
+      }
+      if (result === 'profile_not_ready') {
+        const repaired = await RaidSyncService.repairProfileNotReady(item, repairedProfileSessionIds);
+        if (repaired === 'retry_after_repair') {
+          continue;
+        }
+        if (repaired === 'discard_with_finish') {
+          failedStartSessionIds.add(item.sessionId);
+          sentIds.add(item.syncItemId!);
+          await markSessionUnsynced(item.sessionId);
+          await queueMutex.runExclusive(async () => {
+            const current = await loadQueueWithIds();
+            const next = current.filter((queued) => queued.sessionId !== item.sessionId);
+            await StorageService.saveRaidSyncQueue(next);
+          });
+          continue;
+        }
         break;
       }
       if (result === 'discard_with_finish') {
@@ -158,6 +178,38 @@ export class RaidSyncService {
         await StorageService.saveRaidSyncQueue(next);
       });
     }
+  }
+
+  private static async repairProfileNotReady(
+    item: RaidSyncItem,
+    repairedProfileSessionIds: Set<string>,
+  ): Promise<'retry_after_repair' | 'retry_later' | 'discard_with_finish'> {
+    const attempts = item.profileRepairAttempts ?? 0;
+    if (attempts >= MAX_PROFILE_REPAIR_ATTEMPTS) {
+      return 'discard_with_finish';
+    }
+
+    await queueMutex.runExclusive(async () => {
+      const current = await loadQueueWithIds();
+      const next = current.map((queued) => queued.syncItemId === item.syncItemId
+        ? { ...queued, profileRepairAttempts: attempts + 1 }
+        : queued);
+      await StorageService.saveRaidSyncQueue(next);
+    });
+
+    if (repairedProfileSessionIds.has(item.sessionId)) {
+      return 'retry_later';
+    }
+    repairedProfileSessionIds.add(item.sessionId);
+
+    const profileSyncResult = await ProfileService.forceSyncCurrentPublicName();
+    if (profileSyncResult === 'synced') {
+      return 'retry_after_repair';
+    }
+    if (profileSyncResult === 'rejected') {
+      return 'discard_with_finish';
+    }
+    return 'retry_later';
   }
 
   private static async discardAllQueuedStartsAsUnsynced(): Promise<void> {
@@ -207,7 +259,7 @@ export class RaidSyncService {
     return null;
   }
 
-  private static async sendItem(item: RaidSyncItem): Promise<'remove' | 'retry' | 'discard_with_finish'> {
+  private static async sendItem(item: RaidSyncItem): Promise<'remove' | 'retry' | 'discard_with_finish' | 'profile_not_ready'> {
     const supabase = SupabaseService.getClient();
     if (!supabase) {
       return 'retry';
@@ -229,6 +281,9 @@ export class RaidSyncService {
       if (!error) {
         return 'remove';
       }
+      if (item.type === 'start' && isProfileNotReadyError(error)) {
+        return 'profile_not_ready';
+      }
       if (isStartDiscardError(error)) {
         return 'discard_with_finish';
       }
@@ -241,6 +296,10 @@ export class RaidSyncService {
 
 function errorMessage(error: { message?: string } | null): string {
   return (error?.message ?? '').toLowerCase();
+}
+
+function isProfileNotReadyError(error: { message?: string } | null): boolean {
+  return errorMessage(error).includes('profile_not_ready');
 }
 
 function isStartDiscardError(error: { code?: string; message?: string } | null): boolean {

@@ -91,9 +91,26 @@ declare
   v_status text;
   v_started_at timestamptz := now();
   v_canonical_raid_id text := to_char(now() at time zone 'Asia/Tokyo', 'YYYY-MM-DD') || '_22JST';
+  v_existing_user_id uuid;
+  v_existing_raid_id text;
 begin
   if v_uid is null then
     raise exception 'not_authenticated';
+  end if;
+
+  -- Idempotency must be checked before the current official window/profile
+  -- validations. If the first start committed but the HTTP response timed out,
+  -- a later retry for the same session_id must succeed without mutating the row
+  -- so that the queued finish can still complete the official participation.
+  select user_id, raid_id into v_existing_user_id, v_existing_raid_id
+  from public.raid_participations
+  where session_id = p_session_id;
+
+  if v_existing_user_id is not null then
+    if v_existing_user_id = v_uid and v_existing_raid_id = p_raid_id then
+      return;
+    end if;
+    raise exception 'session_conflict';
   end if;
 
   -- Official participation authorization is based only on database server time.

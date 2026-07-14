@@ -72,3 +72,30 @@ begin
     raise exception 'start_raid_participation still uses caller raid_id for window derivation';
   end if;
 end $$;
+
+-- Existing session_id retries must return before window/profile checks so a
+-- timed-out successful start can still be retried after 22:03 and followed by finish.
+do $$
+declare
+  v_body text;
+  v_existing_pos integer;
+  v_window_pos integer;
+  v_profile_pos integer;
+begin
+  select pg_get_functiondef('public.start_raid_participation(uuid, text, timestamptz)'::regprocedure) into v_body;
+  v_existing_pos := strpos(v_body, 'where session_id = p_session_id');
+  v_window_pos := strpos(v_body, 'raid_window_closed');
+  v_profile_pos := strpos(v_body, 'profile_not_ready');
+  if v_existing_pos = 0 or v_window_pos = 0 or v_profile_pos = 0 then
+    raise exception 'start_raid_participation is missing expected idempotency/window/profile checks';
+  end if;
+  if v_existing_pos > v_window_pos or v_existing_pos > v_profile_pos then
+    raise exception 'start_raid_participation checks window/profile before existing session_id idempotency';
+  end if;
+  if v_body not like '%v_existing_user_id = v_uid and v_existing_raid_id = p_raid_id%' then
+    raise exception 'start_raid_participation does not validate retry user/raid ownership';
+  end if;
+  if v_body not like '%session_conflict%' then
+    raise exception 'start_raid_participation does not reject conflicting session_id reuse';
+  end if;
+end $$;

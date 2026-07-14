@@ -57,6 +57,7 @@ export type RaidSyncItem = {
   status: 'started' | 'completed' | 'exited';
   watchedSeconds: number;
   startedAt?: string;
+  profileRepairAttempts?: number;
   queuedAt: string;
 };
 

@@ -161,6 +161,16 @@ export class ProfileService {
     }
   }
 
+  /** pendingフラグに関係なく、現在のローカル公開名をset_public_nameへ再送する。 */
+  static async forceSyncCurrentPublicName(): Promise<ProfileSyncResult> {
+    const publicName = await currentLocalPublicName();
+    if (!publicName) {
+      await StorageService.saveProfilePendingSync(false);
+      return 'rejected';
+    }
+    return ProfileService.syncPublicName(publicName);
+  }
+
   /** 前回同期に失敗していた場合の再送。進行中の同期がある場合はチェーン全体を確認する。 */
   static async flushPendingSync(): Promise<ProfileSyncResult> {
     while (true) {

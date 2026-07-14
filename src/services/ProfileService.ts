@@ -1,8 +1,9 @@
 
 // 公開ユーザーネームのSupabase同期。失敗してもローカル設定は生きたままにし、
 // 次回起動時などに再同期する（profilePendingSyncフラグ）。
+// 直接テーブルupsertはRLSで封じられており、公開名専用RPC set_public_name を使う。
+// サーバー側で NFKC正規化・長さ/URL検査・name_status保護を行う。
 
-import { normalizePublicName } from '../utils/username';
 import { StorageService } from './StorageService';
 import { SupabaseService, withTimeout } from './SupabaseService';
 
@@ -22,17 +23,7 @@ export class ProfileService {
         return;
       }
       const { error } = await withTimeout(
-        Promise.resolve(
-          supabase.from('profiles').upsert(
-            {
-              user_id: userId,
-              public_name: publicName,
-              public_name_normalized: normalizePublicName(publicName).toLowerCase(),
-              name_updated_at: new Date().toISOString(),
-            },
-            { onConflict: 'user_id' },
-          ),
-        ),
+        Promise.resolve(supabase.rpc('set_public_name', { p_public_name: publicName })),
         SYNC_TIMEOUT_MS,
       );
       await StorageService.saveProfilePendingSync(Boolean(error));

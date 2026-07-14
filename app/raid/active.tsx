@@ -82,8 +82,7 @@ export default function ActiveWatchScreen() {
       sessionRef.current = session;
 
       if (isRaid) {
-        const settings = await StorageService.getSettings();
-        void RaidSyncService.enqueueStart(session, settings.publicName);
+        void RaidSyncService.enqueueStart(session);
         void AnalyticsService.track('raid_started');
       } else {
         void AnalyticsService.track(
@@ -117,8 +116,7 @@ export default function ActiveWatchScreen() {
       }
 
       if (isRaid) {
-        const settings = await StorageService.getSettings();
-        void RaidSyncService.enqueueFinish(summary.session, settings.publicName);
+        void RaidSyncService.enqueueFinish(summary.session);
         void AnalyticsService.track(completed ? 'raid_completed' : 'raid_exited', {
           watchedSeconds: summary.session.watchedSeconds,
         });

@@ -44,15 +44,14 @@ async function writeJson<T>(key: string, value: T): Promise<void> {
   await AsyncStorage.setItem(key, JSON.stringify(value));
 }
 
+// 参加記録の同期キュー。user_id / public_name_snapshot / started_at / finished_at は
+// サーバー側RPCが決定するため、キューには保持しない（改造クライアントの注入経路を残さない）。
 export type RaidSyncItem = {
   type: 'start' | 'finish';
   sessionId: string;
   raidId: string;
   status: 'started' | 'completed' | 'exited';
-  startedAt: string;
-  finishedAt?: string;
   watchedSeconds: number;
-  publicNameSnapshot: string;
   queuedAt: string;
 };
 

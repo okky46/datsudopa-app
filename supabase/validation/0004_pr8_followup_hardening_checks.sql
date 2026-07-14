@@ -55,3 +55,20 @@ begin
 end $$;
 
 rollback;
+
+-- start_raid_participation must reject non-canonical raid_id values before insert.
+do $$
+declare
+  v_body text;
+begin
+  select pg_get_functiondef('public.start_raid_participation(uuid, text, timestamptz)'::regprocedure) into v_body;
+  if v_body not like '%v_canonical_raid_id text := to_char(now() at time zone ''Asia/Tokyo'', ''YYYY-MM-DD'') || ''_22JST''%' then
+    raise exception 'start_raid_participation does not derive canonical raid_id from server JST date';
+  end if;
+  if v_body not like '%p_raid_id is null or p_raid_id <> v_canonical_raid_id%' then
+    raise exception 'start_raid_participation does not reject non-canonical raid_id';
+  end if;
+  if v_body like '%public.is_within_official_window(p_raid_id%' then
+    raise exception 'start_raid_participation still uses caller raid_id for window derivation';
+  end if;
+end $$;

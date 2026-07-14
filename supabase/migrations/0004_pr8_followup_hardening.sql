@@ -90,6 +90,7 @@ declare
   v_name text;
   v_status text;
   v_started_at timestamptz := now();
+  v_canonical_raid_id text := to_char(now() at time zone 'Asia/Tokyo', 'YYYY-MM-DD') || '_22JST';
 begin
   if v_uid is null then
     raise exception 'not_authenticated';
@@ -97,8 +98,14 @@ begin
 
   -- Official participation authorization is based only on database server time.
   -- p_started_at is kept for client compatibility, but must never allow a
-  -- replay after the official 22:00:00-22:02:59 JST window.
-  if not public.is_within_official_window(p_raid_id, v_started_at) then
+  -- replay after the official 22:00:00-22:02:59 JST window. The raid_id must
+  -- exactly match today's canonical server-side JST raid id, so clients cannot
+  -- vary suffixes to create multiple same-day participation rows.
+  if p_raid_id is null or p_raid_id <> v_canonical_raid_id then
+    raise exception 'invalid_raid_id';
+  end if;
+
+  if not public.is_within_official_window(v_canonical_raid_id, v_started_at) then
     raise exception 'raid_window_closed';
   end if;
 
@@ -118,7 +125,7 @@ begin
 
   if exists (
     select 1 from public.raid_participations
-    where raid_id = p_raid_id and user_id = v_uid and session_id <> p_session_id
+    where raid_id = v_canonical_raid_id and user_id = v_uid and session_id <> p_session_id
   ) then
     raise exception 'duplicate_participation';
   end if;
@@ -126,7 +133,7 @@ begin
   insert into public.raid_participations
     (session_id, raid_id, user_id, public_name_snapshot, status, started_at, watched_seconds)
   values
-    (p_session_id, p_raid_id, v_uid, v_name, 'started', v_started_at, 0)
+    (p_session_id, v_canonical_raid_id, v_uid, v_name, 'started', v_started_at, 0)
   on conflict (session_id) do nothing;
 end;
 $$;

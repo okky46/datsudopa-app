@@ -109,7 +109,10 @@ export class RaidSyncService {
     if (!SupabaseService.isConfigured()) {
       return;
     }
-    await ProfileService.flushPendingSync();
+    const profileSyncResult = await ProfileService.flushPendingSync();
+    if (profileSyncResult === 'retry') {
+      return;
+    }
     const userId = await SupabaseService.ensureSignedIn();
     const supabase = SupabaseService.getClient();
     if (!userId || !supabase) {
@@ -221,7 +224,9 @@ function isStartDiscardError(error: { code?: string; message?: string } | null):
   return message.includes('raid_window_closed')
     || message.includes('invalid_started_at')
     || message.includes('duplicate_participation')
-    || message.includes('profile_blocked');
+    || message.includes('profile_blocked')
+    || message.includes('profile_not_ready')
+    || message.includes('invalid_raid_id');
 }
 
 function isNonRetryableError(error: { code?: string; message?: string } | null): boolean {

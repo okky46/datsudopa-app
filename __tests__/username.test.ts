@@ -46,3 +46,7 @@ describe('自動生成候補', () => {
     }
   });
 });
+
+test('server blocklist-aligned public names are rejected client-side', () => {
+  expect(validatePublicName('カス太郎').ok).toBe(false);
+});

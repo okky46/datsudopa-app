@@ -87,3 +87,67 @@ test('outside-window start discard removes matching finish and marks local sessi
   expect(await StorageService.getRaidSyncQueue()).toEqual([]);
   expect((await StorageService.getSessions())[0].serverSyncStatus).toBe('unsynced');
 });
+
+test('canonical raid_id rejection discards start and matching finish without repeat RPCs', async () => {
+  const { SupabaseService } = await import('../src/services/SupabaseService');
+  jest.spyOn(SupabaseService, 'isConfigured').mockReturnValue(true);
+  jest.spyOn(SupabaseService, 'ensureSignedIn').mockResolvedValue('user-1');
+  const rpc = jest.fn().mockResolvedValue({ error: { message: 'invalid_raid_id' } });
+  jest.spyOn(SupabaseService, 'getClient').mockReturnValue({ rpc } as never);
+
+  await StorageService.saveSessions([{ ...raidSession, raidId: '2026-07-13_anything', status: 'completed', watchedSeconds: 180 }]);
+  await StorageService.saveRaidSyncQueue([
+    { type: 'start', sessionId: raidSession.sessionId, raidId: '2026-07-13_anything', status: 'started', watchedSeconds: 0, startedAt: raidSession.startedAt, queuedAt: 'a' } as never,
+    { type: 'finish', sessionId: raidSession.sessionId, raidId: '2026-07-13_anything', status: 'completed', watchedSeconds: 180, queuedAt: 'b' } as never,
+  ]);
+
+  await RaidSyncService.flush();
+  await RaidSyncService.flush();
+  expect(rpc).toHaveBeenCalledTimes(1);
+  expect(await StorageService.getRaidSyncQueue()).toEqual([]);
+  expect((await StorageService.getSessions())[0].serverSyncStatus).toBe('unsynced');
+});
+
+test('profile_not_ready after profile flush does not block later queue items forever', async () => {
+  const { SupabaseService } = await import('../src/services/SupabaseService');
+  jest.spyOn(SupabaseService, 'isConfigured').mockReturnValue(true);
+  jest.spyOn(SupabaseService, 'ensureSignedIn').mockResolvedValue('user-1');
+  const rpc = jest.fn()
+    .mockResolvedValueOnce({ error: { message: 'profile_not_ready' } })
+    .mockResolvedValueOnce({ error: null });
+  jest.spyOn(SupabaseService, 'getClient').mockReturnValue({ rpc } as never);
+
+  await StorageService.saveSessions([
+    { ...raidSession, sessionId: 'blocked-local', status: 'completed', watchedSeconds: 90 },
+    { ...raidSession, sessionId: 'later-local', status: 'completed', watchedSeconds: 180 },
+  ]);
+  await StorageService.saveRaidSyncQueue([
+    { type: 'start', sessionId: 'blocked-local', raidId: raidSession.raidId!, status: 'started', watchedSeconds: 0, startedAt: raidSession.startedAt, queuedAt: 'a' } as never,
+    { type: 'finish', sessionId: 'blocked-local', raidId: raidSession.raidId!, status: 'completed', watchedSeconds: 90, queuedAt: 'b' } as never,
+    { type: 'start', sessionId: 'later-local', raidId: raidSession.raidId!, status: 'started', watchedSeconds: 0, startedAt: raidSession.startedAt, queuedAt: 'c' } as never,
+  ]);
+
+  await RaidSyncService.flush();
+  const queue = await StorageService.getRaidSyncQueue();
+  expect(rpc).toHaveBeenCalledTimes(2);
+  expect(queue).toEqual([]);
+  expect((await StorageService.getSessions()).find((s) => s.sessionId === 'blocked-local')?.serverSyncStatus).toBe('unsynced');
+});
+
+test('temporary profile sync failure keeps queue for retry without start RPC', async () => {
+  const { SupabaseService } = await import('../src/services/SupabaseService');
+  jest.spyOn(SupabaseService, 'isConfigured').mockReturnValue(true);
+  jest.spyOn(SupabaseService, 'ensureSignedIn').mockResolvedValue('user-1');
+  const rpc = jest.fn().mockResolvedValue({ error: { message: 'temporary' } });
+  jest.spyOn(SupabaseService, 'getClient').mockReturnValue({ rpc } as never);
+  await StorageService.saveSettings({ onboardingCompleted: true, publicName: '夜更かしペンギン', notificationEnabled: true, shortsUsageId: '' });
+  await StorageService.saveProfilePendingSync(true);
+  await StorageService.saveRaidSyncQueue([
+    { type: 'start', sessionId: 'pending-profile', raidId: raidSession.raidId!, status: 'started', watchedSeconds: 0, startedAt: raidSession.startedAt, queuedAt: 'a' } as never,
+  ]);
+
+  await RaidSyncService.flush();
+  expect(rpc).toHaveBeenCalledTimes(1);
+  expect(rpc).toHaveBeenCalledWith('set_public_name', { p_public_name: '夜更かしペンギン' });
+  expect(await StorageService.getRaidSyncQueue()).toHaveLength(1);
+});

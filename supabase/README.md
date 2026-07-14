@@ -14,10 +14,11 @@
 - `0001_init.sql` — テーブル・RLS・同行者RPC・集計View
 - `0002_security_hardening.sql` — RPC化・直接DML封じ・View private化
 - `0003_analytics_event_id.sql` — 分析イベントの event_id 一意化
+- `0004_pr8_followup_hardening.sql` — 公開名検査強化・3引数start RPC・raid_id正規化
 
 ### 既存環境（0001だけ適用済み）からの追加適用
 
-`0002` と `0003` を追加適用するだけでよい（0001は書き換えない）。**`0002` は必ず対応バージョンのアプリと
+`0002`、`0003`、`0004` を追加適用するだけでよい（0001は書き換えない）。**`0002` は必ず対応バージョンのアプリと
 同時に適用**すること（直接 upsert を封じ RPC へ移行するため、古いアプリは参加記録を送れなくなる。
 ただしローカル記録・累計・ドパガキ度は影響を受けない）。
 
@@ -30,7 +31,7 @@
   - `set_public_name(p_public_name)` — 公開名の設定/更新。`user_id=auth.uid()` 固定・サーバー側で
     NFKC正規化と長さ/URL検査・`name_status` は変更不可・blocked は改名不可
   - `start_raid_participation(p_session_id, p_raid_id, p_started_at)` — user_id/snapshot/started_at/status/watched_seconds を
-    サーバー決定。公式時間は now() で判定（端末時計の偽装不可）。冪等
+    サーバー決定。公式時間は now() で判定し、`p_raid_id` はサーバー現在時刻のJST日付から作る `YYYY-MM-DD_22JST` と完全一致する場合だけ受理（端末時計・suffix偽装不可）。冪等
   - `finish_raid_participation(p_session_id, p_status, p_watched_seconds)` — 本人の started のみ更新。
     watched_seconds を 0〜180 にクランプ・finished_at=now()。冪等
   - `get_raid_companions(p_raid_id)` — 呼び出し本人が公式参加している場合のみ、自分以外の公開名を

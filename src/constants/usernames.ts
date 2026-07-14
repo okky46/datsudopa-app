@@ -67,6 +67,7 @@ export const JA_NG_WORDS = [
   'アホ',
   'くそ',
   'クソ',
+  'カス',
   '氏ね',
   '自殺',
 ] as const;

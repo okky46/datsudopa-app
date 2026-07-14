@@ -95,18 +95,19 @@ GitHub Actions（`.github/workflows/ci.yml`）が main と Pull Request で `npm
    - `0001_init.sql` — テーブル・RLS・同行者RPC・集計View
    - `0002_security_hardening.sql` — RPC化・直接DML封じ・View private化
    - `0003_analytics_event_id.sql` — 分析イベントの event_id 一意化
+   - `0004_pr8_followup_hardening.sql` — 公開名検査強化・3引数start RPC・raid_id正規化
 3. URLとanonキーを環境変数へ
 
 ### 既存環境（PR #7 の 0001 のみ適用済み）からの移行
 
-`0002` と `0003` を追加適用するだけでよい（0001は書き換えず、追加マイグレーションとして分離してある）。
+`0002`、`0003`、`0004` を追加適用するだけでよい（0001は書き換えず、追加マイグレーションとして分離してある）。
 `0002` は直接 upsert を封じ RPC へ切り替えるため、**必ずこのバージョンのアプリと同時に適用**する
 （古いアプリは直接 upsert が拒否され参加記録を送れなくなる。ローカル記録は影響を受けない）。
 
 ### RPC構成（クライアントはこれらだけを呼ぶ）
 
 - `set_public_name(p_public_name)` — 公開名の設定/更新（サーバー側で正規化・検査、name_status変更不可）
-- `start_raid_participation(p_session_id, p_raid_id)` — 開始（user_id/snapshot/時刻/公式判定はサーバー決定）
+- `start_raid_participation(p_session_id, p_raid_id, p_started_at)` — 開始（user_id/snapshot/時刻/公式判定はサーバー決定。`raid_id` はサーバー現在時刻のJST日付から生成される `YYYY-MM-DD_22JST` のみ許可）
 - `finish_raid_participation(p_session_id, p_status, p_watched_seconds)` — 終了（本人のstartedのみ・0〜180クランプ）
 - `get_raid_companions(p_raid_id)` — 同行者名（参加者のみ・最大3件・安定ハッシュ順・blocked除外）
 
@@ -148,7 +149,7 @@ analytics_events）は対象外**（匿名ユーザー削除には service role 
 
 ## 障害時の挙動
 
-- Supabase未設定・通信失敗: レイド・累計時間・ドパガキ度・履歴はすべてローカルで継続。参加記録はキューに残り後で再送。同行者欄は代替の一文（架空名は出さない）
+- Supabase未設定・通信失敗: レイド・累計時間・ドパガキ度・履歴はすべてローカルで継続。参加記録はキューに残り後で再送。ただし22:03 JST以降など公式窓外になったstartはサーバー公式参加へ登録せず、ローカル限定のunsynced実績として残す。同行者欄は代替の一文（架空名は出さない）
 - manifest・動画取得失敗: キャッシュ → 同梱 → プレースホルダー描画へフォールバック。**外部通信失敗だけでレイドを失敗扱いにしない**
 - アプリのbackground/inactive（公式レイド中）: 途中離脱として記録。そこまでの視聴時間は累計へ加算
 

@@ -77,27 +77,70 @@ EXPO_PUBLIC_EAS_PROJECT_ID=...
 
 AdMob App IDはネイティブ設定に入るため、変更したら `npx expo prebuild` からやり直す。
 
+## テスト・CI
+
+```sh
+npm run typecheck   # 型チェック（__tests__ は ts-jest 側で型チェック）
+npm test            # jest 単体テスト（純粋ロジック）
+```
+
+GitHub Actions（`.github/workflows/ci.yml`）が main と Pull Request で `npm ci` → `npm run typecheck` → `npm test` を実行する。
+
 ## Supabase
 
 手順は [`supabase/README.md`](./supabase/README.md) を参照。
 
 1. プロジェクト作成 → **Anonymous sign-ins を有効化**
-2. `supabase/migrations/0001_init.sql` を SQL Editor で実行（テーブル・RLS・同行者RPC・集計View）
+2. マイグレーションを **順番に** SQL Editor で実行（または `supabase db push`）:
+   - `0001_init.sql` — テーブル・RLS・同行者RPC・集計View
+   - `0002_security_hardening.sql` — RPC化・直接DML封じ・View private化
+   - `0003_analytics_event_id.sql` — 分析イベントの event_id 一意化
 3. URLとanonキーを環境変数へ
 
-公式レイド1回あたりの通信は最大3回（開始保存・終了更新・同行者名3件取得）。分析イベントは端末内キューからまとめて送信し、Supabase Dashboard の SQL View（`raid_daily_stats` / `analytics_daily_events`）で確認する。
+### 既存環境（PR #7 の 0001 のみ適用済み）からの移行
+
+`0002` と `0003` を追加適用するだけでよい（0001は書き換えず、追加マイグレーションとして分離してある）。
+`0002` は直接 upsert を封じ RPC へ切り替えるため、**必ずこのバージョンのアプリと同時に適用**する
+（古いアプリは直接 upsert が拒否され参加記録を送れなくなる。ローカル記録は影響を受けない）。
+
+### RPC構成（クライアントはこれらだけを呼ぶ）
+
+- `set_public_name(p_public_name)` — 公開名の設定/更新（サーバー側で正規化・検査、name_status変更不可）
+- `start_raid_participation(p_session_id, p_raid_id)` — 開始（user_id/snapshot/時刻/公式判定はサーバー決定）
+- `finish_raid_participation(p_session_id, p_status, p_watched_seconds)` — 終了（本人のstartedのみ・0〜180クランプ）
+- `get_raid_companions(p_raid_id)` — 同行者名（参加者のみ・最大3件・安定ハッシュ順・blocked除外）
+
+公式レイド1回あたりの通信は最大3回（開始RPC・終了RPC・同行者RPC）。分析イベントは端末内キューから
+event_id付きでまとめて upsert 送信し、`private` スキーマの SQL View（`private.raid_daily_stats` /
+`private.analytics_daily_events`）を Dashboard（service role）で確認する。問題のある公開名は
+`profiles.name_status` を `blocked` にすると同行者表示から除外される。
+
+## データ削除の範囲
+
+設定の「端末内データを削除」は次を削除する: スケジュール済み通知の全キャンセル・Supabase匿名セッションの
+サインアウト・動画キャッシュ・端末内AsyncStorage。**Supabase上の匿名データ（profiles / raid_participations /
+analytics_events）は対象外**（匿名ユーザー削除には service role / Edge Function が必要で、サービスロール
+キーをアプリに埋め込まない方針のため）。この範囲はボタン名・確認文言・プライバシーポリシーに明記している。
 
 ## 動画の配置と差し替え
 
+### 動画IDのバージョン管理
+
+動画IDは `void-001-v1` のようにバージョン付き。同梱IDとリモートIDが同一だと同梱が常に優先され、
+リモート更新が反映されない。映像を差し替えるときは新バージョン（例 `void-001-v2`）を使うと、同梱に無い
+新IDとしてリモート/キャッシュから配信される。キャッシュはID単位なので新旧が混ざらない
+（= 新IDへの切り替えがそのままキャッシュ無効化になる）。manifest 更新時は `videos`/`rotation`/必要なら
+`daily` のIDを新バージョンへ差し替える。
+
 ### アプリ同梱（必須・最終フォールバック）
 
-1. `assets/videos/` に `void-001.mp4` 〜 `void-007.mp4` を配置
+1. `assets/videos/` に `void-001-v1.mp4` 〜 `void-007-v1.mp4` を配置
    （30〜90秒ループ / MP4 / H.264 / 720p / 24または30fps / 1本4〜12MB、合計40〜80MB目安）
 2. `src/constants/bundledVideos.ts` の `BUNDLED_VIDEO_MODULES` の `null` を
-   `require('../../assets/videos/void-001.mp4')` に差し替える
+   `require('../../assets/videos/void-001-v1.mp4')` に差し替える
 3. `npm run typecheck` → 実機確認
 
-実動画が未配置の間は、静かな生成プレースホルダー描画でレイドが成立する（開発用）。
+実動画が未配置の間は、静かな生成プレースホルダー描画でレイドが成立する（開発用・画面/READMEに明記）。
 
 ### 追加映像（Cloudflare Workers Static Assets）
 

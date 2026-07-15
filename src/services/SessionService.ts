@@ -17,6 +17,7 @@ import {
 import { jstDateKey, jstWeekStartKey, raidWindowPhase, shiftJstDateKey, todayRaidId } from '../utils/jst';
 import { Mutex } from '../utils/mutex';
 import { ProgressService } from './ProgressService';
+import { RaidSyncService } from './RaidSyncService';
 import { StorageService } from './StorageService';
 
 type StartInput = {
@@ -148,11 +149,14 @@ export class SessionService {
       }
       const deadline = new Date(session.startedAt).getTime() + session.targetSeconds * 1000 + STALE_ACTIVE_GRACE_MS;
       if (now.getTime() > deadline) {
-        await SessionService.finalizeSession(session.sessionId, {
+        const summary = await SessionService.finalizeSession(session.sessionId, {
           completed: false,
           watchedSeconds: 0,
           exitReason: 'backgrounded',
         }, now);
+        if (summary?.session.kind === 'raid' && summary.session.serverSyncStatus !== 'unsynced') {
+          await RaidSyncService.enqueueFinish(summary.session);
+        }
       }
     }
     // 確定済みだが効果未反映のセッションを復旧

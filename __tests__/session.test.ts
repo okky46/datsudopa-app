@@ -2,6 +2,7 @@ import AsyncStorage, { __resetStore } from './mocks/asyncStorage';
 import { SessionService } from '../src/services/SessionService';
 import { ProgressService } from '../src/services/ProgressService';
 import { StorageService } from '../src/services/StorageService';
+import { WatchSession } from '../src/types/session';
 
 // 22:01 JST（開始可能な時刻）
 const RAID_OPEN = new Date('2026-07-13T13:01:00Z');
@@ -93,6 +94,125 @@ describe('finalize の冪等性と原子性', () => {
     // 2回目の復旧では二重反映しない
     await SessionService.recoverOnStartup(RAID_OPEN);
     expect(await ProgressService.getTotalDetoxSeconds()).toBe(180);
+  });
+});
+
+describe('stale active session recovery', () => {
+  const staleRaid: WatchSession = {
+    sessionId: 'stale-raid-1',
+    kind: 'raid',
+    raidId: '2026-07-13_22JST',
+    dateKey: '2026-07-13',
+    videoId: 'v',
+    startedAt: '2026-07-13T13:00:00.000Z',
+    targetSeconds: 180,
+    watchedSeconds: 0,
+    status: 'active',
+  };
+
+  test('stale active raid recovers as exited with 0 seconds and enqueues finish', async () => {
+    await StorageService.saveSessions([staleRaid]);
+
+    await SessionService.recoverOnStartup(RAID_CLOSED);
+
+    const [session] = await StorageService.getSessions();
+    expect(session.status).toBe('exited');
+    expect(session.exitReason).toBe('backgrounded');
+    expect(session.watchedSeconds).toBe(0);
+
+    const queue = await StorageService.getRaidSyncQueue();
+    expect(queue).toHaveLength(1);
+    expect(queue[0]).toMatchObject({
+      type: 'finish',
+      sessionId: staleRaid.sessionId,
+      raidId: staleRaid.raidId,
+      status: 'exited',
+      watchedSeconds: 0,
+    });
+  });
+
+  test('recovered raid finish is ordered after an existing queued start', async () => {
+    await StorageService.saveSessions([staleRaid]);
+    await StorageService.saveRaidSyncQueue([
+      {
+        syncItemId: 'start-1',
+        type: 'start',
+        sessionId: staleRaid.sessionId,
+        raidId: staleRaid.raidId!,
+        status: 'started',
+        watchedSeconds: 0,
+        startedAt: staleRaid.startedAt,
+        queuedAt: 'queued-start',
+      },
+    ]);
+
+    await SessionService.recoverOnStartup(RAID_CLOSED);
+
+    const queue = await StorageService.getRaidSyncQueue();
+    expect(queue.map((item) => item.type)).toEqual(['start', 'finish']);
+    expect(queue[1]).toMatchObject({
+      sessionId: staleRaid.sessionId,
+      status: 'exited',
+      watchedSeconds: 0,
+    });
+  });
+
+  test('recovery does not duplicate an existing finish and remains idempotent', async () => {
+    await StorageService.saveSessions([staleRaid]);
+    await StorageService.saveRaidSyncQueue([
+      {
+        syncItemId: 'finish-1',
+        type: 'finish',
+        sessionId: staleRaid.sessionId,
+        raidId: staleRaid.raidId!,
+        status: 'exited',
+        watchedSeconds: 0,
+        queuedAt: 'queued-finish',
+      },
+    ]);
+
+    await SessionService.recoverOnStartup(RAID_CLOSED);
+    await SessionService.recoverOnStartup(RAID_CLOSED);
+
+    const queue = await StorageService.getRaidSyncQueue();
+    expect(queue.filter((item) => item.type === 'finish' && item.sessionId === staleRaid.sessionId)).toHaveLength(1);
+    expect(await ProgressService.getTotalDetoxSeconds()).toBe(0);
+  });
+
+  test('stale long session does not enqueue raid finish', async () => {
+    await StorageService.saveSessions([
+      {
+        ...staleRaid,
+        sessionId: 'stale-long-1',
+        kind: 'long',
+        raidId: undefined,
+        longSource: 'daily',
+      },
+    ]);
+
+    await SessionService.recoverOnStartup(RAID_CLOSED);
+
+    expect(await StorageService.getRaidSyncQueue()).toHaveLength(0);
+  });
+
+  test('active raid before stale deadline does not enqueue finish', async () => {
+    await StorageService.saveSessions([staleRaid]);
+
+    await SessionService.recoverOnStartup(new Date('2026-07-13T13:05:00.000Z'));
+
+    expect((await StorageService.getSessions())[0].status).toBe('active');
+    expect(await StorageService.getRaidSyncQueue()).toHaveLength(0);
+  });
+
+  test('unsynced stale raid is finalized locally without unsendable finish', async () => {
+    await StorageService.saveSessions([{ ...staleRaid, serverSyncStatus: 'unsynced' }]);
+
+    await SessionService.recoverOnStartup(RAID_CLOSED);
+
+    const [session] = await StorageService.getSessions();
+    expect(session.status).toBe('exited');
+    expect(session.serverSyncStatus).toBe('unsynced');
+    expect(await StorageService.getRaidSyncQueue()).toHaveLength(0);
   });
 });
 

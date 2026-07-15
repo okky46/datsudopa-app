@@ -184,22 +184,31 @@ export class RaidSyncService {
     item: RaidSyncItem,
     repairedProfileSessionIds: Set<string>,
   ): Promise<'retry_after_repair' | 'retry_later' | 'discard_with_finish'> {
-    const attempts = item.profileRepairAttempts ?? 0;
-    if (attempts >= MAX_PROFILE_REPAIR_ATTEMPTS) {
-      return 'discard_with_finish';
-    }
-
-    await queueMutex.runExclusive(async () => {
-      const current = await loadQueueWithIds();
-      const next = current.map((queued) => queued.syncItemId === item.syncItemId
-        ? { ...queued, profileRepairAttempts: attempts + 1 }
-        : queued);
-      await StorageService.saveRaidSyncQueue(next);
-    });
-
     if (repairedProfileSessionIds.has(item.sessionId)) {
       return 'retry_later';
     }
+
+    const reservedRepair = await queueMutex.runExclusive(async () => {
+      const current = await loadQueueWithIds();
+      const latestItem = current.find((queued) => queued.syncItemId === item.syncItemId);
+      if (!latestItem) {
+        return false;
+      }
+      const latestAttempts = latestItem.profileRepairAttempts ?? 0;
+      if (latestAttempts >= MAX_PROFILE_REPAIR_ATTEMPTS) {
+        return false;
+      }
+      const next = current.map((queued) => queued.syncItemId === item.syncItemId
+        ? { ...queued, profileRepairAttempts: latestAttempts + 1 }
+        : queued);
+      await StorageService.saveRaidSyncQueue(next);
+      return true;
+    });
+
+    if (!reservedRepair) {
+      return 'discard_with_finish';
+    }
+
     repairedProfileSessionIds.add(item.sessionId);
 
     const profileSyncResult = await ProfileService.forceSyncCurrentPublicName();

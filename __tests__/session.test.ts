@@ -214,6 +214,43 @@ describe('stale active session recovery', () => {
     expect(session.serverSyncStatus).toBe('unsynced');
     expect(await StorageService.getRaidSyncQueue()).toHaveLength(0);
   });
+
+  test('completed raid with pending finish is enqueued on later startup', async () => {
+    await StorageService.saveSessions([{
+      ...staleRaid,
+      status: 'exited',
+      exitReason: 'backgrounded',
+      endedAt: RAID_CLOSED.toISOString(),
+      raidFinishSyncStatus: 'pending',
+      progressEffectStatus: 'applied',
+    }]);
+
+    await SessionService.recoverOnStartup(RAID_CLOSED);
+
+    const queue = await StorageService.getRaidSyncQueue();
+    expect(queue.filter((item) => item.type === 'finish' && item.sessionId === staleRaid.sessionId)).toHaveLength(1);
+    expect((await StorageService.getSessions())[0].raidFinishSyncStatus).toBe('queued');
+
+    await SessionService.recoverOnStartup(RAID_CLOSED);
+    expect((await StorageService.getRaidSyncQueue()).filter((item) => item.type === 'finish' && item.sessionId === staleRaid.sessionId)).toHaveLength(1);
+  });
+
+  test('unsynced finalized raid with pending finish is closed without enqueue', async () => {
+    await StorageService.saveSessions([{
+      ...staleRaid,
+      status: 'exited',
+      exitReason: 'backgrounded',
+      endedAt: RAID_CLOSED.toISOString(),
+      serverSyncStatus: 'unsynced',
+      raidFinishSyncStatus: 'pending',
+      progressEffectStatus: 'applied',
+    }]);
+
+    await SessionService.recoverOnStartup(RAID_CLOSED);
+
+    expect(await StorageService.getRaidSyncQueue()).toHaveLength(0);
+    expect((await StorageService.getSessions())[0].raidFinishSyncStatus).toBe('queued');
+  });
 });
 
 describe('通常ロングの日次累計ドパガキ度step', () => {
@@ -302,6 +339,62 @@ describe('通常ロングの日次累計ドパガキ度step', () => {
 });
 
 describe('progress migration edge cases', () => {
+
+  test('pending completed raid is not migrated as applied and recovers once on startup', async () => {
+    __resetStore();
+    await AsyncStorage.setItem('totalDetoxSeconds', JSON.stringify(10));
+    await AsyncStorage.setItem('dopagakiLevel', JSON.stringify(75));
+    const session: WatchSession = {
+      sessionId: 'pending-raid-upgrade',
+      kind: 'raid',
+      raidId: '2026-07-13_22JST',
+      dateKey: '2026-07-13',
+      videoId: 'v',
+      startedAt: RAID_OPEN.toISOString(),
+      endedAt: RAID_OPEN.toISOString(),
+      targetSeconds: 180,
+      watchedSeconds: 180,
+      status: 'completed',
+      progressEffectStatus: 'pending',
+    };
+    await StorageService.saveSessions([session]);
+
+    await SessionService.recoverOnStartup(RAID_OPEN);
+
+    expect(await ProgressService.getTotalDetoxSeconds()).toBe(190);
+    expect(await ProgressService.getLevel()).toBe(72);
+    expect((await StorageService.getSessions())[0].progressEffectStatus).toBe('applied');
+
+    await SessionService.recoverOnStartup(RAID_OPEN);
+    expect(await ProgressService.getTotalDetoxSeconds()).toBe(190);
+    expect(await ProgressService.getLevel()).toBe(72);
+  });
+
+  test('pending long is not migrated into longSecondsByDate before recovery apply', async () => {
+    __resetStore();
+    await AsyncStorage.setItem('dopagakiLevel', JSON.stringify(75));
+    const pendingLong: WatchSession = {
+      sessionId: 'pending-long-upgrade',
+      kind: 'long',
+      longSource: 'daily',
+      dateKey: '2026-07-13',
+      videoId: 'v',
+      startedAt: RAID_OPEN.toISOString(),
+      endedAt: RAID_OPEN.toISOString(),
+      targetSeconds: 180,
+      watchedSeconds: 90,
+      status: 'completed',
+      progressEffectStatus: 'pending',
+    };
+    await StorageService.saveSessions([pendingLong]);
+
+    await SessionService.recoverOnStartup(RAID_OPEN);
+
+    const state = (await StorageService.getProgressState())!;
+    expect(state.longSecondsByDate['2026-07-13']).toBe(90);
+    expect(await ProgressService.getTotalDetoxSeconds()).toBe(90);
+    expect(await ProgressService.getLevel()).toBe(75);
+  });
   test('first finalized session after upgrade is not marked applied by migration', async () => {
     __resetStore();
     const s = await SessionService.startSession({ kind: 'raid', videoId: 'v', targetSeconds: 180 }, RAID_OPEN);

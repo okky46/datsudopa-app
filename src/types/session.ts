@@ -30,6 +30,10 @@ export type WatchSession = {
   exitReason?: ExitReason;
   /** サーバー公式参加へ同期できなかったローカル限定セッションの識別 */
   serverSyncStatus?: 'synced' | 'unsynced';
+  /** 確定後の進捗効果をローカルoutboxとして復旧可能にする状態 */
+  progressEffectStatus?: 'pending' | 'applied';
+  /** raid finishキュー登録をローカルoutboxとして復旧可能にする状態 */
+  raidFinishSyncStatus?: 'pending' | 'queued';
 };
 
 /** セッション確定時にリザルト画面へ渡す集計 */

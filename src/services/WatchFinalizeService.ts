@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
 import { ExitReason, WatchSession } from '../types/session';
 import { AnalyticsService } from './AnalyticsService';
-import { RaidSyncService } from './RaidSyncService';
 import { SessionService } from './SessionService';
 
 type FinalizeOptions = {
@@ -25,7 +24,6 @@ export class WatchFinalizeService {
     }
 
     if (summary.session.kind === 'raid') {
-      await RaidSyncService.enqueueFinish(summary.session);
       void AnalyticsService.track(options.completed ? 'raid_completed' : 'raid_exited', {
         watchedSeconds: summary.session.watchedSeconds,
       });

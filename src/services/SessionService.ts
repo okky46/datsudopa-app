@@ -16,7 +16,7 @@ import {
 } from '../types/session';
 import { jstDateKey, jstWeekStartKey, raidWindowPhase, shiftJstDateKey, todayRaidId } from '../utils/jst';
 import { Mutex } from '../utils/mutex';
-import { ProgressService } from './ProgressService';
+import { EffectResult, ProgressService } from './ProgressService';
 import { RaidSyncService } from './RaidSyncService';
 import { StorageService } from './StorageService';
 
@@ -102,12 +102,16 @@ export class SessionService {
       }
       const target = sessions[index].targetSeconds;
       const watchedSeconds = Math.max(0, Math.min(Math.round(outcome.watchedSeconds), target));
+      const finalizedStatus = outcome.completed ? 'completed' : 'exited';
+      const base = sessions[index];
       const next: WatchSession = {
-        ...sessions[index],
-        status: outcome.completed ? 'completed' : 'exited',
+        ...base,
+        status: finalizedStatus,
         watchedSeconds,
         endedAt: now.toISOString(),
         exitReason: outcome.completed ? undefined : outcome.exitReason ?? 'user_exit',
+        progressEffectStatus: 'pending',
+        raidFinishSyncStatus: base.kind === 'raid' && base.serverSyncStatus !== 'unsynced' ? 'pending' : base.raidFinishSyncStatus,
       };
       const nextSessions = [...sessions];
       nextSessions[index] = next;
@@ -119,7 +123,7 @@ export class SessionService {
       return null;
     }
 
-    const effects = await ProgressService.applySessionEffects(updated);
+    const effects = await SessionService.completePendingPostFinalize(updated);
     const sessions = await StorageService.getSessions();
 
     return {
@@ -154,13 +158,65 @@ export class SessionService {
           watchedSeconds: 0,
           exitReason: 'backgrounded',
         }, now);
-        if (summary?.session.kind === 'raid' && summary.session.serverSyncStatus !== 'unsynced') {
-          await RaidSyncService.enqueueFinish(summary.session);
-        }
       }
     }
-    // 確定済みだが効果未反映のセッションを復旧
-    await ProgressService.recoverPendingEffects(await StorageService.getSessions());
+
+    // 保存済みの全セッションについて、確定後のローカルoutboxを復旧する。
+    for (const session of await StorageService.getSessions()) {
+      if (session.status !== 'active') {
+        await SessionService.completePendingPostFinalize(session);
+      }
+    }
+  }
+
+  private static async completePendingPostFinalize(session: WatchSession): Promise<EffectResult> {
+    let effects: EffectResult = {
+      totalDetoxSeconds: await ProgressService.getTotalDetoxSeconds(),
+      dopagakiLevel: await ProgressService.getLevel(),
+      applied: 0,
+    };
+
+    if (session.status !== 'active' && session.progressEffectStatus !== 'applied') {
+      effects = await ProgressService.applySessionEffects(session);
+      await SessionService.markProgressEffectApplied(session.sessionId);
+    }
+
+    if (SessionService.shouldRecoverRaidFinish(session)) {
+      await RaidSyncService.enqueueFinish(session);
+      await SessionService.markRaidFinishQueued(session.sessionId);
+    } else if (session.kind === 'raid' && session.raidFinishSyncStatus === 'pending' && session.serverSyncStatus === 'unsynced') {
+      await SessionService.markRaidFinishQueued(session.sessionId);
+    }
+
+    return effects;
+  }
+
+  private static shouldRecoverRaidFinish(session: WatchSession): boolean {
+    return session.kind === 'raid'
+      && session.status !== 'active'
+      && Boolean(session.raidId)
+      && session.raidFinishSyncStatus === 'pending'
+      && session.serverSyncStatus !== 'unsynced';
+  }
+
+  private static async markProgressEffectApplied(sessionId: string): Promise<void> {
+    await sessionMutex.runExclusive(async () => {
+      const sessions = await StorageService.getSessions();
+      const next = sessions.map((item) => item.sessionId === sessionId && item.status !== 'active'
+        ? { ...item, progressEffectStatus: 'applied' as const }
+        : item);
+      await StorageService.saveSessions(next);
+    });
+  }
+
+  private static async markRaidFinishQueued(sessionId: string): Promise<void> {
+    await sessionMutex.runExclusive(async () => {
+      const sessions = await StorageService.getSessions();
+      const next = sessions.map((item) => item.sessionId === sessionId && item.kind === 'raid' && item.status !== 'active'
+        ? { ...item, raidFinishSyncStatus: 'queued' as const }
+        : item);
+      await StorageService.saveSessions(next);
+    });
   }
 
   // --- 集計 ---

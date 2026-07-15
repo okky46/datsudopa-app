@@ -78,6 +78,9 @@ export class ProgressService {
       if (session.status === 'active' || session.sessionId === excludeAppliedSessionId) {
         continue;
       }
+      if (session.progressEffectStatus === 'pending') {
+        continue;
+      }
       if (session.kind === 'long') {
         migrated.longSecondsByDate[session.dateKey] =
           (migrated.longSecondsByDate[session.dateKey] ?? 0) + session.watchedSeconds;
@@ -186,7 +189,10 @@ export class ProgressService {
     const state = await ProgressService.load(sessions);
     const applied = new Set(state.appliedSessionIds);
     for (const session of sessions) {
-      if (session.status !== 'active' && !applied.has(session.sessionId)) {
+      if (session.status === 'active') {
+        continue;
+      }
+      if (session.progressEffectStatus === 'pending' || !applied.has(session.sessionId)) {
         await ProgressService.applySessionEffects(session);
       }
     }

@@ -20,6 +20,7 @@ import { colors, fontFamily, spacing, typography } from '../../src/constants/the
 import { UserSettings } from '../../src/types/settings';
 import { NotificationService } from '../../src/services/NotificationService';
 import { ProfileService } from '../../src/services/ProfileService';
+import { DataResetService } from '../../src/services/DataResetService';
 import { StorageService } from '../../src/services/StorageService';
 import { VideoDeliveryService } from '../../src/services/VideoDeliveryService';
 import { generateNameCandidates, validatePublicName } from '../../src/utils/username';
@@ -158,9 +159,7 @@ export default function MenuScreen() {
                   text: '削除',
                   style: 'destructive',
                   onPress: () => {
-                    void StorageService.clearAll()
-                      .then(() => VideoDeliveryService.clearCache())
-                      .then(() => router.replace('/onboarding'));
+                    void DataResetService.clearLocalData().then(() => router.replace('/onboarding'));
                   },
                 },
               ]);

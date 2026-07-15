@@ -145,9 +145,9 @@ export const menuCopy = {
   heavyBody: 'プレミアム特典に加えて、自主的な広告増量、限定称号とバッジ、限定共有デザイン。より一層スマホから離れたい人へ。',
   comingSoon: '今後提供予定',
   redoOnboarding: 'オンボーディングをやり直す',
-  deleteData: 'データを削除',
-  deleteConfirmTitle: 'データ削除',
-  deleteConfirmBody: '記録と設定をすべて消します。',
+  deleteData: '端末内データを削除',
+  deleteConfirmTitle: '端末内データを削除',
+  deleteConfirmBody: '端末内の記録・設定・通知・動画キャッシュを削除します。サーバー上の匿名データは対象外です。',
   legalPrivacy: 'プライバシーポリシー',
   legalTerms: '利用規約',
 } as const;

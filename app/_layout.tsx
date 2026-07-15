@@ -1,6 +1,5 @@
 import 'react-native-reanimated';
-import { useEffect } from 'react';
-import { Stack, router } from 'expo-router';
+import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
 import {
@@ -11,8 +10,7 @@ import {
   ZenMaruGothic_900Black,
 } from '@expo-google-fonts/zen-maru-gothic';
 import { colors } from '../src/constants/theme';
-import { AnalyticsService } from '../src/services/AnalyticsService';
-import { NotificationService } from '../src/services/NotificationService';
+import { useRaidNotificationRouter } from '../src/hooks/useRaidNotificationRouter';
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -22,21 +20,9 @@ export default function RootLayout() {
     ZenMaruGothic_900Black,
   });
 
-  // 22時の通知タップ → 公式レイド開始導線へ直行。
-  // 窓の外だった場合は active 側がホームへ戻し、追い脱ドパ導線を見せる。
-  useEffect(() => {
-    const openRaid = () => {
-      void AnalyticsService.track('raid_notification_opened');
-      router.push({ pathname: '/raid/active', params: { mode: 'raid' } });
-    };
-    const unsubscribe = NotificationService.addRaidNotificationListener(openRaid);
-    void NotificationService.consumeLaunchRaidNotification().then((fromRaidNotification) => {
-      if (fromRaidNotification) {
-        openRaid();
-      }
-    });
-    return unsubscribe;
-  }, []);
+  // 通知タップからの遷移を一元管理（コールドスタート/リスナーの二重処理防止・
+  // ナビ準備待ち・オンボーディング優先・窓外はホームへ）。
+  useRaidNotificationRouter(fontsLoaded);
 
   if (!fontsLoaded) {
     return <View style={{ flex: 1, backgroundColor: colors.background }} />;

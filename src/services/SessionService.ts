@@ -14,8 +14,10 @@ import {
   SessionSummary,
   WatchSession,
 } from '../types/session';
-import { jstDateKey, jstWeekStartKey, shiftJstDateKey, todayRaidId } from '../utils/jst';
-import { DopagakiService } from './DopagakiService';
+import { jstDateKey, jstWeekStartKey, raidWindowPhase, shiftJstDateKey, todayRaidId } from '../utils/jst';
+import { Mutex } from '../utils/mutex';
+import { EffectResult, ProgressService } from './ProgressService';
+import { RaidSyncService } from './RaidSyncService';
 import { StorageService } from './StorageService';
 
 type StartInput = {
@@ -34,63 +36,102 @@ type FinalizeInput = {
 /** active のまま放置されたセッションを離脱扱いにするまでの猶予（ms） */
 const STALE_ACTIVE_GRACE_MS = 10 * 60 * 1000;
 
+// セッション開始・確定・復旧を直列化する。ボタン連打・通知二重処理・画面二重遷移で
+// 同時に呼ばれても、read-modify-write が重ならず1セッションだけ作られ、1回だけ反映される。
+const sessionMutex = new Mutex();
+
 export class SessionService {
-  static async startSession(input: StartInput, now = new Date()): Promise<WatchSession> {
-    const session: WatchSession = {
-      sessionId: Crypto.randomUUID(),
-      kind: input.kind,
-      longSource: input.kind === 'long' ? input.longSource ?? 'daily' : undefined,
-      raidId: input.kind === 'raid' ? todayRaidId(now) : undefined,
-      dateKey: jstDateKey(now),
-      videoId: input.videoId,
-      startedAt: now.toISOString(),
-      targetSeconds: input.targetSeconds,
-      watchedSeconds: 0,
-      status: 'active',
-    };
-    const sessions = await StorageService.getSessions();
-    await StorageService.saveSessions([session, ...sessions]);
-    return session;
+  /**
+   * 視聴セッションを開始する。公式レイドは1日1セッションに制限し、mutexで排他する。
+   * 開始できない場合（当日レイド済み・公式時間外）は null を返す。
+   */
+  static async startSession(input: StartInput, now = new Date()): Promise<WatchSession | null> {
+    return sessionMutex.runExclusive(async () => {
+      const sessions = await StorageService.getSessions();
+
+      if (input.kind === 'raid') {
+        // 二重起動の最終防衛: 当日のraidが active/completed/exited のいずれでも存在すれば拒否
+        if (SessionService.hasAnyRaidSessionToday(sessions, now)) {
+          return null;
+        }
+        // 公式時間外での開始も拒否（UI判定に依存しない最終防衛）
+        if (raidWindowPhase(now) !== 'open') {
+          return null;
+        }
+      }
+
+      const session: WatchSession = {
+        sessionId: Crypto.randomUUID(),
+        kind: input.kind,
+        longSource: input.kind === 'long' ? input.longSource ?? 'daily' : undefined,
+        raidId: input.kind === 'raid' ? todayRaidId(now) : undefined,
+        dateKey: jstDateKey(now),
+        videoId: input.videoId,
+        startedAt: now.toISOString(),
+        targetSeconds: input.targetSeconds,
+        watchedSeconds: 0,
+        status: 'active',
+      };
+      await StorageService.saveSessions([session, ...sessions]);
+      return session;
+    });
+  }
+
+  /** 当日の公式レイドセッションが状態を問わず存在するか（開始可否の最終判定に使う） */
+  static hasAnyRaidSessionToday(sessions: WatchSession[], now = new Date()): boolean {
+    const today = jstDateKey(now);
+    return sessions.some((session) => session.kind === 'raid' && session.dateKey === today);
   }
 
   /**
    * セッションを確定し、累計・ドパガキ度へ反映して集計を返す。
    * すでに確定済み（activeでない）の場合は null を返し、何も加算しない。
+   *
+   * 2段階だが二重加算しない設計:
+   *   1) セッション状態を finalized に更新（sessions への単一書き込み）
+   *   2) ProgressService.applySessionEffects で累計・ドパガキ度を原子的に反映
+   * 1) と 2) の間で中断しても、効果は appliedSessionIds で未反映と分かるため
+   * 起動時の recoverPendingEffects が1回だけ反映して復旧する。
    */
   static async finalizeSession(sessionId: string, outcome: FinalizeInput, now = new Date()): Promise<SessionSummary | null> {
-    const sessions = await StorageService.getSessions();
-    const index = sessions.findIndex((item) => item.sessionId === sessionId);
-    if (index < 0 || sessions[index].status !== 'active') {
+    const updated = await sessionMutex.runExclusive(async () => {
+      const sessions = await StorageService.getSessions();
+      const index = sessions.findIndex((item) => item.sessionId === sessionId);
+      if (index < 0 || sessions[index].status !== 'active') {
+        return null;
+      }
+      const target = sessions[index].targetSeconds;
+      const watchedSeconds = Math.max(0, Math.min(Math.round(outcome.watchedSeconds), target));
+      const finalizedStatus = outcome.completed ? 'completed' : 'exited';
+      const base = sessions[index];
+      const next: WatchSession = {
+        ...base,
+        status: finalizedStatus,
+        watchedSeconds,
+        endedAt: now.toISOString(),
+        exitReason: outcome.completed ? undefined : outcome.exitReason ?? 'user_exit',
+        progressEffectStatus: 'pending',
+        raidFinishSyncStatus: base.kind === 'raid' && base.serverSyncStatus !== 'unsynced' ? 'pending' : base.raidFinishSyncStatus,
+      };
+      const nextSessions = [...sessions];
+      nextSessions[index] = next;
+      await StorageService.saveSessions(nextSessions);
+      return next;
+    });
+
+    if (!updated) {
       return null;
     }
 
-    const target = sessions[index].targetSeconds;
-    const watchedSeconds = Math.max(0, Math.min(Math.round(outcome.watchedSeconds), target));
-    const updated: WatchSession = {
-      ...sessions[index],
-      status: outcome.completed ? 'completed' : 'exited',
-      watchedSeconds,
-      endedAt: now.toISOString(),
-      exitReason: outcome.completed ? undefined : outcome.exitReason ?? 'user_exit',
-    };
-    const nextSessions = [...sessions];
-    nextSessions[index] = updated;
-    await StorageService.saveSessions(nextSessions);
-
-    const total = (await StorageService.getTotalDetoxSeconds()) + watchedSeconds;
-    await StorageService.saveTotalDetoxSeconds(total);
-
-    const dopagaki =
-      updated.kind === 'raid'
-        ? await DopagakiService.applyRaidOutcome(outcome.completed)
-        : await DopagakiService.applyLongWatched(updated.dateKey, watchedSeconds);
+    const effects = await SessionService.completePendingPostFinalize(updated);
+    const sessions = await StorageService.getSessions();
 
     return {
       session: updated,
-      totalDetoxSeconds: total,
-      dopagakiLevel: dopagaki.level,
-      dopagakiDelta: dopagaki.applied,
-      streakDays: SessionService.getStreakDays(nextSessions, now),
+      totalDetoxSeconds: effects.totalDetoxSeconds,
+      dopagakiLevel: effects.dopagakiLevel,
+      dopagakiDelta: effects.applied,
+      streakDays: SessionService.getStreakDays(sessions, now),
     };
   }
 
@@ -100,10 +141,11 @@ export class SessionService {
   }
 
   /**
-   * アプリ強制終了などで active のまま残ったセッションを離脱として確定する。
-   * 実際の視聴秒数は分からないため加算は0秒（過大加算を避ける）。
+   * 起動時の整合性回復:
+   *   - active のまま放置されたセッションを離脱として確定（視聴秒数不明なので0秒）
+   *   - 確定済みだが効果未反映のセッションを反映（finalize途中失敗からの復旧）
    */
-  static async cleanupStaleActiveSessions(now = new Date()): Promise<void> {
+  static async recoverOnStartup(now = new Date()): Promise<void> {
     const sessions = await StorageService.getSessions();
     for (const session of sessions) {
       if (session.status !== 'active') {
@@ -111,13 +153,70 @@ export class SessionService {
       }
       const deadline = new Date(session.startedAt).getTime() + session.targetSeconds * 1000 + STALE_ACTIVE_GRACE_MS;
       if (now.getTime() > deadline) {
-        await SessionService.finalizeSession(session.sessionId, {
+        const summary = await SessionService.finalizeSession(session.sessionId, {
           completed: false,
           watchedSeconds: 0,
           exitReason: 'backgrounded',
         }, now);
       }
     }
+
+    // 保存済みの全セッションについて、確定後のローカルoutboxを復旧する。
+    for (const session of await StorageService.getSessions()) {
+      if (session.status !== 'active') {
+        await SessionService.completePendingPostFinalize(session);
+      }
+    }
+  }
+
+  private static async completePendingPostFinalize(session: WatchSession): Promise<EffectResult> {
+    let effects: EffectResult = {
+      totalDetoxSeconds: await ProgressService.getTotalDetoxSeconds(),
+      dopagakiLevel: await ProgressService.getLevel(),
+      applied: 0,
+    };
+
+    if (session.status !== 'active' && session.progressEffectStatus !== 'applied') {
+      effects = await ProgressService.applySessionEffects(session);
+      await SessionService.markProgressEffectApplied(session.sessionId);
+    }
+
+    if (SessionService.shouldRecoverRaidFinish(session)) {
+      await RaidSyncService.enqueueFinish(session);
+      await SessionService.markRaidFinishQueued(session.sessionId);
+    } else if (session.kind === 'raid' && session.raidFinishSyncStatus === 'pending' && session.serverSyncStatus === 'unsynced') {
+      await SessionService.markRaidFinishQueued(session.sessionId);
+    }
+
+    return effects;
+  }
+
+  private static shouldRecoverRaidFinish(session: WatchSession): boolean {
+    return session.kind === 'raid'
+      && session.status !== 'active'
+      && Boolean(session.raidId)
+      && session.raidFinishSyncStatus === 'pending'
+      && session.serverSyncStatus !== 'unsynced';
+  }
+
+  private static async markProgressEffectApplied(sessionId: string): Promise<void> {
+    await sessionMutex.runExclusive(async () => {
+      const sessions = await StorageService.getSessions();
+      const next = sessions.map((item) => item.sessionId === sessionId && item.status !== 'active'
+        ? { ...item, progressEffectStatus: 'applied' as const }
+        : item);
+      await StorageService.saveSessions(next);
+    });
+  }
+
+  private static async markRaidFinishQueued(sessionId: string): Promise<void> {
+    await sessionMutex.runExclusive(async () => {
+      const sessions = await StorageService.getSessions();
+      const next = sessions.map((item) => item.sessionId === sessionId && item.kind === 'raid' && item.status !== 'active'
+        ? { ...item, raidFinishSyncStatus: 'queued' as const }
+        : item);
+      await StorageService.saveSessions(next);
+    });
   }
 
   // --- 集計 ---

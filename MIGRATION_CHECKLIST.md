@@ -79,3 +79,47 @@
 - [ ] Supabase プロジェクトへのマイグレーション適用と同行者表示確認
 - [ ] Cloudflare Workers Static Assets への実動画配置
 - [ ] ストアビルド確認（EAS）
+
+---
+
+# 公開前ハードニング（POST_MERGE_HARDENING.md）
+
+## Phase 1: Supabaseセキュリティ
+
+- [x] `0002_security_hardening.sql` 追加（0001適用済み環境へ追加適用可能）
+- [x] `set_public_name` RPC（name_status本人変更不可・blocked改名不可・サーバー側正規化/検査）
+- [x] `start_raid_participation` / `finish_raid_participation` RPC（値をサーバー決定・公式時間はnow()判定・冪等）
+- [x] `get_raid_companions` に呼び出し本人の参加確認 + 安定ハッシュ順
+- [x] 集計Viewを private スキーマへ隔離
+- [x] クライアント（ProfileService / RaidSyncService）をRPC呼び出しへ・注入経路を除去
+
+## Phase 2: レイド二重起動・通知
+
+- [x] startSession を mutex 排他・当日レイド active/completed/exited で拒否・窓外拒否
+- [x] BackHandler + 画面アンマウントで離脱を終了処理へ集約（視聴時間保存・active残さない）
+- [x] 通知遷移を useRaidNotificationRouter で一元化（identifier dedup・ナビ準備待ち・オンボ優先・窓外ホーム）
+
+## Phase 3: ローカル整合性
+
+- [x] ProgressState 単一オブジェクト + mutex で finalize を原子化・appliedSessionIds で冪等
+- [x] 起動時 recoverPendingEffects で途中失敗から復旧
+- [x] 通常ロングのドパガキ度を日次累計stepで判定
+- [x] firstEligibleRaidDateKey で初回22:03以降の未参加ペナルティを回避
+
+## Phase 4: 分析・削除
+
+- [x] event_id(UUID) + `0003_analytics_event_id.sql`（event_id一意・upsert重複無視）
+- [x] track/flush の mutex 直列化・flush中の追加イベントを失わない・多重flush防止
+- [x] 不足イベント追加（requested/denied/first_long_30s/raid_start_rejected/video_fallback_used）
+- [x] データ削除を DataResetService に集約・表示と実削除範囲を一致（「端末内データを削除」へ改称）
+
+## Phase 5: テスト・CI・ドキュメント
+
+- [x] 動画IDのバージョン管理（`void-001-v1`）
+- [x] jest + ts-jest 単体テスト（37件）
+- [x] GitHub Actions CI（typecheck + test）
+- [x] ARCHITECTURE / README / supabase README 更新
+- [ ] 実機: Android戻る/ジェスチャー/タブ遷移でのセッション確定
+- [ ] 実機: コールドスタート/バックグラウンド通知の1回遷移・オンボ未完了時の抑止
+- [ ] Supabase 0002/0003 適用後の RPC 動作・非参加者の同行者取得拒否
+- [ ] 端末時計を変えても公式参加を偽装できないこと

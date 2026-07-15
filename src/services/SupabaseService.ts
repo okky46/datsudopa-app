@@ -33,6 +33,15 @@ export class SupabaseService {
     return client;
   }
 
+  /** ローカルの匿名セッションを破棄する（データ削除時に古いセッションの再利用を防ぐ） */
+  static async signOut(): Promise<void> {
+    try {
+      await SupabaseService.getClient()?.auth.signOut();
+    } catch {
+      // サインアウト失敗は無視（ローカル削除は続行する）
+    }
+  }
+
   /** 匿名サインイン（既存セッションがあれば再利用）。失敗時は null */
   static async ensureSignedIn(): Promise<string | null> {
     const supabase = SupabaseService.getClient();

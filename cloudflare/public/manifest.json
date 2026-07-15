@@ -2,14 +2,14 @@
   "version": 1,
   "updatedAt": "2026-07-13",
   "videos": [
-    { "id": "void-001", "title": "誰もいない駅のホーム", "file": "videos/void-001.mp4", "durationSeconds": 60, "access": "free" },
-    { "id": "void-002", "title": "雨上がりの交差点", "file": "videos/void-002.mp4", "durationSeconds": 60, "access": "free" },
-    { "id": "void-003", "title": "蛍光灯の廊下", "file": "videos/void-003.mp4", "durationSeconds": 60, "access": "free" },
-    { "id": "void-004", "title": "夜の立体駐車場", "file": "videos/void-004.mp4", "durationSeconds": 60, "access": "free" },
-    { "id": "void-005", "title": "止まったエスカレーター", "file": "videos/void-005.mp4", "durationSeconds": 60, "access": "free" },
-    { "id": "void-006", "title": "真夜中の自販機", "file": "videos/void-006.mp4", "durationSeconds": 60, "access": "free" },
-    { "id": "void-007", "title": "波のない湖面", "file": "videos/void-007.mp4", "durationSeconds": 60, "access": "free" }
+    { "id": "void-001-v1", "title": "誰もいない駅のホーム", "file": "videos/void-001-v1.mp4", "durationSeconds": 60, "access": "free" },
+    { "id": "void-002-v1", "title": "雨上がりの交差点", "file": "videos/void-002-v1.mp4", "durationSeconds": 60, "access": "free" },
+    { "id": "void-003-v1", "title": "蛍光灯の廊下", "file": "videos/void-003-v1.mp4", "durationSeconds": 60, "access": "free" },
+    { "id": "void-004-v1", "title": "夜の立体駐車場", "file": "videos/void-004-v1.mp4", "durationSeconds": 60, "access": "free" },
+    { "id": "void-005-v1", "title": "止まったエスカレーター", "file": "videos/void-005-v1.mp4", "durationSeconds": 60, "access": "free" },
+    { "id": "void-006-v1", "title": "真夜中の自販機", "file": "videos/void-006-v1.mp4", "durationSeconds": 60, "access": "free" },
+    { "id": "void-007-v1", "title": "波のない湖面", "file": "videos/void-007-v1.mp4", "durationSeconds": 60, "access": "free" }
   ],
   "daily": {},
-  "rotation": ["void-001", "void-002", "void-003", "void-004", "void-005", "void-006", "void-007"]
+  "rotation": ["void-001-v1", "void-002-v1", "void-003-v1", "void-004-v1", "void-005-v1", "void-006-v1", "void-007-v1"]
 }

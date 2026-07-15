@@ -19,9 +19,9 @@ import { colors } from '../../src/constants/theme';
 import { ExitReason, LongSource, WatchSession } from '../../src/types/session';
 import { ResolvedVideo } from '../../src/types/video';
 import { AnalyticsService } from '../../src/services/AnalyticsService';
-import { RaidService } from '../../src/services/RaidService';
 import { RaidSyncService } from '../../src/services/RaidSyncService';
 import { SessionService } from '../../src/services/SessionService';
+import { WatchFinalizeService } from '../../src/services/WatchFinalizeService';
 import { StorageService } from '../../src/services/StorageService';
 import { VideoDeliveryService } from '../../src/services/VideoDeliveryService';
 
@@ -45,6 +45,7 @@ export default function ActiveWatchScreen() {
   const [video, setVideo] = useState<ResolvedVideo | null>(null);
   const sessionRef = useRef<WatchSession | null>(null);
   const startingRef = useRef(false);
+  const watchedRef = useRef(0);
 
   // 起動時: 開始可否の検証 → 動画解決 → セッション開始（すべてローカルで即決）
   useEffect(() => {
@@ -54,13 +55,6 @@ export default function ActiveWatchScreen() {
         return;
       }
       startingRef.current = true;
-
-      const sessions = await StorageService.getSessions();
-      if (isRaid && !RaidService.canStartOfficialRaid(sessions)) {
-        // 窓の外 or 参加済み。ホームへ戻す（追い脱ドパ導線はホーム側にある）
-        router.replace('/(tabs)');
-        return;
-      }
 
       const manifest = await VideoDeliveryService.getLocalManifest();
       const videoId = mode === 'long'
@@ -73,17 +67,26 @@ export default function ActiveWatchScreen() {
 
       const longSource: LongSource | undefined =
         mode === 'catchup' ? 'catchup' : mode === 'first' ? 'first_long' : mode === 'long' ? 'daily' : undefined;
+      // startSession が二重起動防止・公式時間検証の最終防衛を担う。
+      // 開始できない（当日レイド済み・窓外）場合は null を返すのでホームへ戻す。
       const session = await SessionService.startSession({
         kind: isRaid ? 'raid' : 'long',
         longSource,
         videoId,
         targetSeconds,
       });
+      if (!session) {
+        void AnalyticsService.track('raid_start_rejected', { mode });
+        router.replace('/(tabs)');
+        return;
+      }
       sessionRef.current = session;
+      if (resolved.source == null) {
+        void AnalyticsService.track('video_fallback_used', { videoId });
+      }
 
       if (isRaid) {
-        const settings = await StorageService.getSettings();
-        void RaidSyncService.enqueueStart(session, settings.publicName);
+        void RaidSyncService.enqueueStart(session);
         void AnalyticsService.track('raid_started');
       } else {
         void AnalyticsService.track(
@@ -99,6 +102,26 @@ export default function ActiveWatchScreen() {
     };
   }, [isRaid, mode, targetSeconds]);
 
+  // 画面アンマウントの最終防衛: タブ遷移・ナビpop・ジェスチャー等で
+  // 確定されないまま離脱しても、そこまでの視聴時間を保存し active を残さない。
+  // すでに確定済みなら finalizeSession が null を返すので二重加算されない。
+  useEffect(
+    () => () => {
+      const session = sessionRef.current;
+      if (session) {
+        void WatchFinalizeService.finalize({
+          session,
+          completed: false,
+          watchedSeconds: watchedRef.current,
+          exitReason: 'user_exit',
+          navigateToResult: false,
+          mode,
+        });
+      }
+    },
+    [],
+  );
+
   const finish = useCallback(
     async (completed: boolean, watchedSeconds: number, exitReason?: ExitReason) => {
       const session = sessionRef.current;
@@ -106,56 +129,35 @@ export default function ActiveWatchScreen() {
         router.replace('/(tabs)');
         return;
       }
-      const summary = await SessionService.finalizeSession(session.sessionId, {
+      const finalized = await WatchFinalizeService.finalize({
+        session,
         completed,
         watchedSeconds,
         exitReason,
+        navigateToResult: true,
+        mode,
       });
-      if (!summary) {
+      if (!finalized) {
         // すでに確定済み（二重呼び出し）。何も加算しない
         return;
       }
-
-      if (isRaid) {
-        const settings = await StorageService.getSettings();
-        void RaidSyncService.enqueueFinish(summary.session, settings.publicName);
-        void AnalyticsService.track(completed ? 'raid_completed' : 'raid_exited', {
-          watchedSeconds: summary.session.watchedSeconds,
-        });
-      } else {
-        if (completed) {
-          void AnalyticsService.track(mode === 'first' ? 'first_long_completed' : 'long_completed', {
-            watchedSeconds: summary.session.watchedSeconds,
-          });
-        }
-      }
-
-      router.replace({
-        pathname: '/raid/result',
-        params: {
-          sessionId: summary.session.sessionId,
-          total: String(summary.totalDetoxSeconds),
-          level: String(summary.dopagakiLevel),
-          delta: String(summary.dopagakiDelta),
-          streak: String(summary.streakDays),
-        },
-      });
     },
     [isRaid, mode],
   );
 
   const trackMilestone = useCallback(
     (seconds: number) => {
-      if (!isRaid) {
-        return;
-      }
-      if (seconds === 30) {
-        void AnalyticsService.track('raid_30s_reached');
-      } else if (seconds === 60) {
-        void AnalyticsService.track('raid_60s_reached');
+      if (isRaid) {
+        if (seconds === 30) {
+          void AnalyticsService.track('raid_30s_reached');
+        } else if (seconds === 60) {
+          void AnalyticsService.track('raid_60s_reached');
+        }
+      } else if (mode === 'first' && seconds === 30) {
+        void AnalyticsService.track('first_long_30s_reached');
       }
     },
-    [isRaid],
+    [isRaid, mode],
   );
 
   return (
@@ -170,6 +172,9 @@ export default function ActiveWatchScreen() {
           onComplete={(watchedSeconds) => void finish(true, watchedSeconds)}
           onExit={(reason, watchedSeconds) => void finish(false, watchedSeconds, reason)}
           onMilestone={trackMilestone}
+          onProgress={(watchedSeconds) => {
+            watchedRef.current = watchedSeconds;
+          }}
         />
       ) : (
         <View style={{ flex: 1, backgroundColor: colors.black }} />

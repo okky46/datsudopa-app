@@ -30,11 +30,10 @@ import {
 } from '../src/constants/onboarding';
 import { colors, radius, shadows, spacing, typography } from '../src/constants/theme';
 import { AnalyticsService } from '../src/services/AnalyticsService';
-import { DopagakiService } from '../src/services/DopagakiService';
 import { NotificationService } from '../src/services/NotificationService';
 import { ProfileService } from '../src/services/ProfileService';
+import { ProgressService } from '../src/services/ProgressService';
 import { StorageService } from '../src/services/StorageService';
-import { jstDateKey } from '../src/utils/jst';
 import { generateNameCandidates, validatePublicName } from '../src/utils/username';
 
 const STEP_COUNT = 5;
@@ -164,10 +163,8 @@ export default function OnboardingScreen() {
       const publicName = validation.ok ? validation.normalized : generateNameCandidates(1)[0];
       const usageOption = findUsageOption(usage?.id);
 
+      // requested/granted/denied の記録は NotificationService.requestPermission 内で行う
       const granted = await NotificationService.requestPermission();
-      if (granted) {
-        void AnalyticsService.track('notification_permission_granted');
-      }
 
       const settings = {
         onboardingCompleted: true,
@@ -176,11 +173,8 @@ export default function OnboardingScreen() {
         shortsUsageId: usageOption.id,
       };
       await StorageService.saveSettings(settings);
-      await DopagakiService.initialize(usageOption.id);
-      const firstUse = await StorageService.getFirstUseDateKey();
-      if (!firstUse) {
-        await StorageService.saveFirstUseDateKey(jstDateKey());
-      }
+      // 初期ドパガキ度・初回利用日・未参加判定開始日（22:03以降の初回登録は翌日から）をまとめて設定
+      await ProgressService.initializeOnComplete(usageOption.id);
       await NotificationService.scheduleDailyRaid(settings);
       void ProfileService.syncPublicName(publicName);
       void AnalyticsService.track('onboarding_completed');
